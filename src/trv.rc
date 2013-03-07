@@ -1,0 +1,309 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_TRV                 ICON                    "trv.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_TRV MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "E&xit",                       IDM_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "Copy\t<Ctrl+Ins>",            ID_EDIT_COPY
+        MENUITEM "Select All",                  ID_EDIT_SELECTALL, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "Find\t<Ctrl+F>",                ID_EDIT_FIND
+        MENUITEM "Find Next\t<F3>",               ID_EDIT_FINDNEXT
+        MENUITEM "Goto Line",                   ID_EDIT_GOTOLINE, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "Add Alias\t<Ctrl+L>",         ID_ADDALIAS
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "Trace Window\tAlt+1",         32782
+        MENUITEM "Filter Window\tAlt+2",        32781
+        MENUITEM "Output Window",               ID_VIEW_MESSAGEWINDOW
+        , GRAYED
+        MENUITEM "Console Window\tAlt+C",       ID_VIEW_CONSOLEWINDOW
+        MENUITEM SEPARATOR
+        MENUITEM "Show Filtered\tCtrl+H",       32780
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About ...",                  IDM_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDC_TRV ACCELERATORS 
+BEGIN
+    "L",            ID_ADDALIAS,            VIRTKEY, CONTROL, NOINVERT
+    "A",            ID_FILTER_ADDFILTER,    VIRTKEY, CONTROL, NOINVERT
+    "M",            ID_BOOKMARK,            VIRTKEY, CONTROL, NOINVERT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
+    "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
+    VK_F3,          ID_EDIT_FINDNEXT,       VIRTKEY, NOINVERT
+    "G",            ID_GOTO,                VIRTKEY, CONTROL, NOINVERT
+    "2",            ID_NAVFILTER,           VIRTKEY, ALT, NOINVERT
+    "1",            ID_NAVLIST,             VIRTKEY, ALT, NOINVERT
+    "C",            ID_VIEW_CONSOLEWINDOW,  VIRTKEY, ALT, NOINVERT
+    "H",            ID_TOGGLEHIDE,          VIRTKEY, CONTROL, NOINVERT
+    "T",            ID_FILTER_THREAD,        VIRTKEY, CONTROL, NOINVERT
+    "/",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
+    "?",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
+    "U",            ID_FILTER_FILTERSUBSYSTEMS, VIRTKEY, CONTROL, NOINVERT
+    "R",            ID_FILTER_FILTERRANGE,           VIRTKEY, CONTROL, NOINVERT
+    "O",            ID_FILTER_TOPOLOGY, VIRTKEY, CONTROL, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOG  22, 17, 230, 75
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
+FONT 8, "System"
+BEGIN
+    ICON            IDI_TRV,IDC_MYICON,14,9,16,16
+    LTEXT           "Trv.js Version 2.0",IDC_STATIC,49,10,119,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) Alexandre Grigorovitch 2004,2013",IDC_STATIC,49,20,119,8
+    DEFPUSHBUTTON   "OK",IDOK,195,6,30,11,WS_GROUP
+END
+
+IDD_FILTERDLG DIALOGEX 0, 0, 315, 106
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Filter"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    EDITTEXT        IDC_TEXT,49,7,259,15,ES_MULTILINE | ES_AUTOHSCROLL
+    CONTROL         "Use regular expression",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,28,87,10
+    CONTROL         "Case sensitive",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+                    WS_DISABLED | WS_TABSTOP,7,42,61,10
+    EDITTEXT        IDC_GROUP,248,26,60,15,ES_MULTILINE | ES_AUTOHSCROLL
+    LTEXT           "Group:",IDC_STATIC,219,29,22,8
+    EDITTEXT        IDC_COMMENT,48,57,149,15,ES_MULTILINE | ES_AUTOHSCROLL
+    COMBOBOX        IDC_COLOR,248,58,60,59,CBS_DROPDOWN | WS_VSCROLL | 
+                    WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,175,83,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,258,83,50,16
+    LTEXT           "Find what:",IDC_STATIC,7,9,34,8
+    LTEXT           "Color:",IDC_STATIC,219,60,19,8
+    LTEXT           "Comment:",IDC_STATIC,7,61,34,8
+END
+
+IDD_MSGVIEWDLG DIALOGEX 0, 0, 354, 105
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION
+CAPTION "Message View"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,297,81,50,16
+    EDITTEXT        IDC_TIME,30,6,100,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
+                    WS_BORDER
+    EDITTEXT        IDC_MSG,7,24,341,48,ES_MULTILINE | ES_READONLY
+    EDITTEXT        IDC_PRI,284,6,30,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
+                    WS_BORDER
+    EDITTEXT        IDC_SUB,225,6,28,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
+                    WS_BORDER
+    LTEXT           "Time:",IDC_STATIC,7,6,18,8
+    LTEXT           "Line:",IDC_STATIC,139,6,16,8
+    LTEXT           "Pri:",IDC_STATIC,208,6,11,8
+    LTEXT           "SS:",IDC_STATIC,266,6,12,8
+    EDITTEXT        IDC_LINE,159,6,38,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
+                    WS_BORDER
+END
+
+IDD_FINDDLG DIALOGEX 0, 0, 315, 106
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Find"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    EDITTEXT        IDC_TEXT,49,7,259,15,ES_MULTILINE | ES_AUTOHSCROLL
+    CONTROL         "Use regular expression",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,28,87,10
+    CONTROL         "Case sensitive",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+                    WS_DISABLED | WS_TABSTOP,7,42,61,10
+    DEFPUSHBUTTON   "OK",IDOK,175,83,50,16
+    PUSHBUTTON      "Cancel",IDCANCEL,258,83,50,16
+    LTEXT           "Find what:",IDC_STATIC,7,9,34,8
+END
+
+IDD_PROGRESSDLG DIALOGEX 0, 0, 186, 62
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Loading..."
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,65,39,50,16
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,18,172,
+                    14
+END
+
+IDD_CONSOLEDLG DIALOGEX 0, 0, 354, 186
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_CHILD | WS_VISIBLE 
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    EDITTEXT        IDC_CMD,1,125,341,31,ES_AUTOVSCROLL
+    CONTROL         "",IDC_HISTORY,"RichEdit20W",ES_MULTILINE | ES_AUTOVSCROLL,1,1,341,118
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""windows.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_FILTERDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 308
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 99
+    END
+
+    IDD_MSGVIEWDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 347
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 97
+    END
+
+    IDD_SUBSYSFILTERDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 215
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 88
+    END
+
+    IDD_ALIASDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 177
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 67
+    END
+
+    IDD_FINDDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 88
+    END
+
+    IDD_PROGRESSDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_APP_TITLE           "trv"
+    IDC_TRV                 "TRV"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

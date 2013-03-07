@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\bitset.cpp" />
+    <ClCompile Include="src\color.cpp" />
+    <ClCompile Include="src\commandview.cpp" />
+    <ClCompile Include="src\dock.cpp" />
+    <ClCompile Include="src\FindDlg.cpp" />
+    <ClCompile Include="src\jshost.cpp" />
+    <ClCompile Include="src\js\dollar.cpp" />
+    <ClCompile Include="src\js\history.cpp" />
+    <ClCompile Include="src\js\init.cpp" />
+    <ClCompile Include="src\js\output.cpp" />
+    <ClCompile Include="src\js\query.cpp" />
+    <ClCompile Include="src\js\tid.cpp" />
+    <ClCompile Include="src\js\trace.cpp" />
+    <ClCompile Include="src\js\view.cpp" />
+    <ClCompile Include="src\outputview.cpp" />
+    <ClCompile Include="src\persist.cpp" />
+    <ClCompile Include="src\stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\strstr.cpp" />
+    <ClCompile Include="src\textfile.cpp" />
+    <ClCompile Include="src\traceapp.cpp" />
+    <ClCompile Include="src\tracelineparser.cpp" />
+    <ClCompile Include="src\traceview.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\bitset.h" />
+    <ClInclude Include="src\blockarray.h" />
+    <ClInclude Include="src\color.h" />
+    <ClInclude Include="src\commandview.h" />
+    <ClInclude Include="src\dock.h" />
+    <ClInclude Include="src\file.h" />
+    <ClInclude Include="src\FindDlg.h" />
+    <ClInclude Include="src\jshost.h" />
+    <ClInclude Include="src\js\apphost.h" />
+    <ClInclude Include="src\js\dollar.h" />
+    <ClInclude Include="src\js\error.h" />
+    <ClInclude Include="src\js\funcwrap.h" />
+    <ClInclude Include="src\js\history.h" />
+    <ClInclude Include="src\js\init.h" />
+    <ClInclude Include="src\js\objectwrap.h" />
+    <ClInclude Include="src\js\output.h" />
+    <ClInclude Include="src\js\query.h" />
+    <ClInclude Include="src\js\querymap.h" />
+    <ClInclude Include="src\js\queryop.h" />
+    <ClInclude Include="src\js\querypair.h" />
+    <ClInclude Include="src\js\querytracesource.h" />
+    <ClInclude Include="src\js\querywhere.h" />
+    <ClInclude Include="src\js\tid.h" />
+    <ClInclude Include="src\js\trace.h" />
+    <ClInclude Include="src\js\view.h" />
+    <ClInclude Include="src\lineinfo.h" />
+    <ClInclude Include="src\make_unique.h" />
+    <ClInclude Include="src\outputview.h" />
+    <ClInclude Include="src\persist.h" />
+    <ClInclude Include="src\resource.h" />
+    <ClInclude Include="src\stdafx.h" />
+    <ClInclude Include="src\stringreader.h" />
+    <ClInclude Include="src\stringref.h" />
+    <ClInclude Include="src\stringutils.h" />
+    <ClInclude Include="src\strstr.h" />
+    <ClInclude Include="src\testassert.h" />
+    <ClInclude Include="src\textfile.h" />
+    <ClInclude Include="src\traceapp.h" />
+    <ClInclude Include="src\tracelineparser.h" />
+    <ClInclude Include="src\traceview.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="src\small.ico" />
+    <Image Include="src\trv.bmp" />
+    <Image Include="src\trv.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\trv.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="help.js" />
+    <None Include="std.js" />
+    <None Include="test.js" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ED11AF74-5424-4F68-9A3F-5E7E16026F8D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>trv</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfAtl>Static</UseOfAtl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfAtl>Static</UseOfAtl>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <LibraryPath>$(LibraryPath);$(V8)\build\debug\lib</LibraryPath>
+    <IncludePath>$(IncludePath);$(V8)\include</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(IncludePath);$(V8)\include</IncludePath>
+    <LibraryPath>$(LibraryPath);$(V8)\build\release\lib</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>src</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;comctl32.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;WS2_32.Lib;winmm.lib;%(AdditionalDependencies); preparser_lib.lib;v8_base.lib;v8_snapshot.lib </AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>src</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;comctl32.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;WS2_32.Lib;winmm.lib;%(AdditionalDependencies); preparser_lib.lib;v8_base.lib;v8_snapshot.lib </AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
