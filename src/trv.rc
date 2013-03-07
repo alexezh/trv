@@ -51,13 +51,10 @@ BEGIN
         MENUITEM "Find\t<Ctrl+F>",                ID_EDIT_FIND
         MENUITEM "Find Next\t<F3>",               ID_EDIT_FINDNEXT
         MENUITEM "Goto Line",                   ID_EDIT_GOTOLINE, GRAYED
-        MENUITEM SEPARATOR
-        MENUITEM "Add Alias\t<Ctrl+L>",         ID_ADDALIAS
     END
     POPUP "&View"
     BEGIN
         MENUITEM "Trace Window\tAlt+1",         32782
-        MENUITEM "Filter Window\tAlt+2",        32781
         MENUITEM "Output Window",               ID_VIEW_MESSAGEWINDOW
         , GRAYED
         MENUITEM "Console Window\tAlt+C",       ID_VIEW_CONSOLEWINDOW
@@ -78,8 +75,6 @@ END
 
 IDC_TRV ACCELERATORS 
 BEGIN
-    "L",            ID_ADDALIAS,            VIRTKEY, CONTROL, NOINVERT
-    "A",            ID_FILTER_ADDFILTER,    VIRTKEY, CONTROL, NOINVERT
     "M",            ID_BOOKMARK,            VIRTKEY, CONTROL, NOINVERT
     VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
     "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
@@ -90,12 +85,8 @@ BEGIN
     "1",            ID_NAVLIST,             VIRTKEY, ALT, NOINVERT
     "C",            ID_VIEW_CONSOLEWINDOW,  VIRTKEY, ALT, NOINVERT
     "H",            ID_TOGGLEHIDE,          VIRTKEY, CONTROL, NOINVERT
-    "T",            ID_FILTER_THREAD,        VIRTKEY, CONTROL, NOINVERT
     "/",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
     "?",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
-    "U",            ID_FILTER_FILTERSUBSYSTEMS, VIRTKEY, CONTROL, NOINVERT
-    "R",            ID_FILTER_FILTERRANGE,           VIRTKEY, CONTROL, NOINVERT
-    "O",            ID_FILTER_TOPOLOGY, VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -104,38 +95,15 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOG  22, 17, 230, 75
+IDD_ABOUTBOX DIALOGEX  22, 17, 230, 75
 STYLE DS_SETFONT | DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
-FONT 8, "System"
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     ICON            IDI_TRV,IDC_MYICON,14,9,16,16
     LTEXT           "Trv.js Version 2.0",IDC_STATIC,49,10,119,8,SS_NOPREFIX
     LTEXT           "Copyright (C) Alexandre Grigorovitch 2004,2013",IDC_STATIC,49,20,119,8
     DEFPUSHBUTTON   "OK",IDOK,195,6,30,11,WS_GROUP
-END
-
-IDD_FILTERDLG DIALOGEX 0, 0, 315, 106
-STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | 
-    WS_SYSMENU
-CAPTION "Filter"
-FONT 8, "MS Shell Dlg", 0, 0, 0x0
-BEGIN
-    EDITTEXT        IDC_TEXT,49,7,259,15,ES_MULTILINE | ES_AUTOHSCROLL
-    CONTROL         "Use regular expression",IDC_CHECK1,"Button",
-                    BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,28,87,10
-    CONTROL         "Case sensitive",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
-                    WS_DISABLED | WS_TABSTOP,7,42,61,10
-    EDITTEXT        IDC_GROUP,248,26,60,15,ES_MULTILINE | ES_AUTOHSCROLL
-    LTEXT           "Group:",IDC_STATIC,219,29,22,8
-    EDITTEXT        IDC_COMMENT,48,57,149,15,ES_MULTILINE | ES_AUTOHSCROLL
-    COMBOBOX        IDC_COLOR,248,58,60,59,CBS_DROPDOWN | WS_VSCROLL | 
-                    WS_TABSTOP
-    DEFPUSHBUTTON   "OK",IDOK,175,83,50,16
-    PUSHBUTTON      "Cancel",IDCANCEL,258,83,50,16
-    LTEXT           "Find what:",IDC_STATIC,7,9,34,8
-    LTEXT           "Color:",IDC_STATIC,219,60,19,8
-    LTEXT           "Comment:",IDC_STATIC,7,61,34,8
 END
 
 IDD_MSGVIEWDLG DIALOGEX 0, 0, 354, 105

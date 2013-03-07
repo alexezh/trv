@@ -26,11 +26,6 @@
 #define ID_VIEW_TID                     134
 #define ID_VIEW_TIME                    135
 #define ID_VIEW_SHOWFILTERED            136
-#define ID_FILTER_ADDFILTER             137
-#define ID_FILTER_REMOVEFILTER          138
-#define ID_FILTER_REMOVEALLFILTERS      139
-#define ID_FILTER_CURRENTOP             140
-#define ID_FILTER_JUMPTOOP              141
 #define ID_EDIT_COPY                    142
 #define ID_EDIT_SELECTALL               143
 #define ID_EDIT_FIND                    144
@@ -40,22 +35,10 @@
 #define ID_EDIT_GOTOTRACEVIEW           148
 #define ID_VIEW_LINE                    149
 #define ID_Menu                         150
-#define ID_VIEW_PRIORITY                151
-#define ID_VIEW_SUBSYSTEM               152
-#define ID_VIEW_ALIASWINDOW             153
-#define ID_VIEW_FILTERWINDOW            154
 #define ID_VIEW_MESSAGEWINDOW           155
 #define ID_NAVTRACE                     156
-#define ID_ADDALIAS                     157
-#define ID_Menu158                      158
-#define ID_FILTER_FILTERSUBSYSTEMS      159
-#define ID_TOOLS_MEDIAPROCPARSER        160
-#define ID_FILTER_EDITFILTER            161
-#define IDC_FILTER_MENU                 162
 #define ID_VIEW_CONSOLEWINDOW           163
 #define ID_EDIT_FINDNEXT                164
-#define ID_FILTER_TOPOLOGY              165
-#define ID_FILTER_FILTERRANGE           166
 
 #define IDC_MSG                         1000
 #define IDC_TIME                        1001
@@ -78,8 +61,6 @@
 #define IDC_CHECK2                      1019
 #define IDC_HISTORY                     1019
 #define IDC_GROUP			1020
-#define ID_ADDFILTER                    32772
-#define ID_ADDSUBSYS                    32773
 #define ID_COPY                         32774
 #define ID_GOTO                         32775
 #define ID_BOOKMARK                     32776

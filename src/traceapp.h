@@ -74,6 +74,7 @@ protected:
     LRESULT OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFind(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+    LRESULT OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
 
     
     BEGIN_MSG_MAP(CTraceApp)
@@ -91,6 +92,7 @@ protected:
         COMMAND_HANDLER(ID_EDIT_COPY, 1, OnCopy)
         COMMAND_HANDLER(ID_EDIT_FIND, 1, OnFind)
         COMMAND_HANDLER(ID_EDIT_FINDNEXT, 1, OnFindNext)
+        COMMAND_HANDLER(IDM_ABOUT, 0, OnAbout)
 
         COMMAND_HANDLER(ID_TOGGLEHIDE, 0, OnToggleHide)
         COMMAND_HANDLER(ID_NAVLIST, 0, OnNavList)

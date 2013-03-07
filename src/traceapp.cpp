@@ -27,6 +27,7 @@
 #include "outputview.h"
 #include "jshost.h"
 #include "finddlg.h"
+#include "about.h"
 #include "file.h"
 #include "textfile.h"
 #include "make_unique.h"
@@ -315,6 +316,15 @@ Cleanup:
     bHandled = TRUE;
     
     return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+LRESULT CTraceApp::OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+	CAboutDlg dlg;
+	dlg.DoModal();
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

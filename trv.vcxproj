@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\About.cpp" />
     <ClCompile Include="src\bitset.cpp" />
     <ClCompile Include="src\color.cpp" />
     <ClCompile Include="src\commandview.cpp" />
@@ -38,6 +39,7 @@
     <ClCompile Include="src\traceview.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\About.h" />
     <ClInclude Include="src\bitset.h" />
     <ClInclude Include="src\blockarray.h" />
     <ClInclude Include="src\color.h" />

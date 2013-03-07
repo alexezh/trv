@@ -51,6 +51,9 @@
     <ClCompile Include="src\js\history.cpp">
       <Filter>js</Filter>
     </ClCompile>
+    <ClCompile Include="src\About.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bitset.h" />
@@ -141,6 +144,9 @@
       <Filter>js</Filter>
     </ClInclude>
     <ClInclude Include="src\stringutils.h" />
+    <ClInclude Include="src\About.h">
+      <Filter>ui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="src\small.ico">
