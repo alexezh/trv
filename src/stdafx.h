@@ -63,6 +63,6 @@
 #include <assert.h>
 #include <mutex>
 
-#include "v8.h"
+#include "include/v8.h"
 
 using namespace ATL;

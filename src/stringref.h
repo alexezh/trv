@@ -41,5 +41,5 @@ struct CStringRef
 	}
 
     LPCSTR psz;
-    DWORD cch;
+    size_t cch;
 };

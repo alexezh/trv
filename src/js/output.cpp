@@ -20,32 +20,31 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include "output.h"
-#include "funcwrap.h"
 
 namespace Js {
 
 v8::Persistent<v8::FunctionTemplate> Output::_Template;
 
-void Output::Init(v8::Handle<v8::Object> & target)
+void Output::Init(v8::Isolate* iso, v8::Handle<v8::Object> & target)
 {
 	// create an instance of view object and make a property
-	auto view = _Template->InstanceTemplate()->NewInstance();
+	// auto view = _Template->InstanceTemplate()->NewInstance();
 	// target->SetAccessor(v8::String::New("output"), v8::FunctionTemplate::New(jsRemoveSelection), v8::External::New());
 }
 
-v8::Handle<v8::Value> Output::jsNew(const v8::Arguments &args)
+void Output::jsNew(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
 	Output *view = new Output(args.This());
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
-v8::Handle<v8::Value> Output::jsOutput(const v8::Arguments& args)
+void Output::jsOutput(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	auto pThis = UnwrapThis<Output>(args.This());
 	assert(args.Length() == 1);
 
-	return v8::Undefined();
+	args.GetReturnValue().SetUndefined();
 }
 
 } // Js

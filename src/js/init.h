@@ -24,9 +24,9 @@ namespace Js {
 
 class IAppHost;
 
-void InitRuntimeTemplate(v8::Handle<v8::ObjectTemplate> & target);
+void InitRuntimeTemplate(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & target);
 
 // called once to initialize all templates
-bool InitRuntime(v8::Handle<v8::Object> & target);
+bool InitRuntime(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 
 } // Js

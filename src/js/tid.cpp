@@ -20,24 +20,28 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include "tid.h"
-#include "funcwrap.h"
+#include "objectwrap.h"
+#include "error.h"
+#include "log.h"
 
 using namespace v8;
 
 namespace Js {
 
-static char s_InvalidArgs[] = "Invalid number of arguments. Format matchtid(int)";
-Persistent<FunctionTemplate> MatchTid::_Template;
+static char s_InvalidArgs[] = "Invalid number of FunctionCallbackInfo<Value>. Format matchtid(int)";
+UniquePersistent<FunctionTemplate> MatchTid::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void MatchTid::Init(v8::Handle<v8::ObjectTemplate> & target)
+void MatchTid::Init(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & target)
 {
-	_Template = Persistent<FunctionTemplate>(FunctionTemplate::New(jsNew));
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
-	_Template->SetClassName(String::New("matchtid"));
+	LOG("");
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->SetClassName(String::NewFromUtf8(iso, "matchtid"));
+	_Template.Reset(iso, tmpl);
 
-	target->Set(String::New("matchtid"), v8::FunctionTemplate::New(jsMake));
+	target->Set(String::NewFromUtf8(iso, "matchtid"), v8::FunctionTemplate::New(iso, jsMake));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -47,28 +51,28 @@ MatchTid::MatchTid(int tid)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Handle<Value> MatchTid::jsMake(const Arguments &args)
+void MatchTid::jsMake(const FunctionCallbackInfo<Value> &args)
 {
 	if(args.Length() != 3)
 	{
-		return ThrowException(Exception::SyntaxError(String::New(s_InvalidArgs)));
+		ThrowTypeError(s_InvalidArgs);
 	}
 
-	return _Template->GetFunction()->NewInstance(1, &args[0]);
+	args.GetReturnValue().Set(GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args[0]));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Handle<Value> MatchTid::jsNew(const Arguments &args)
+void MatchTid::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	if(args.Length() != 1 || !args[0]->IsInt32())
 	{
-		return ThrowException(Exception::TypeError(String::New(s_InvalidArgs)));
+		ThrowTypeError(s_InvalidArgs);
 	}
 
 	MatchTid *tid = new MatchTid(args[0]->Int32Value());
-	args.This()->SetInternalField(0, External::New(tid));
+	args.This()->SetInternalField(0, External::New(Isolate::GetCurrent(), tid));
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
 } // 

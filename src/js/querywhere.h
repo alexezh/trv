@@ -113,7 +113,7 @@ private:
 	public:
 		MatchJs(const v8::Handle<v8::Function> & func)
 		{
-			_Func = v8::Persistent<v8::Function>::New(func);
+			_Func.Reset(v8::Isolate::GetCurrent(), func);
 		}
 
 		bool IsNative()
@@ -128,10 +128,11 @@ private:
 			return false;
 		}
 
-		virtual bool JsEval(v8::Handle<v8::Object> & line)
+		virtual bool JsEval(v8::Local<v8::Object> & line)
 		{
-			v8::Handle<v8::Value> v = line;
-			auto res = _Func->Call(v8::Context::GetCurrent()->Global(), 1, &v);
+			v8::Local<v8::Value> v = line;
+			auto func(v8::Local<v8::Function>::New(v8::Isolate::GetCurrent(), _Func));
+			auto res = func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 1, &v);
 			return res->BooleanValue();
 		}
 

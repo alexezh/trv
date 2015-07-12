@@ -46,9 +46,14 @@ LRESULT CInputCtrl::OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		PostMessage(WM_SCROLLHISTORY, -1, 0);
 		bHandled = TRUE;
 	}
-	else if(wParam == VK_DOWN)
+	else if (wParam == VK_DOWN)
 	{
 		PostMessage(WM_SCROLLHISTORY, 1, 0);
+		bHandled = TRUE;
+	}
+	else if (wParam == VK_ESCAPE)
+	{
+		PostMessage(WM_CLEARCOMMAND, 1, 0);
 		bHandled = TRUE;
 	}
 	else
@@ -79,6 +84,12 @@ LRESULT CInputCtrl::OnExecuteCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
     SetWindowText(L"");
 
     return 0;
+}
+
+LRESULT CInputCtrl::OnClearCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	SetWindowText(L"");
+	return 0;
 }
 
 LRESULT CInputCtrl::OnScrollHistory(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)

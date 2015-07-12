@@ -8,11 +8,27 @@ function vs(coll, title, color) { $.view.filter(coll, title, color); }
 function vsi(coll, title, color) { $.view.filterinteractive(coll, title, color); }
 
 function vr(id) { $.view.removefilter(id); }
-function vt() { $.view.showfilters = !$.view.showselections; }
+
+// show/hide unselected text
+function vt() { $.view.showfilters = !$.view.showfilters; }
+$.dotexpressions.add("f", vt);
+
+// print filters
 function vp() { $.view.printfilters(); }
-function vsw(condition, title, color) { $.view.filter($.trace.where(condition)); }
+$.dotexpressions.add("p", vp);
+
+
+function vsw(condition, color, title) 
+{ 
+    $.view.filter($q.where(condition), color, title); 
+}
+$.dotexpressions.add("a", vsw);
+
 function vd(id) { $.view.enablefilter(id, false); }
 function ve(id) { $.view.enablefilter(id, true); }
+
+// bind to keyboard here
+// $.keybinding.add("Ctrl+H", vt())
 
 // history
 var $h = $.history;
@@ -44,5 +60,5 @@ var Magenta = "Magenta";
 var Yellow = "Yellow";
 var White = "White";
 
-$.import("test.js");
-$.import("help.js");
+$.import("trv.test.js");
+$.import("trv.help.js");

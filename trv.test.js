@@ -1,5 +1,22 @@
 var cur;
 
+function test_or_string()
+{
+	$v.filter($q.where("Run").or("inside"), Red);
+}
+
+function test_and_string()
+{
+	$v.filter($q.where("Run").and("side"), Red);
+}
+
+function test_quick_collection()
+{
+ 	var c = [];
+	c.push($v.currentline);
+	$.collections.quick.add($v.currentline);
+}
+
 function test1()
 {
 	var qrange = $q.where("op started").or("op ended");

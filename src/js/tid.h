@@ -20,23 +20,28 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
+#include "objectwrap.h"
+
 namespace Js {
 
 // simple class for storing thread id
 class MatchTid
 {
 public:
-	static void Init(v8::Handle<v8::ObjectTemplate> & target);
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & target);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 private:
 	MatchTid(int tid);
 
-	static v8::Handle<v8::Value> jsMake(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
+	static void jsMake(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	int _Tid;
 };
 

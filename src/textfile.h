@@ -41,38 +41,34 @@ public:
 	struct LoadBlock
 	{
 		LoadBlock()
-			: Lines(1024*32)
-			, pbBuf(nullptr)
-			, nFileStart(0)
-			, nFileStop(0)
-			, cbBuf(0)
-			, cbData(0)
-			, cbWriteStart(0)
-			, cbFirstFullLineStart(0)
-			, cbLastFullLineEnd(0)
+			: Lines(1024 * 32)
 		{
 		}
 
 		// actual position in the file offset for this block
-		QWORD nFileStart;
-		QWORD nFileStop;
+		QWORD nFileStart = 0;
+		QWORD nFileStop = 0;
 
-		BYTE * pbBuf;
+		BYTE * pbBuf = nullptr;
 		
 		// total size of buf
-		DWORD cbBuf;
+		DWORD cbBuf = 0;
 
 		// total number of data in the buffer
-		DWORD cbData;
+		DWORD cbData = 0;
 
 		// offset to start writing
-		DWORD cbWriteStart;
+		DWORD cbWriteStart = 0;
 
 		// offset from beginning of data to the first line
-		DWORD cbFirstFullLineStart;
+		DWORD cbFirstFullLineStart = 0;
+
+		// offset to end of data
+		// for ascii is the same as line end
+		DWORD cbDataEnd = 0;
 
 		// offset from beginning of data to the end of last line
-		DWORD cbLastFullLineEnd;
+		DWORD cbLastFullLineEnd = 0;
 
 		// lines which were parsed but not reported
 		CBlockArray<LineInfo> Lines;
@@ -100,28 +96,32 @@ private:
 
     void LoadThread();
     HRESULT AllocBlock(DWORD cbSize, LoadBlock ** ppBlock);
-    HRESULT ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnStop);
+
+	// for ascii file pnStop == nStop
+    HRESULT ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnDataEnd, DWORD * pnLineEnd);
 
 private:
-    CTraceFileLoadCallback * m_pCallback;
+    CTraceFileLoadCallback * m_pCallback = nullptr;
+
+	bool m_bUnicode = false;
 
 	// true if thread is running
-	bool m_bLoading;
+	bool m_bLoading = false;
 
 	LARGE_INTEGER m_FileSize;
 
 	// store start / stop position for reading
-    QWORD m_nStart;
-    QWORD m_nStop;
-	bool m_bReverse;
+    QWORD m_nStart = 0;
+    QWORD m_nStop = 0;
+	bool m_bReverse = false;
 
-	DWORD m_BlockSize;
-	DWORD m_PageSize;
+	DWORD m_BlockSize = 1024 * 1024 * 1;
+	DWORD m_PageSize = 4096;
 
 	std::vector<LoadBlock*> m_Blocks;
-	DWORD m_TotalLines;
+	DWORD m_TotalLines = 0;
 
-    HANDLE m_hFile;
+	HANDLE m_hFile = INVALID_HANDLE_VALUE;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

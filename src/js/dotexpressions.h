@@ -20,15 +20,36 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
+#include "bitset.h"
+#include "objectwrap.h"
+#include "js/query.h"
+
 namespace Js {
 
-template <class T>
-T * UnwrapThis(v8::Handle<v8::Object> valThis)
+class DotExpressions : public BaseObject<DotExpressions>
 {
-	v8::Local<v8::Value> fld = valThis->GetInternalField(0);
-	v8::Local<v8::External> fldExt = fld.As<v8::External>();
-	T * pThis = (T*)fldExt->Value();
-	return pThis;
-}
+public:
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso) 
+	{ 
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
+
+	void Execute(v8::Isolate* iso, const std::string & line);
+
+private:
+	DotExpressions(const v8::Handle<v8::Object>& handle);
+
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsAdd(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+private:
+	v8::Local<v8::Value> AddWorker(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+	static v8::Persistent<v8::FunctionTemplate> _Template;
+	std::mutex _Lock;
+	std::map<std::string, v8::UniquePersistent<v8::Function>> _Expressions;
+};
 
 } // Js
+

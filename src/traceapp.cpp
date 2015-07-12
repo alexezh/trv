@@ -31,6 +31,8 @@
 #include "file.h"
 #include "textfile.h"
 #include "make_unique.h"
+#include "stringutils.h"
+#include "log.h"
 
 class CMyModule : public CAtlExeModuleT<CMyModule>
 {
@@ -182,7 +184,7 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
 	m_pOutputView->OutputLineA("Welcome to trv.js\r\nFor help type help() or go to http://github.com/alexezh/trv/wiki\r\n");
 
 	// start file load
-    LoadFile(0);
+    LoadFile(0, -1);
     
 	// create js host
 	// m_pFile->CreateCollection(&m_pJsColl);
@@ -198,6 +200,7 @@ Cleanup:
 //
 void CTraceApp::OnLoadBegin()
 {
+	LOG("@%p");
 }
 
 void CTraceApp::OnLoadEnd(HRESULT hr)
@@ -210,9 +213,21 @@ void CTraceApp::OnLoadBlock()
     PostMessage(WM_LOAD_BLOCK, 0, 0);
 }
 
-void CTraceApp::LoadFile(QWORD nStart)
+void CTraceApp::LoadFile(const std::string& file, int startPos, int endPos)
+{
+	LOG("@%p file=%s", file.c_str());
+	StringToWString(file, m_File);
+	LoadFile(startPos * 1024 * 1024, (endPos == -1) ? -1 : endPos * 1024 * 1024);
+}
+
+void CTraceApp::LoadFile(QWORD nStart, QWORD nStop)
 {
     HRESULT hr = S_OK;
+
+	if(m_File.length() == 0)
+	{
+		return;
+	}
 
     // open file
     hr = m_pFile->Open(m_File.c_str(), this);
@@ -231,11 +246,13 @@ void CTraceApp::LoadFile(QWORD nStart)
 //
 LRESULT CTraceApp::OnLoadBlock(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    return 0;
+	LOG("@%p", this);
+	return 0;
 }
 
 LRESULT CTraceApp::OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	LOG("@%p", this);
 	// refresh our collection
 	m_pFileColl->Refresh();
 	// m_pJsColl->Refresh();
@@ -363,6 +380,7 @@ LRESULT CTraceApp::OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bH
 //
 LRESULT CTraceApp::OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
+	// TODO: route through script?
     m_pTraceView->OnShowFiltered(!m_pTraceView->IsShowFiltered());
 
     bHandled = TRUE;
@@ -372,9 +390,41 @@ LRESULT CTraceApp::OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& 
 
 ///////////////////////////////////////////////////////////////////////////////
 //
+size_t CTraceApp::GetCurrentLine()
+{
+	if (m_pTraceView == nullptr)
+		return 0;
+
+	return m_pTraceView->GetFocusLine();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
 LRESULT CTraceApp::OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
     m_pTraceView->SetFocus();
+    
+    bHandled = TRUE;
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+LRESULT CTraceApp::OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+    m_pOutputView->SetFocus();
+    
+    bHandled = TRUE;
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+LRESULT CTraceApp::OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+    m_pCommandView->SetFocus();
     
     bHandled = TRUE;
 

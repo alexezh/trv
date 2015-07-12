@@ -28,11 +28,14 @@ namespace Js {
 // $h.show, $h.find("match"), $h.run(id)
 // use ctrl+r for interactive find?
 
-class History : public ObjectWrap
+class History : public BaseObject<History>
 {
 public:
-	static void Init();
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso) 
+	{ 
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 	
 	void Append(const char* pszLine);
 	void Load();
@@ -72,14 +75,14 @@ private:
 	History(const v8::Handle<v8::Object>& handle);
 	~History();
 
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsPrint(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsExec(const v8::Arguments &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsExec(const v8::FunctionCallbackInfo<v8::Value> &args);
 	bool InitFilePath();
 	bool OpenStream(std::fstream& stm, std::ios_base::openmode mode);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	typedef std::shared_ptr<std::string> EntryPtr;
 	struct EntryCompr
 	{

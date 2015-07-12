@@ -66,8 +66,8 @@ public:
 		}
 		v8::Handle<v8::Value> JsValue()
 		{
-			v8::Local<v8::Value> args = v8::Integer::New(_idxLine);
-			return TraceLine::GetTemplate()->GetFunction()->NewInstance(1, &args);
+			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), _idxLine);
+			return TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args);
 		}
 	
 	private:

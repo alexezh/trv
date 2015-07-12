@@ -72,10 +72,14 @@ public:
 public:
 	void OnViewCreated(Js::View*);
 	void OnHistoryCreated(Js::History*);
+	void OnDotExpressionsCreated(Js::DotExpressions*);
+
+	void LoadTrace(const char* pszName, int startPos, int endPos);
 
 	// trace storage
 	LineInfo& GetLine(size_t idx) override;
 	size_t GetLineCount() override;
+	size_t GetCurrentLine() override;
 	void UpdateLinesActive(CBitSet & set, int change) override;
 	bool SetTraceFormat(const char * psz) override;
 	void RefreshView() override;
@@ -85,9 +89,11 @@ public:
 	void SetViewLayout(double cmdHeight, double outHeight) override;
 
 private:
-	void QueueInput(std::unique_ptr<std::function<void()> > && item);
-	void ExecuteString(const std::string & line);
-	void ReportException(v8::TryCatch& try_catch);
+	void QueueInput(std::unique_ptr<std::function<void(v8::Isolate*)> > && item);
+	void ExecuteString(v8::Isolate* isolate, const std::string & line);
+	void ExecuteStringAsDotExpression(v8::Isolate* iso, const std::string & line);
+	void ExecuteStringAsScript(v8::Isolate* iso, const std::string & line);
+	void ReportException(v8::Isolate* isolate, v8::TryCatch& try_catch);
 
     static void WINAPI ScriptThreadInit(void * pCtx);
     void ScriptThread();
@@ -97,13 +103,14 @@ private:
 
 	HANDLE _hSem;
 	CRITICAL_SECTION _cs;
-	std::queue<std::unique_ptr<std::function<void()> > > _InputQueue;
+	std::queue<std::unique_ptr<std::function<void(v8::Isolate*)> > > _InputQueue;
 
 	CTraceCollection* _pTraceColl;
 
 	Js::View* _pView;
 	Js::History* _pHistory;
-	v8::Persistent<v8::ObjectTemplate> _Global;
-	v8::Persistent<v8::Context> _Context;
+	Js::DotExpressions* _pDotExpressions;
+	v8::UniquePersistent<v8::ObjectTemplate> _Global;
+	v8::UniquePersistent<v8::Context> _Context;
 };
 

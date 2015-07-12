@@ -30,9 +30,9 @@ public:
 	class Iterator : public QueryIterator
 	{
 	public:
-		Iterator(std::unique_ptr<QueryIterator> && src, v8::Persistent<v8::Function> func)
+		Iterator(std::unique_ptr<QueryIterator> && src, const v8::Persistent<v8::Function>& func)
 			: _Src(std::move(src))
-			, _Func(func)
+			, _Func(v8::Isolate::GetCurrent(), func)
 		{
 		}
 
@@ -58,7 +58,8 @@ public:
 		{
 			// v8::HandleScope scope;
 			auto v = _Src->JsValue();
-			auto v1 = _Func->Call(v8::Context::GetCurrent()->Global(), 1, &v);
+			auto func(v8::Local<v8::Function>::New(v8::Isolate::GetCurrent(), _Func));
+			auto v1 = func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 1, &v);
 			if(v1.IsEmpty())
 			{
 				throw V8RuntimeException("Exception from V8 failed");
@@ -73,7 +74,7 @@ public:
 	QueryOpMap(const std::shared_ptr<QueryOp> & src, const v8::Handle<v8::Function> & func)
 		: _Source(src)
 	{
-		_Func = v8::Persistent<v8::Function>::New(func);
+		_Func.Reset(v8::Isolate::GetCurrent(), func);
 	}
 
 	TYPE Type()
@@ -83,7 +84,7 @@ public:
 
 	std::string MakeDescription()
 	{
-		return std::string("map");
+		return std::string("map ") + _Source->MakeDescription();
 	}
 
 	std::unique_ptr<QueryIterator> CreateIterator()

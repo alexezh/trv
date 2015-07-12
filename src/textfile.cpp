@@ -22,18 +22,11 @@
 
 #include "traceapp.h"
 #include "textfile.h"
+#include "log.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 CTextTraceFile::CTextTraceFile()
-    : m_hFile(INVALID_HANDLE_VALUE)
-    , m_BlockSize(1024*1024*16)
-	, m_TotalLines(0)
-	, m_PageSize(4096)
-    , m_bLoading(false)
-	, m_bReverse(false)
-	, m_nStart(0)
-	, m_nStop(0)
 {
 }
 
@@ -51,6 +44,7 @@ HRESULT CTextTraceFile::Open(LPCWSTR pszFile, CTraceFileLoadCallback * pCallback
 {
     HRESULT hr = S_OK;
 
+	LOG("@%p open $S", this, pszFile);
 	m_pCallback = pCallback;
 	m_bReverse = bReverse;
 
@@ -156,6 +150,8 @@ void CTextTraceFile::LoadThread()
 					return;
 				}
 
+				// copy end of line from previous buffer
+				// we have to copy page aligned block and record the start of next data
 				assert(pEnd->cbBuf >= pEnd->cbLastFullLineEnd);
 				cbRollover = pEnd->cbBuf - pEnd->cbLastFullLineEnd;
 				DWORD cbRolloverRounded = (cbRollover + m_PageSize - 1) & (~(m_PageSize - 1));
@@ -163,6 +159,9 @@ void CTextTraceFile::LoadThread()
 
 				pNew->cbFirstFullLineStart = cbRolloverRounded - cbRollover;
 				memcpy(pNew->pbBuf + pNew->cbFirstFullLineStart, pEnd->pbBuf+pEnd->cbLastFullLineEnd, cbRollover);
+
+				// at this point we can decommit unnecessary pages for unicode
+				// this will waste address space but keep memory usage low
 
 				// nFileStart is in file offset
 				// cbLastFullLineEnd is in buffer
@@ -204,9 +203,11 @@ void CTextTraceFile::LoadThread()
         pNew->cbData = cbRead + pNew->cbData;
 
         // parse data
+		DWORD cbNewData;
 		IFC(ParseBlock(pNew, 
 						pNew->cbFirstFullLineStart, 
 						pNew->cbData, 
+						&cbNewData,
 						&pNew->cbLastFullLineEnd));
 
 		// append block
@@ -244,37 +245,86 @@ HRESULT CTextTraceFile::AllocBlock(DWORD cbSize, LoadBlock ** ppBlock)
     return S_OK;
 }
 
-HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnStop)
+HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnStop, DWORD * pnLineEnd)
 {
-    HRESULT hr = S_OK;
-    char * pszCur;
-    char * pszEnd;
-    char * pszLine = NULL;
-    char c;
-    WORD crcn = 0;
-    
-    BOOL fSkipSpace = FALSE;
-    DWORD nVal = 0;
+	HRESULT hr = S_OK;
+	char * pszCur;
+	char * pszEnd;
+	char * pszLine = NULL;
+	WORD crcn = 0;
 
-    pszCur = (char*)(pBlock->pbBuf + nStart);
-    pszEnd = (char*)(pBlock->pbBuf + nStop);
-    pszLine = pszCur;
+	BOOL fSkipSpace = FALSE;
+	DWORD nVal = 0;
 
-    for(;pszCur < pszEnd; pszCur++)
-    {
-        c = *pszCur;
-        
-        crcn <<= 8;
-        crcn |= c;
-        
-        if(crcn == 0x0d0a)
-        {
-			pBlock->Lines.Add(LineInfo(CStringRef(pszLine, pszCur-pszLine+1)));
-            pszLine = pszCur+1;
-        }
-    }
+	// test unicode file
+	pszCur = (char*)(pBlock->pbBuf + nStart);
+	pszEnd = (char*)(pBlock->pbBuf + nStop);
 
-    (*pnStop) = (pszLine) ? ((BYTE*)pszLine - pBlock->pbBuf) : ((BYTE*)pszEnd - pBlock->pbBuf);
+	if (pBlock->nFileStart == 0 && pBlock->cbData > 2)
+	{
+		if (pBlock->pbBuf[0] == 0xff && pBlock->pbBuf[1] == 0xfe)
+		{
+			LOG("@%p unicode mode");
+			m_bUnicode = true;
+			pszCur += 2;
+		}
+	}
+
+
+	if (m_bUnicode)
+	{
+		wchar_t c;
+		wchar_t* pszCurW = reinterpret_cast<wchar_t*>(pszCur);
+		wchar_t* pszEndW = reinterpret_cast<wchar_t*>(pszEnd);
+		wchar_t* pszLineW = reinterpret_cast<wchar_t*>(pszCur);
+
+		for (; pszCurW < pszEndW; pszCurW++)
+		{
+			c = *pszCurW;
+
+			crcn <<= 8;
+			crcn |= (char)c;
+
+			if (crcn == 0x0d0a)
+			{
+				// for now just drop first bytes
+				char* pszLine = pszCur;
+				for (wchar_t* p = pszLineW; p <= pszCurW; p++, pszCur++)
+				{
+					*pszCur = (char)*p;
+				}
+
+				// pszCur points after pszCurW so we do not need +1
+				pBlock->Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine)));
+				pszLineW = pszCurW + 1;
+			}
+		}
+
+		(*pnStop) = ((BYTE*)pszCur - pBlock->pbBuf);
+		(*pnLineEnd) = (pszLineW) ? ((BYTE*)pszLineW - pBlock->pbBuf) : ((BYTE*)pszEndW - pBlock->pbBuf);
+	}
+	else
+	{
+		pszLine = pszCur;
+		char c;
+		for (; pszCur < pszEnd; pszCur++)
+		{
+			c = *pszCur;
+
+			crcn <<= 8;
+			crcn |= c;
+
+			if (crcn == 0x0d0a)
+			{
+				pBlock->Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine + 1)));
+				pszLine = pszCur + 1;
+			}
+		}
+
+		(*pnStop) = nStop;
+		(*pnLineEnd) = (pszLine) ? ((BYTE*)pszLine - pBlock->pbBuf) : ((BYTE*)pszEnd - pBlock->pbBuf);
+	}
+
     
 //Cleanup:
 

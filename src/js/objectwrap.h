@@ -25,62 +25,84 @@
 
 namespace Js {
 
-class ObjectWrap 
+// base class for native objects owned by JS
+// stores weak reference to Js
+template <class T>
+class BaseObject 
 {
 public:
-	ObjectWrap ( ) 
+	BaseObject() 
 	{
 	}
 
 
-	virtual ~ObjectWrap ( ) 
+	virtual ~BaseObject() 
 	{
-		if (!_Handle.IsEmpty()) 
-		{
-			assert(_Handle.IsNearDeath());
-			_Handle.ClearWeak();
-			_Handle->SetInternalField(0, v8::Undefined());
-			_Handle.Dispose();
-			_Handle.Clear();
-		}
 	}
 
-
-	template <class T>
-	static inline T* Unwrap (v8::Handle<v8::Object> handle) {
+	static inline T* Unwrap(v8::Handle<v8::Object> handle) 
+	{
 		assert(!handle.IsEmpty());
 		assert(handle->InternalFieldCount() > 0);
-		return static_cast<T*>(handle->GetPointerFromInternalField(0));
+		void* ptr = handle->GetAlignedPointerFromInternalField(0);
+		BaseObject* wrap = static_cast<BaseObject*>(ptr);
+		return static_cast<T*>(wrap);
 	}
 
 
-	v8::Persistent<v8::Object> _Handle; // ro
+	inline v8::Local<v8::Object> Handle() 
+	{
+		return Handle(v8::Isolate::GetCurrent());
+	}
+
+
+	inline v8::Local<v8::Object> Handle(v8::Isolate* isolate) 
+	{
+		return v8::Local<v8::Object>::New(isolate, m_Handle);
+	}
+
+
+	inline v8::Persistent<v8::Object>& PersistedHandle()
+	{
+		return m_Handle;
+	}
+
 
 protected:
-	inline void Wrap (const v8::Handle<v8::Object>& handle) 
+	inline void Wrap(v8::Handle<v8::Object> handle) 
 	{
-		assert(_Handle.IsEmpty());
+		assert(m_Handle.IsEmpty());
 		assert(handle->InternalFieldCount() > 0);
-		_Handle = v8::Persistent<v8::Object>::New(handle);
-		_Handle->SetInternalField(0, v8::External::New(this));
+		handle->SetAlignedPointerInInternalField(0, static_cast<T*>(this));
+		m_Handle.Reset(v8::Isolate::GetCurrent(), handle);
 		MakeWeak();
 	}
 
 
-	inline void MakeWeak (void) 
+	inline void MakeWeak(void) 
 	{
-		_Handle.MakeWeak(this, WeakCallback);
-		_Handle.MarkIndependent();
+		m_Handle.SetWeak(this, WeakCallback);
+		m_Handle.MarkIndependent();
 	}
 
 private:
-	static void WeakCallback (v8::Persistent<v8::Value> value, void *data)
+	static void WeakCallback(
+		const v8::WeakCallbackData<v8::Object, BaseObject>& data) 
 	{
-		ObjectWrap *obj = static_cast<ObjectWrap*>(data);
-		assert(value == obj->_Handle);
-		assert(value.IsNearDeath());
-		delete obj;
+		v8::Isolate* isolate = data.GetIsolate();
+		v8::HandleScope scope(isolate);
+		BaseObject* wrap = data.GetParameter();
+		wrap->m_Handle.Reset();
+		delete wrap;
 	}
+
+	v8::Persistent<v8::Object> m_Handle;
 };
+
+template <class T>
+T * UnwrapThis(v8::Local<v8::Object> valThis)
+{
+	return T::Unwrap(valThis);
+}
 
 } // Js

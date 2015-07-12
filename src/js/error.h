@@ -20,6 +20,8 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
+#include "log.h"
+
 namespace Js {
 
 class V8RuntimeException : public std::exception
@@ -31,16 +33,36 @@ public:
 	}
 };
 
-inline v8::Handle<v8::Value> TryCatchCpp(const std::function<v8::Handle<v8::Value> ()>& func)
+inline void TryCatchCpp(const v8::FunctionCallbackInfo<v8::Value>& args, const std::function<v8::Local<v8::Value>()>& func)
 {
 	try
 	{
-		return func();
+		auto r(func());
+		if (!r.IsEmpty())
+			args.GetReturnValue().Set(r);
 	}
-	catch(V8RuntimeException e)
+	catch (V8RuntimeException e)
 	{
-		return v8::Handle<v8::Value>();
+		LOG(" v8 exception");
 	}
+}
+
+inline void ThrowError(const char* pszText)
+{
+	v8::Isolate::GetCurrent()->ThrowException(v8::Exception::Error(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszText)));
+	throw V8RuntimeException(pszText);
+}
+
+inline void ThrowTypeError(const char* pszText)
+{
+	v8::Isolate::GetCurrent()->ThrowException(v8::Exception::TypeError(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszText)));
+	throw V8RuntimeException(pszText);
+}
+
+inline void ThrowSyntaxError(const char* pszText)
+{
+	v8::Isolate::GetCurrent()->ThrowException(v8::Exception::SyntaxError(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszText)));
+	throw V8RuntimeException(pszText);
 }
 
 }

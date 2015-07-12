@@ -13,10 +13,7 @@
 #define IDC_TRV                         109
 #define ID_TRACEVIEW                    110
 #define ID_FILTER                       111
-#define IDD_FILTERDLG                   112
 #define IDD_MSGVIEWDLG                  113
-#define IDD_SUBSYSFILTERDLG             114
-#define IDD_ALIASDLG                    115
 #define IDD_FINDDLG                     116
 #define IDD_PROGRESSDLG                 117
 #define IDD_CONSOLEDLG                  118
@@ -30,13 +27,10 @@
 #define ID_EDIT_SELECTALL               143
 #define ID_EDIT_FIND                    144
 #define ID_EDIT_GOTOLINE                145
-#define ID_FILTER_THREAD                146
-#define ID_EDIT_GOTOFILTERVIEW          147
-#define ID_EDIT_GOTOTRACEVIEW           148
 #define ID_VIEW_LINE                    149
 #define ID_Menu                         150
 #define ID_VIEW_MESSAGEWINDOW           155
-#define ID_NAVTRACE                     156
+#define ID_VIEW_TRACEWINDOW             156
 #define ID_VIEW_CONSOLEWINDOW           163
 #define ID_EDIT_FINDNEXT                164
 

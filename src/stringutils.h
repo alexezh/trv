@@ -39,3 +39,32 @@ inline void WszToString(LPCWSTR pszFrom, std::string& to)
         delete [] pszTo;
     }
 }
+
+inline void WStringToString(const std::wstring& from, std::string& to)
+{
+    char* pszTo = NULL;
+    int cbMultiByte = 0;
+
+	cbMultiByte = WideCharToMultiByte(CP_UTF8, 0, from.c_str(), from.size(), NULL, cbMultiByte, NULL, NULL);
+
+    if (cbMultiByte > 0)
+    {
+        pszTo = new char[cbMultiByte+1];
+
+		WideCharToMultiByte(CP_UTF8, 0, from.c_str(), from.size(), pszTo, cbMultiByte, NULL, NULL);
+        pszTo[cbMultiByte] = 0;
+        to = pszTo;
+        
+        delete [] pszTo;
+    }
+}
+
+inline void StringToWString(const std::string& from, std::wstring& to)
+{
+	std::vector<WCHAR> szTextW;
+
+	szTextW.resize(from.length()+1);
+	int cchWide = MultiByteToWideChar(CP_UTF8, 0, from.c_str(), from.length(), &szTextW[0], szTextW.size());
+	szTextW[cchWide] = '\0';
+	to = &szTextW[0];
+}

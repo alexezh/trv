@@ -28,6 +28,7 @@ namespace Js {
 
 class View;
 class History;
+class DotExpressions;
 
 class IAppHost
 {
@@ -35,10 +36,13 @@ public:
 
 	virtual void OnViewCreated(View*) = 0;
 	virtual void OnHistoryCreated(History*) = 0;
+	virtual void OnDotExpressionsCreated(DotExpressions*) = 0;
 
+	virtual void LoadTrace(const char* pszName, int startPos, int endPos) = 0;
 	// trace storage
 	virtual LineInfo& GetLine(size_t idx) = 0;
 	virtual size_t GetLineCount() = 0;
+	virtual size_t GetCurrentLine() = 0;
 	virtual void UpdateLinesActive(CBitSet & set, int change) = 0;
 	// set trace format
 	virtual bool SetTraceFormat(const char * psz) = 0;
@@ -53,7 +57,7 @@ public:
 
 inline IAppHost * GetCurrentHost()
 {
-	auto ctx = v8::Context::GetEntered();
+	auto ctx = v8::Isolate::GetCurrent()->GetCurrentContext();
 	auto data = ctx->GetEmbedderData(1);
 	v8::Local<v8::External> dataExt = data.As<v8::External>();
 	IAppHost * pHost = (IAppHost*)dataExt->Value();

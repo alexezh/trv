@@ -24,10 +24,10 @@
 
 namespace Js {
 
-class Output : public ObjectWrap
+class Output : public BaseObject<Output>
 {
 public:
-	static void Init(v8::Handle<v8::Object> & target);
+	static void Init(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 
 private:
 	Output(const v8::Handle<v8::Object>& handle)
@@ -35,8 +35,8 @@ private:
 		Wrap(handle);
 	}
 
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsOutput(const v8::Arguments& args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsOutput(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 private:
 	static v8::Persistent<v8::FunctionTemplate> _Template;

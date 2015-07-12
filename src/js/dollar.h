@@ -30,24 +30,24 @@ public:
 	//	{
 	//		return _Template;
 	//	}
-	static void Init();
-	static void InitInstance(v8::Handle<v8::Object> & target);
+	static void Init(v8::Isolate* iso);
+	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 	static bool ImportFile(const char * pszFile);
 
 private:
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsImport(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsQuery(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsPrint(const v8::Arguments& args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsImport(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsQuery(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsLoadTrace(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-	static v8::Handle<v8::Value> jsGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
+	static void jsGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
 	static v8::Handle<v8::Value> ImportWorker(const char * pszName, bool& success);
 	static bool OpenScriptStream(const char * pszName, std::fstream& stm);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	v8::Persistent<v8::Object> _Dollar;
 	v8::Persistent<v8::Object> _History;
 	v8::Persistent<v8::Object> _View;

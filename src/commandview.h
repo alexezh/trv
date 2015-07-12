@@ -26,6 +26,7 @@
 // in order to avoid unnecessary \r\n char, post WM_EXECUTECOMMAND message when user types "return"
 #define WM_EXECUTECOMMAND (WM_USER+1)
 #define WM_SCROLLHISTORY (WM_USER+2)
+#define WM_CLEARCOMMAND (WM_USER+3)
 
 class CTraceApp;
 
@@ -46,12 +47,14 @@ public:
         MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
         MESSAGE_HANDLER(WM_EXECUTECOMMAND, OnExecuteCommand)
         MESSAGE_HANDLER(WM_SCROLLHISTORY, OnScrollHistory)
-    END_MSG_MAP()
+		MESSAGE_HANDLER(WM_CLEARCOMMAND, OnClearCommand)
+	END_MSG_MAP()
     
     LRESULT OnChar(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnExecuteCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnScrollHistory(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnExecuteCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnClearCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnScrollHistory(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 private:
     CTraceApp * m_pApp;
@@ -77,6 +80,11 @@ public:
     
     LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+	void SetFocus()
+	{
+		m_Input.SetFocus();
+	}
 
 private:
 	CTraceApp * m_pApp;

@@ -30,48 +30,54 @@ class CBitSet;
 
 namespace Js {
 
-class TraceLine : public ObjectWrap
+class TraceLine : public BaseObject<TraceLine>
 {
 public:
-	static void Init();
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 	const LineInfo& Line() { return _Line; }
 
 private:
 	TraceLine(const v8::Handle<v8::Object>& handle, int lineNum);
 
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 
-	static v8::Handle<v8::Value> jsPrint(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsTimeGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
-	static v8::Handle<v8::Value> jsThreadGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
-	static v8::Handle<v8::Value> jsMsgGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
+	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsTimeGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsThreadGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsMsgGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	LineInfo& _Line;
 };
 
-class TraceRange : public ObjectWrap
+class TraceRange : public BaseObject<TraceRange>
 {
 public:
-	static void Init();
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 	void GetLines(CBitSet& set);
 
 private:
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 	TraceRange(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end);
 	static bool ValueToLineIndex(v8::Local<v8::Value>& v, DWORD& idx);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	// for small sets it is better to use array
 	// for bigger sets - bitset. Ideally it would be nice to have compressed
 	// bitset where big ranges are collapsed
@@ -79,30 +85,36 @@ private:
 	CBitSet _Lines;
 };
 
-class Trace
+class Trace : public BaseObject<Trace>
 {
 public:
-
-	static void Init();
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	Trace(const v8::Handle<v8::Object>& handle)
+	{
+		Wrap(handle);
+	}
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 private:
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 	// returns a line by index
-	static v8::Handle<v8::Value> jsGetLine(const v8::Arguments &args);
+	static void jsGetLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 	// returns set of lines based on range
-	static v8::Handle<v8::Value> jsFromRange(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsLineCountGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
-	static v8::Handle<v8::Value> jsFormatGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
+	static void jsFromRange(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsLineCountGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsFormatGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
 
 	static void jsFormatSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
-								const v8::AccessorInfo& info);
+								const v8::PropertyCallbackInfo<void>& info);
 
 	void SetFormat(const char * pszFormat);
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	std::string _Format;
 };
 

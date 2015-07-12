@@ -25,75 +25,87 @@
 #include "trace.h"
 #include "view.h"
 #include "history.h"
+#include "dotexpressions.h"
+#include "log.h"
 
 using namespace v8;
 
 namespace Js {
 
-Persistent<FunctionTemplate> Dollar::_Template;
+UniquePersistent<FunctionTemplate> Dollar::_Template;
 
-void Dollar::Init()
+void Dollar::Init(Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>::New(FunctionTemplate::New(jsNew));
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
-	_Template->InstanceTemplate()->Set(String::New("query"), FunctionTemplate::New(jsQuery));
-	_Template->InstanceTemplate()->Set(String::New("import"), FunctionTemplate::New(jsImport));
-	_Template->InstanceTemplate()->Set(String::New("print"), FunctionTemplate::New(jsPrint));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+
+	v8::Handle<v8::ObjectTemplate> tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl_proto->Set(String::NewFromUtf8(iso, "query"), FunctionTemplate::New(iso, jsQuery));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "import"), FunctionTemplate::New(iso, jsImport));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "loadtrace"), FunctionTemplate::New(iso, jsLoadTrace));
+
+	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
 }
 
-void Dollar::InitInstance(Handle<Object> & target)
+void Dollar::InitInstance(Isolate* iso, Handle<Object> & target)
 {
+	auto tmpl = Local<FunctionTemplate>::New(iso, _Template);
 	// create an instance of dollar object and make a property
-	auto dollar = _Template->InstanceTemplate()->NewInstance();
-	target->SetAccessor(String::New("$"), jsGetter, 0, dollar);
+	auto dollar = tmpl->GetFunction()->NewInstance();
+	// target->SetAccessor(String::NewFromUtf8(iso, "$"), jsGetter, 0, dollar);
+	target->Set(String::NewFromUtf8(iso, "$"), dollar);
 }
 
-Handle<Value> Dollar::jsNew(const Arguments &args)
+void Dollar::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	Dollar *dollar;
 	dollar = new Dollar();
-	args.This()->SetInternalField(0, v8::External::New(dollar));
+	LOG("@%p", dollar);
+	auto iso = Isolate::GetCurrent();
+	args.This()->SetInternalField(0, v8::External::New(iso, dollar));
 
-	auto trace = Trace::GetTemplate()->InstanceTemplate()->NewInstance();
-	args.This()->SetAccessor(String::New("trace"), jsGetter, 0, trace);
+	auto trace = Trace::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "trace"), jsGetter, 0, trace);
 
 	// create an instance of view object and make a property
-	auto view = View::GetTemplate()->InstanceTemplate()->NewInstance();
-	args.This()->SetAccessor(String::New("view"), jsGetter, 0, view);
+	auto view = View::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "view"), jsGetter, 0, view);
 
-	auto history = History::GetTemplate()->InstanceTemplate()->NewInstance();
-	args.This()->SetAccessor(String::New("history"), jsGetter, 0, history);
+	auto history = History::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "history"), jsGetter, 0, history);
 
-	return args.This();
+	auto dotExpressions = DotExpressions::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "dotexpressions"), jsGetter, 0, dotExpressions);
+
+	args.GetReturnValue().Set(args.This());
 }
 
 bool Dollar::ImportFile(const char * pszFile)
 {
+	LOG(" %s", pszFile);
 	bool success;
 	ImportWorker(pszFile, success);
 	assert(success);
 	return success;
 }
-
    
-Handle<Value> Dollar::jsGetter(Local<String> property, 
-												const AccessorInfo& info)
+void Dollar::jsGetter(Local<String> property, const PropertyCallbackInfo<v8::Value>& info)
 {
 	auto data = info.Data();
-	return data;
+	info.GetReturnValue().Set(data);
 }
 
-Handle<Value> Dollar::jsImport(const Arguments& args)
+void Dollar::jsImport(const FunctionCallbackInfo<Value>& args)
 {
 	bool success;
 	if(args.Length() != 1)
 	{
-		return ThrowException(Exception::TypeError(String::New(
-				"$.import requires one parameter\r\n")));
+		ThrowTypeError("$.import requires one parameter\r\n");
 	}
 
 	v8::String::Utf8Value str(args[0]);
-	return ImportWorker(*str, success);
+	args.GetReturnValue().Set(ImportWorker(*str, success));
 }
 
 bool Dollar::OpenScriptStream(const char * pszName, std::fstream& stm)
@@ -144,20 +156,20 @@ Handle<Value> Dollar::ImportWorker(const char * pszName, bool& success)
 	{
 		success = false;
 		std::string s = std::string("$.import cannot open file ") + pszName + "\r\n";
-		return ThrowException(Exception::TypeError(String::New(s.c_str())));
+		ThrowTypeError(s.c_str());
 	}
 
 	std::string scriptLine((std::istreambuf_iterator<char>(stm)), std::istreambuf_iterator<char>());
 
-	auto scriptSource = v8::String::New(scriptLine.c_str());
-    auto scriptName = v8::String::New(pszName);
+	auto scriptSource = v8::String::NewFromUtf8(Isolate::GetCurrent(), scriptLine.c_str());
+	auto scriptName = v8::String::NewFromUtf8(Isolate::GetCurrent(), pszName);
 
 	auto script = v8::Script::Compile(scriptSource, scriptName);
 	if (script.IsEmpty()) 
 	{
 		success = false;
 		std::string s = std::string("$.import compile failed for file ") + pszName + "\r\n";
-		return ThrowException(Exception::TypeError(String::New(s.c_str())));
+		ThrowTypeError(s.c_str());
 	}
 
 	auto v = script->Run();
@@ -169,23 +181,47 @@ Handle<Value> Dollar::ImportWorker(const char * pszName, bool& success)
 	return v;
 }
 
-Handle<Value> Dollar::jsQuery(const Arguments& args)
+void Dollar::jsQuery(const FunctionCallbackInfo<Value>& args)
 {
 	if(args.Length() != 1)
 	{
-		return ThrowException(Exception::TypeError(String::New(
-				"$.query requires one parameter\r\n")));
+		ThrowTypeError("$.query requires one parameter\r\n");
 	}
 
-	return Query::GetTemplate()->GetFunction()->NewInstance(1, &args[0]);
+	args.GetReturnValue().Set(Query::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args[0]));
 }
 
-v8::Handle<v8::Value> Dollar::jsPrint(const v8::Arguments& args)
+void Dollar::jsLoadTrace(const v8::FunctionCallbackInfo<Value>& args)
+{
+	if(args.Length() < 1)
+	{
+		ThrowTypeError("expected $.loadtrace(name, start(Mb), stop(Mb))\r\n");
+	}
+
+	v8::String::Utf8Value str(args[0]);
+	int posStart = 0, posEnd = -1;
+
+	if(args.Length() >= 2 && args[1]->IsInt32())
+	{
+		posStart = args[1]->Int32Value();
+	}
+
+	if(args.Length() >= 3 && args[2]->IsInt32())
+	{
+		posEnd = args[2]->Int32Value();
+	}
+
+	GetCurrentHost()->LoadTrace(*str, posStart, posEnd);
+
+	args.GetReturnValue().SetUndefined();
+}
+
+void Dollar::jsPrint(const v8::FunctionCallbackInfo<Value>& args)
 {
 	bool first = true;
 	for (int i = 0; i < args.Length(); i++)
 	{
-		v8::HandleScope handle_scope;
+		v8::HandleScope handle_scope(Isolate::GetCurrent());
 		if (first) 
 		{
 			first = false;
@@ -197,7 +233,7 @@ v8::Handle<v8::Value> Dollar::jsPrint(const v8::Arguments& args)
 		GetCurrentHost()->OutputLine(*str);
 	}
 
-	return v8::Undefined();
+	args.GetReturnValue().SetUndefined();
 }
 
 } // Js

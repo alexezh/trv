@@ -64,11 +64,16 @@ public:
 			{
 				throw V8RuntimeException("Pending exception");
 			}
-			return _Pair;
+			return v8::Local<v8::Array>::New(v8::Isolate::GetCurrent(), _Pair);
 		}
 	private:
 		bool MakePair()
 		{
+			if(_Src->IsEnd())
+			{
+				return false;
+			}
+
 			auto v1 = _Src->JsValue();
 			if(!_Src->Next())
 			{
@@ -76,10 +81,10 @@ public:
 			}
 			auto v2 = _Src->JsValue();
 
-			_Pair.Dispose();
-			_Pair = v8::Persistent<v8::Array>::New(v8::Array::New(2));
-			_Pair->Set(0, v1);
-			_Pair->Set(1, v2);
+			auto pair(v8::Array::New(v8::Isolate::GetCurrent(), 2));
+			_Pair.Reset(v8::Isolate::GetCurrent(), pair);
+			pair->Set(0, v1);
+			pair->Set(1, v2);
 			return true;
 		}
 		std::unique_ptr<QueryIterator> _Src;
@@ -98,7 +103,7 @@ public:
 
 	std::string MakeDescription()
 	{
-		return std::string("pair");
+		return std::string("pair ") + _Source->MakeDescription();
 	}
 
 	std::unique_ptr<QueryIterator> CreateIterator()

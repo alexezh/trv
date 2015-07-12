@@ -55,7 +55,10 @@ public:
     void OnLoadEnd(HRESULT hr);
     void OnLoadBlock();
     
-    void LoadFile(QWORD nStart);
+    void LoadFile(const std::string& file, int startPos, int endPos);
+    void LoadFile(QWORD nStart, QWORD nEnd);
+
+	size_t GetCurrentLine();
 
 protected:    
     void RebuildDock();
@@ -71,6 +74,8 @@ protected:
 
     LRESULT OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+    LRESULT OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+    LRESULT OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFind(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
@@ -88,14 +93,18 @@ protected:
 		MESSAGE_HANDLER(WM_QUEUE_WORK, OnQueueWork)
 
 		COMMAND_HANDLER(ID_TOGGLEHIDE, 1, OnToggleHide)
-        COMMAND_HANDLER(ID_NAVLIST, 1, OnNavList)
+        COMMAND_HANDLER(ID_VIEW_TRACEWINDOW, 1, OnNavList)
+        COMMAND_HANDLER(ID_VIEW_MESSAGEWINDOW, 1, OnNavOutput)
+        COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 1, OnNavConsole)
         COMMAND_HANDLER(ID_EDIT_COPY, 1, OnCopy)
         COMMAND_HANDLER(ID_EDIT_FIND, 1, OnFind)
         COMMAND_HANDLER(ID_EDIT_FINDNEXT, 1, OnFindNext)
         COMMAND_HANDLER(IDM_ABOUT, 0, OnAbout)
 
         COMMAND_HANDLER(ID_TOGGLEHIDE, 0, OnToggleHide)
-        COMMAND_HANDLER(ID_NAVLIST, 0, OnNavList)
+        COMMAND_HANDLER(ID_VIEW_TRACEWINDOW, 0, OnNavList)
+        COMMAND_HANDLER(ID_VIEW_MESSAGEWINDOW, 0, OnNavOutput)
+        COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 0, OnNavConsole)
         COMMAND_HANDLER(ID_EDIT_COPY, 0, OnCopy)
         COMMAND_HANDLER(ID_EDIT_FIND, 0, OnFind)
         COMMAND_HANDLER(ID_EDIT_FINDNEXT, 0, OnFindNext)

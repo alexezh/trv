@@ -26,23 +26,25 @@
 #include "view.h"
 #include "history.h"
 #include "tid.h"
+#include "dotexpressions.h"
 
 namespace Js {
 
-void InitRuntimeTemplate(v8::Handle<v8::ObjectTemplate> & target)
+void InitRuntimeTemplate(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & target)
 {
-	Dollar::Init();
-	Trace::Init();
-	Query::Init();
-	View::Init();
-	History::Init();
-	MatchTid::Init(target);
+	Dollar::Init(iso);
+	Trace::Init(iso);
+	Query::Init(iso);
+	View::Init(iso);
+	History::Init(iso);
+	MatchTid::Init(iso, target);
+	DotExpressions::Init(iso);
 }
 
-bool InitRuntime(v8::Handle<v8::Object> & target)
+bool InitRuntime(v8::Isolate* iso, v8::Handle<v8::Object> & target)
 {
-	Dollar::InitInstance(target);
-	return Dollar::ImportFile("std.js");
+	Dollar::InitInstance(iso, target);
+	return Dollar::ImportFile("trv.std.js");
 }
 
 } // Js

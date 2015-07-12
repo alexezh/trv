@@ -54,9 +54,8 @@ BEGIN
     END
     POPUP "&View"
     BEGIN
-        MENUITEM "Trace Window\tAlt+1",         32782
-        MENUITEM "Output Window",               ID_VIEW_MESSAGEWINDOW
-        , GRAYED
+        MENUITEM "Trace Window\tAlt+T",         ID_VIEW_TRACEWINDOW
+        MENUITEM "Output Window\tAlt+O",        ID_VIEW_MESSAGEWINDOW
         MENUITEM "Console Window\tAlt+C",       ID_VIEW_CONSOLEWINDOW
         MENUITEM SEPARATOR
         MENUITEM "Show Filtered\tCtrl+H",       32780
@@ -81,8 +80,8 @@ BEGIN
     "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
     VK_F3,          ID_EDIT_FINDNEXT,       VIRTKEY, NOINVERT
     "G",            ID_GOTO,                VIRTKEY, CONTROL, NOINVERT
-    "2",            ID_NAVFILTER,           VIRTKEY, ALT, NOINVERT
-    "1",            ID_NAVLIST,             VIRTKEY, ALT, NOINVERT
+    "T",            ID_VIEW_TRACEWINDOW,    VIRTKEY, ALT, NOINVERT
+    "O",            ID_VIEW_MESSAGEWINDOW,  VIRTKEY, ALT, NOINVERT
     "C",            ID_VIEW_CONSOLEWINDOW,  VIRTKEY, ALT, NOINVERT
     "H",            ID_TOGGLEHIDE,          VIRTKEY, CONTROL, NOINVERT
     "/",            IDM_ABOUT,              ASCII,  ALT, NOINVERT

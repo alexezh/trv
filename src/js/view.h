@@ -30,7 +30,11 @@ namespace Js {
 class FilterItem
 {
 public:
-	static void Init(v8::Handle<v8::Object> & target);
+	static void Init(v8::Isolate* iso, v8::Handle<v8::Object> & target);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 	FilterItem()
 		: Id(0)
@@ -41,7 +45,7 @@ public:
 
 	~FilterItem()
 	{
-		Cursor.Dispose();
+		Cursor.Reset();
 	}
 
 
@@ -62,16 +66,19 @@ public:
 	}
 
 private:
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static v8::Persistent<v8::FunctionTemplate> _Template;
 };
 
 // iterate through select
-class SelectCursor : public ObjectWrap
+class SelectCursor : public BaseObject<SelectCursor>
 {
 public:
-	static void Init();
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 	void InitCursor(const std::weak_ptr<FilterItem>& sel, std::unique_ptr<QueryIterator>&& it)
 	{
@@ -84,11 +91,11 @@ private:
 	SelectCursor(const v8::Handle<v8::Object>& handle);
 	void UpdateFilter();
 
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsNext(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsPrev(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsFirst(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsLast(const v8::Arguments& args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsNext(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsPrev(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsFirst(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsLast(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 private:
 	static v8::Persistent<v8::FunctionTemplate> _Template;
@@ -109,38 +116,36 @@ public:
 	static void SelectLinesFromIteratorValue(QueryIterator* it, CBitSet& set);
 };
 
-class View : public ObjectWrap
+class View : public BaseObject<View>
 {
 public:
-	static void Init();
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso) 
+	{ 
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 	BYTE GetLineColor(DWORD nLine);
 
 private:
 	View(const v8::Handle<v8::Object>& handle);
 
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsFilter(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsFilterInteractive(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsRemoveFilter(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsPrintFilters(const v8::Arguments& args);
-	static v8::Handle<v8::Value> jsEnableFilter(const v8::Arguments& args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsFilterInteractive(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsRemoveFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsPrintFilters(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsEnableFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-	static v8::Handle<v8::Value> jsShowFiltersGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
-	static void jsShowFiltersSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
-								const v8::AccessorInfo& info);
+	static void jsShowFiltersGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsShowFiltersSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,	const v8::PropertyCallbackInfo<void>& info);
 
-	static v8::Handle<v8::Value> jsGlobalFilterGetter(v8::Local<v8::String> property, 
-												const v8::AccessorInfo& info);
-	static void jsGlobalFilterSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
-								const v8::AccessorInfo& info);
+	static void jsCurrentLineGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
-	static v8::Handle<v8::Value> jsSetViewLayout(const v8::Arguments& args);
+	static void jsSetViewLayout(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-	v8::Handle<v8::Value> VerifySelectArgs(const v8::Arguments& args);
-	v8::Handle<v8::Value> FilterWorker(const v8::Arguments& args, bool iter);
+	void VerifySelectArgs(const v8::FunctionCallbackInfo<v8::Value>& args);
+	v8::Local<v8::Value> FilterWorker(const v8::FunctionCallbackInfo<v8::Value>& args, bool iter);
 	void ShowFiltersWorker(bool val);
 
 private:
@@ -148,7 +153,6 @@ private:
 	bool _ShowFilters;
 	std::mutex _Lock;
 	std::map<int, std::shared_ptr<FilterItem> > _Filters;
-	v8::Persistent<v8::Object> _GlobalFilter;
 };
 
 } // Js

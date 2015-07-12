@@ -27,6 +27,8 @@
 #include "color.h"
 #include "js/view.h"
 #include "js/history.h"
+#include "js/dotexpressions.h"
+#include <include/libplatform/libplatform.h>
 
 using namespace v8;
 
@@ -46,6 +48,7 @@ void JsHost::Init(CTraceCollection * pColl)
 
 void JsHost::OnViewCreated(Js::View* view)
 {
+	LOG("@%p view=%p", this, view)
 	_pView = view;
 }
 
@@ -53,6 +56,12 @@ void JsHost::OnHistoryCreated(Js::History* history)
 {
 	_pHistory = history;
 	_pHistory->Load();
+}
+
+void JsHost::OnDotExpressionsCreated(Js::DotExpressions* de)
+{
+	LOG("@%p de=%p", this, de)
+	_pDotExpressions = de;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -63,33 +72,58 @@ void WINAPI JsHost::ScriptThreadInit(void * pCtx)
 	pHost->ScriptThread();
 }
 
+class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator 
+{
+public:
+	virtual void* Allocate(size_t length) 
+	{
+		void* data = AllocateUninitialized(length);
+		return data == NULL ? data : memset(data, 0, length);
+	}
+	virtual void* AllocateUninitialized(size_t length) { return malloc(length); }
+	virtual void Free(void* data, size_t) { free(data); }
+};
+
 void JsHost::ScriptThread()
 {
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	V8::Initialize();
+	v8::V8::InitializeICU();
+	v8::Platform* platform = v8::platform::CreateDefaultPlatform();
+	v8::V8::InitializePlatform(platform);
+	v8::V8::Initialize();
+
+	ArrayBufferAllocator array_buffer_allocator;
+	v8::Isolate::CreateParams create_params;
+	create_params.array_buffer_allocator = &array_buffer_allocator;
+	v8::Isolate* isolate = v8::Isolate::New(create_params);
+
+	Isolate::Scope isoScope(isolate);
 
 	// now run
-	HandleScope handleScope;
+	HandleScope handleScope(isolate);
 
 	// Create a template for the global object.
-	_Global = Persistent<ObjectTemplate>::New(ObjectTemplate::New());
+	Local<ObjectTemplate> global = ObjectTemplate::New(isolate);
+	_Global.Reset(isolate, global);
 
 	// Create a new execution environment containing the built-in
 	// functions
-	_Context = Context::New(NULL, _Global);
-	Context::Scope contextScope(_Context);
+	v8::Local<v8::Context> context = Context::New(isolate, NULL, global);
+	_Context.Reset(isolate, context);
 
-	_Context->SetEmbedderData(1, External::New(static_cast<Js::IAppHost*>(this)));
+	Context::Scope contextScope(context);
+
+	context->SetEmbedderData(1, External::New(isolate, static_cast<Js::IAppHost*>(this)));
 
 	// Enter the newly created execution environment.
-	Js::InitRuntimeTemplate(_Global);
+	Js::InitRuntimeTemplate(isolate, global);
 
 	{
 		// Compile script in try/catch context.
 		TryCatch trycatch;
-		if(!Js::InitRuntime(_Context->Global()))
+		if(!Js::InitRuntime(isolate, context->Global()))
 		{
-			ReportException(trycatch);
+			ReportException(isolate, trycatch);
 			return;
 		}
 	}
@@ -97,7 +131,7 @@ void JsHost::ScriptThread()
 	for(;;)
 	{
 		WaitForSingleObject(_hSem, INFINITE);
-		std::unique_ptr<std::function<void()> > item;
+		std::unique_ptr<std::function<void(Isolate*)> > item;
 
 		{
 			AutoCS lock(_cs);
@@ -105,7 +139,7 @@ void JsHost::ScriptThread()
 			_InputQueue.pop();
 		}
 
-		(*item)();
+		(*item)(isolate);
 
 		for(;;)
 		{
@@ -116,7 +150,7 @@ void JsHost::ScriptThread()
 					break;
 				}
 			}
-			if(V8::IdleNotification(100))
+			if(isolate->IdleNotificationDeadline(0.1))
 			{
 				break;
 			}
@@ -126,13 +160,13 @@ void JsHost::ScriptThread()
 	CoUninitialize();
 }
 
-void JsHost::ReportException(TryCatch& trycatch)
+void JsHost::ReportException(Isolate* isolate, TryCatch& trycatch)
 {
 	std::stringstream ss;
 
 	ss << "Exception in\r\n";
 
-	HandleScope handleScope;
+	HandleScope handleScope(isolate);
 	String::Utf8Value exception(trycatch.Exception());
 	const char * strException = *exception;
 	Handle<Message> message = trycatch.Message();
@@ -183,7 +217,7 @@ void JsHost::ReportException(TryCatch& trycatch)
 	OutputLine(ss.str().c_str());
 }
 
-void JsHost::QueueInput(std::unique_ptr<std::function<void()> > && item)
+void JsHost::QueueInput(std::unique_ptr<std::function<void(Isolate* iso)> > && item)
 {
 	{
 		AutoCS lock(_cs);
@@ -196,9 +230,15 @@ void JsHost::QueueInput(std::unique_ptr<std::function<void()> > && item)
 void JsHost::ProcessInputLine(const char * pszLine)
 {
 	std::string line(pszLine);
-	auto call = make_unique<std::function<void()> >([this, line]() 
+	if (line.length() == 0)
 	{
-		ExecuteString(line);
+		LOG("@%p empty input");
+		return;
+	}
+
+	auto call = make_unique<std::function<void(Isolate* iso)>>([this, line](Isolate* iso) 
+	{
+		ExecuteString(iso, line);
 	});
 
 	QueueInput(std::move(call));
@@ -224,26 +264,56 @@ BYTE JsHost::GetLineColor(DWORD dwLine)
 	return _pView->GetLineColor(dwLine);
 }
 
-void JsHost::ExecuteString(const std::string & line)
+void JsHost::ExecuteString(Isolate* iso, const std::string & line)
 {
-	Handle<Script> script;
-    HandleScope handleScope;
-
 	// echo to output
 	OutputLine(line.c_str());
 	// save in history
 	_pHistory->Append(line.c_str());
 
-    auto scriptSource = String::New(line.c_str());
-    auto scriptName = String::New("unnamed");
+	auto idxNonWhite = line.find_first_not_of(" \t");
+	if (idxNonWhite == std::string::npos)
+	{
+		LOG("@%p all white spaces", this);
+		return;
+	}
+
+	if (line[idxNonWhite] == '.')
+	{
+		ExecuteStringAsDotExpression(iso, line);
+	}
+	else
+	{
+		ExecuteStringAsScript(iso, line);
+	}
+}
+
+void JsHost::ExecuteStringAsDotExpression(Isolate* iso, const std::string & line)
+{
+	if (_pDotExpressions == nullptr)
+	{
+		assert(false);
+		return;
+	}
+
+	_pDotExpressions->Execute(iso, line);
+}
+
+void JsHost::ExecuteStringAsScript(Isolate* iso, const std::string & line)
+{
+	Handle<Script> script;
+	HandleScope handleScope(iso);
+
+	auto scriptSource = String::NewFromUtf8(iso, line.c_str());
+	auto scriptName = String::NewFromUtf8(iso, "unnamed");
 
 	{
 		// Compile script in try/catch context.
 		TryCatch trycatch;
 		script = Script::Compile(scriptSource, scriptName);
-		if (script.IsEmpty()) 
+		if (script.IsEmpty())
 		{
-			ReportException(trycatch);
+			ReportException(iso, trycatch);
 			return;
 		}
 	}
@@ -252,12 +322,12 @@ void JsHost::ExecuteString(const std::string & line)
 		TryCatch trycatch;
 
 		script->Run();
-		if (trycatch.HasCaught()) 
+		if (trycatch.HasCaught())
 		{
-			ReportException(trycatch);
+			ReportException(iso, trycatch);
 			return;
 		}
-    }
+	}
 }
 
 // console access
@@ -280,6 +350,15 @@ void JsHost::SetViewLayout(double cmdHeight, double outHeight)
 	});
 }
 
+void JsHost::LoadTrace(const char* pszName, int startPos, int endPos)
+{
+	std::string name(pszName);
+	_pApp->PostWork([this, name, startPos, endPos]() 
+	{
+		_pApp->LoadFile(name, startPos, endPos);
+	});
+}
+
 LineInfo& JsHost::GetLine(size_t idx)
 {
 	if(!_pTraceColl)
@@ -299,6 +378,16 @@ size_t JsHost::GetLineCount()
 	}
 
 	return _pTraceColl->GetLineCount();
+}
+
+size_t JsHost::GetCurrentLine()
+{
+	if (!_pApp)
+	{
+		return 0;
+	}
+
+	return _pApp->GetCurrentLine();
 }
 
 void JsHost::UpdateLinesActive(CBitSet & set, int change)

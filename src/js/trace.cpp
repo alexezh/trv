@@ -20,36 +20,38 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include "trace.h"
-#include "funcwrap.h"
 #include "apphost.h"
 #include "bitset.h"
 #include "stringreader.h"
 #include "make_unique.h"
 #include "tracelineparser.h"
 #include "error.h"
+#include "log.h"
 
 using namespace v8;
 
 namespace Js {
 
-Persistent<FunctionTemplate> Trace::_Template;
-Persistent<FunctionTemplate> TraceLine::_Template;
-Persistent<FunctionTemplate> TraceRange::_Template;
+UniquePersistent<FunctionTemplate> Trace::_Template;
+UniquePersistent<FunctionTemplate> TraceLine::_Template;
+UniquePersistent<FunctionTemplate> TraceRange::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void TraceLine::Init()
+void TraceLine::Init(Isolate* iso)
 {
 	// TraceLineParser::Test();
 
-	_Template = Persistent<FunctionTemplate>(FunctionTemplate::New(jsNew));
-	_Template->InstanceTemplate()->SetAccessor(String::New("time"), jsTimeGetter);
-	_Template->InstanceTemplate()->SetAccessor(String::New("thread"), jsThreadGetter);
-	_Template->InstanceTemplate()->SetAccessor(String::New("msg"), jsMsgGetter);
-	_Template->InstanceTemplate()->Set(String::New("print"), FunctionTemplate::New(jsPrint));
-	_Template->SetClassName(String::New("traceline"));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	auto tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "time"), jsTimeGetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "thread"), jsThreadGetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "msg"), jsMsgGetter);
+	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
+	tmpl->SetClassName(String::NewFromUtf8(iso, "traceline"));
 
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	_Template.Reset(iso, tmpl);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -60,19 +62,18 @@ TraceLine::TraceLine(const v8::Handle<v8::Object>& handle, int lineNum)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Handle<Value> TraceLine::jsNew(const Arguments &args)
+void TraceLine::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	if(args.Length() != 1 || !args[0]->IsInt32())
 	{
-		return ThrowException(Exception::TypeError(String::New(
-			"Invalid number of arguments. Format traceline(int)")));
+		ThrowTypeError("Invalid number of FunctionCallbackInfo<Value>. Format traceline(int)");
 	}
 
 	TraceLine *line = new TraceLine(args.This(), args[0]->Int32Value());
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
-Handle<Value> TraceLine::jsPrint(const Arguments &args)
+void TraceLine::jsPrint(const FunctionCallbackInfo<Value> &args)
 {
 	TraceLine * pThis = UnwrapThis<TraceLine>(args.This());
 	std::stringstream ss;
@@ -80,50 +81,47 @@ Handle<Value> TraceLine::jsPrint(const Arguments &args)
 	ss.write(pThis->_Line.Msg.psz, pThis->_Line.Msg.cch);
 	ss << "\r\n";
 	GetCurrentHost()->OutputLine(ss.str().c_str());
-
-	return Undefined();
 }
 
-Handle<Value> TraceLine::jsTimeGetter(Local<String> property, 
-											const AccessorInfo& info)
+void TraceLine::jsTimeGetter(Local<String> property, 
+											const PropertyCallbackInfo<v8::Value>& info)
 {
-	return Undefined();
 }
-Handle<Value> TraceLine::jsThreadGetter(Local<String> property, 
-											const AccessorInfo& info)
+void TraceLine::jsThreadGetter(Local<String> property, 
+											const PropertyCallbackInfo<v8::Value>& info)
 {
 	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
-	return Integer::New(pThis->_Line.Tid);
+	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), pThis->_Line.Tid));
 }
-Handle<Value> TraceLine::jsMsgGetter(Local<String> property, 
-											const AccessorInfo& info)
+void TraceLine::jsMsgGetter(Local<String> property, 
+											const PropertyCallbackInfo<v8::Value>& info)
 {
 	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
-	return String::New(pThis->_Line.Msg.psz, pThis->_Line.Msg.cch);
+	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.Msg.psz, String::kNormalString, pThis->_Line.Msg.cch));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void TraceRange::Init()
+void TraceRange::Init(Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>(FunctionTemplate::New(jsNew));
-	_Template->SetClassName(String::New("tracerange"));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->SetClassName(String::NewFromUtf8(iso,"tracerange"));
 
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	_Template.Reset(iso, tmpl);
 }
 
-Handle<Value> TraceRange::jsNew(const v8::Arguments &args)
+void TraceRange::jsNew(const v8::FunctionCallbackInfo<Value> &args)
 {
 	DWORD dwStart, dwEnd;
 	if(!(ValueToLineIndex(args[0], dwStart) && ValueToLineIndex(args[1], dwEnd)))
 	{
-		return ThrowException(Exception::TypeError(String::New(
-			"Invalid parameter. Int or Line expected")));
+		ThrowTypeError("Invalid parameter. Int or Line expected");
 	}
 
 	TraceRange *tr = new TraceRange(args.This(), dwStart, dwEnd);
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
 bool TraceRange::ValueToLineIndex(Local<Value>& v, DWORD& idx)
@@ -134,8 +132,8 @@ bool TraceRange::ValueToLineIndex(Local<Value>& v, DWORD& idx)
 	}
 	else 
 	{
-		Handle<Object> obj = v.As<Object>();
-		auto lineJs = obj->FindInstanceInPrototypeChain(TraceLine::GetTemplate());
+		Local<Object> obj = v.As<Object>();
+		auto lineJs = obj->FindInstanceInPrototypeChain(TraceLine::GetTemplate(Isolate::GetCurrent()));
 		if(lineJs.IsEmpty())
 		{
 			return false;
@@ -174,81 +172,80 @@ void TraceRange::GetLines(CBitSet& set)
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void Trace::Init()
+void Trace::Init(Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>(FunctionTemplate::New(jsNew));
-	_Template->InstanceTemplate()->SetAccessor(String::New("format"), jsFormatGetter, jsFormatSetter);
-	_Template->InstanceTemplate()->SetAccessor(String::New("linecount"), jsLineCountGetter);
-	_Template->InstanceTemplate()->Set(String::New("line"), FunctionTemplate::New(jsGetLine));
-	_Template->InstanceTemplate()->Set(String::New("fromrange"), FunctionTemplate::New(jsFromRange));
-	_Template->SetClassName(String::New("trace"));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	auto tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "format"), jsFormatGetter, jsFormatSetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "linecount"), jsLineCountGetter);
+	tmpl_proto->Set(String::NewFromUtf8(iso, "line"), FunctionTemplate::New(iso, jsGetLine));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "fromrange"), FunctionTemplate::New(iso, jsFromRange));
+	tmpl->SetClassName(String::NewFromUtf8(iso,"trace"));
 
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-	TraceLine::Init();
-	TraceRange::Init();
+	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
+
+	TraceLine::Init(iso);
+	TraceRange::Init(iso);
 }
 
-Handle<Value> Trace::jsNew(const Arguments &args)
+void Trace::jsNew(const FunctionCallbackInfo<Value> &args)
 {
-	Trace *trace = new Trace();
-	args.This()->SetInternalField(0, External::New(trace));
+	Trace *trace = new Trace(args.This());
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
-Handle<Value> Trace::jsFormatGetter(Local<String> property, 
-												const AccessorInfo& info)
+void Trace::jsFormatGetter(Local<String> property, 
+												const PropertyCallbackInfo<v8::Value>& info)
 {
 	Trace * trace = UnwrapThis<Trace>(info.This());
-	return String::New(trace->_Format.c_str());
+	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), trace->_Format.c_str()));
 }
 
-void Trace::jsFormatSetter(Local<String> property, Local<Value> value,
-								const AccessorInfo& info)
+void Trace::jsFormatSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
 {
 	Trace * pThis = UnwrapThis<Trace>(info.This());
 	auto s = value->ToString();
 	String::Utf8Value str(s);
 
-	pThis->_Format = *str;
+	pThis->_Format.assign(*str, str.length());
 	GetCurrentHost()->SetTraceFormat(pThis->_Format.c_str());
 }
 
-Handle<Value> Trace::jsGetLine(const Arguments &args)
+void Trace::jsGetLine(const FunctionCallbackInfo<Value> &args)
 {
 	auto pThis = UnwrapThis<Trace>(args.This());
 	if(args.Length() != 1 || !args[0]->IsInt32())
 	{
-		return ThrowException(Exception::TypeError(String::New(
-			"invalid number of arguments. Format getline(int)")));
+		ThrowTypeError("invalid number of FunctionCallbackInfo<Value>. Format getline(int)");
 	}
 
-	auto jsLine = TraceLine::GetTemplate()->GetFunction()->NewInstance(1, &args[0]);
+	auto jsLine = TraceLine::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args[0]);
 
-	return jsLine;
+	args.GetReturnValue().Set(jsLine);
 }
 
-Handle<Value> Trace::jsFromRange(const v8::Arguments &args)
+void Trace::jsFromRange(const v8::FunctionCallbackInfo<Value> &args)
 {
 	if(args.Length() != 2)
 	{
-		return ThrowException(Exception::TypeError(String::New(
-			"invalid number of arguments. Format fromrange(int, int)")));
+		ThrowTypeError("invalid number of FunctionCallbackInfo<Value>. Format fromrange(int, int)");
 	}
 
 	// return trace collection object as a set of lines between 
 	Local<Value> v[2];
 	v[0] = args[0];
 	v[1] = args[1];
-	return TraceRange::GetTemplate()->GetFunction()->NewInstance(2, v);
+	args.GetReturnValue().Set(TraceRange::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, v));
 }
 
-Handle<Value> Trace::jsLineCountGetter(Local<String> property, 
-											const AccessorInfo& info)
+void Trace::jsLineCountGetter(Local<String> property, 
+											const PropertyCallbackInfo<v8::Value>& info)
 {
 	Trace * trace = UnwrapThis<Trace>(info.This());
-	return Integer::New(GetCurrentHost()->GetLineCount());
+	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), GetCurrentHost()->GetLineCount()));
 }
 
 } // Js

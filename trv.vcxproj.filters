@@ -1,180 +1,149 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="src\About.cpp" />
     <ClCompile Include="src\bitset.cpp" />
+    <ClCompile Include="src\color.cpp" />
+    <ClCompile Include="src\commandview.cpp" />
+    <ClCompile Include="src\dock.cpp" />
+    <ClCompile Include="src\FindDlg.cpp" />
+    <ClCompile Include="src\log.cpp" />
+    <ClCompile Include="src\outputview.cpp" />
+    <ClCompile Include="src\persist.cpp" />
     <ClCompile Include="src\stdafx.cpp" />
     <ClCompile Include="src\strstr.cpp" />
-    <ClCompile Include="src\js\dollar.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\js\init.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\js\view.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\js\output.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\jshost.cpp" />
-    <ClCompile Include="src\dock.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\FindDlg.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\traceview.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\traceapp.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\commandview.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\outputview.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
-    <ClCompile Include="src\color.cpp" />
-    <ClCompile Include="src\persist.cpp" />
-    <ClCompile Include="src\js\trace.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\js\query.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\tracelineparser.cpp" />
     <ClCompile Include="src\textfile.cpp" />
-    <ClCompile Include="src\js\tid.cpp">
+    <ClCompile Include="src\traceapp.cpp" />
+    <ClCompile Include="src\tracelineparser.cpp" />
+    <ClCompile Include="src\traceview.cpp" />
+    <ClCompile Include="src\js\dollar.cpp">
       <Filter>js</Filter>
     </ClCompile>
     <ClCompile Include="src\js\history.cpp">
       <Filter>js</Filter>
     </ClCompile>
-    <ClCompile Include="src\About.cpp">
-      <Filter>ui</Filter>
+    <ClCompile Include="src\jshost.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\query.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\output.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\tid.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\trace.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\view.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\init.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\dotexpressions.cpp">
+      <Filter>js</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\About.h" />
     <ClInclude Include="src\bitset.h" />
     <ClInclude Include="src\blockarray.h" />
+    <ClInclude Include="src\color.h" />
+    <ClInclude Include="src\commandview.h" />
+    <ClInclude Include="src\dock.h" />
     <ClInclude Include="src\file.h" />
+    <ClInclude Include="src\FindDlg.h" />
+    <ClInclude Include="src\js\error.h" />
+    <ClInclude Include="src\lineinfo.h" />
+    <ClInclude Include="src\log.h" />
+    <ClInclude Include="src\make_unique.h" />
+    <ClInclude Include="src\outputview.h" />
+    <ClInclude Include="src\persist.h" />
+    <ClInclude Include="src\resource.h" />
     <ClInclude Include="src\stdafx.h" />
     <ClInclude Include="src\stringreader.h" />
     <ClInclude Include="src\stringref.h" />
+    <ClInclude Include="src\stringutils.h" />
     <ClInclude Include="src\strstr.h" />
-    <ClInclude Include="src\js\dollar.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\init.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\view.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\funcwrap.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\output.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\jshost.h" />
-    <ClInclude Include="src\dock.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\FindDlg.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\traceview.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\traceapp.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\resource.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\commandview.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\outputview.h">
-      <Filter>ui</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\apphost.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\make_unique.h" />
-    <ClInclude Include="src\color.h" />
-    <ClInclude Include="src\persist.h" />
-    <ClInclude Include="src\js\trace.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\query.h">
-      <Filter>js</Filter>
-    </ClInclude>
     <ClInclude Include="src\testassert.h" />
-    <ClInclude Include="src\tracelineparser.h" />
-    <ClInclude Include="src\lineinfo.h" />
     <ClInclude Include="src\textfile.h" />
-    <ClInclude Include="src\js\tid.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\querymap.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\querypair.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\querywhere.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\queryop.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\querytracesource.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\objectwrap.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\error.h">
+    <ClInclude Include="src\traceapp.h" />
+    <ClInclude Include="src\tracelineparser.h" />
+    <ClInclude Include="src\traceview.h" />
+    <ClInclude Include="src\js\dollar.h">
       <Filter>js</Filter>
     </ClInclude>
     <ClInclude Include="src\js\history.h">
       <Filter>js</Filter>
     </ClInclude>
-    <ClInclude Include="src\stringutils.h" />
-    <ClInclude Include="src\About.h">
-      <Filter>ui</Filter>
+    <ClInclude Include="src\js\funcwrap.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\jshost.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\objectwrap.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\query.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\querymap.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\output.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\querypair.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\querytracesource.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\querywhere.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\tid.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\trace.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\view.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\init.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\apphost.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\queryop.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\dotexpressions.h">
+      <Filter>js</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="src\small.ico">
-      <Filter>ui</Filter>
-    </Image>
-    <Image Include="src\trv.bmp">
-      <Filter>ui</Filter>
-    </Image>
-    <Image Include="src\trv.ico">
-      <Filter>ui</Filter>
-    </Image>
+    <ResourceCompile Include="src\trv.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="src\small.ico" />
+    <Image Include="src\trv.bmp" />
+    <Image Include="src\trv.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="help.js" />
+    <None Include="std.js" />
+    <None Include="test.js" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="js">
-      <UniqueIdentifier>{929dd438-c4e1-4b27-b73e-f0841e8e9627}</UniqueIdentifier>
+      <UniqueIdentifier>{ad10ad14-0f22-4cc1-ad42-787f76ecbe44}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ui">
-      <UniqueIdentifier>{d5cd9cea-1240-45f7-8baa-69e0993e9a6e}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="src\trv.rc">
-      <Filter>ui</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="std.js" />
-    <None Include="help.js" />
-    <None Include="test.js" />
   </ItemGroup>
 </Project>

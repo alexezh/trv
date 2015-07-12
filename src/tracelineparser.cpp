@@ -305,7 +305,7 @@ bool TraceLineParser::FormatParser::ParseSet(std::unique_ptr<TraceLineParser::Ma
 		m->FillRange(c, c2, true);
 	}
 
-	return std::move(m);
+	return true;
 }
 bool TraceLineParser::FormatParser::IsEscapedSimple(char c)
 {

@@ -20,12 +20,12 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include "view.h"
-#include "funcwrap.h"
 #include "apphost.h"
 #include "query.h"
 #include "trace.h"
 #include "color.h"
 #include "error.h"
+#include "log.h"
 
 using namespace v8;
 
@@ -37,19 +37,20 @@ Persistent<FunctionTemplate> View::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void FilterItem::Init(Handle<Object> & target)
+void FilterItem::Init(Isolate* iso, Local<Object> & target)
 {
-	_Template = Persistent<FunctionTemplate>::New(FunctionTemplate::New(&jsNew));
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
-	_Template->SetClassName(v8::String::New("Filter"));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->SetClassName(v8::String::NewFromUtf8(iso, "Filter"));
+	_Template.Reset(iso, tmpl);
 }
 
-Handle<Value> FilterItem::jsNew(const Arguments &args)
+void FilterItem::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	FilterItem *item = new FilterItem();
-	args.This()->SetInternalField(0, External::New(item));
+	args.This()->SetInternalField(0, External::New(Isolate::GetCurrent(), item));
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -60,21 +61,22 @@ SelectCursor::SelectCursor(const v8::Handle<v8::Object>& handle)
 	Wrap(handle);
 }
 
-void SelectCursor::Init()
+void SelectCursor::Init(Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>::New(FunctionTemplate::New(&jsNew));
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
-	_Template->InstanceTemplate()->Set(String::New("next"), FunctionTemplate::New(jsNext));
-	_Template->InstanceTemplate()->Set(String::New("prev"), FunctionTemplate::New(jsPrev));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "next"), FunctionTemplate::New(iso, jsNext));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "prev"), FunctionTemplate::New(iso, jsPrev));
+	_Template.Reset(iso, tmpl);
 }
 
-Handle<Value> SelectCursor::jsNew(const Arguments &args)
+void SelectCursor::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	SelectCursor *cursor = new SelectCursor(args.This());
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
-Handle<Value> SelectCursor::jsNext(const Arguments& args)
+void SelectCursor::jsNext(const FunctionCallbackInfo<Value>& args)
 {
 	auto pThis = UnwrapThis<SelectCursor>(args.This());
 
@@ -82,12 +84,12 @@ Handle<Value> SelectCursor::jsNext(const Arguments& args)
 	{
 		if(pThis->_Iter->IsEnd())
 		{
-			return Undefined();
+			return;
 		}
 
 		if(!pThis->_Iter->Next())
 		{
-			return Undefined();
+			return;
 		}
 
 		pThis->_CurPos++;
@@ -98,22 +100,18 @@ Handle<Value> SelectCursor::jsNext(const Arguments& args)
 		pThis->_CurPos++;
 		pThis->UpdateFilter();
 	}
-
-	return Undefined();
 }
 
-Handle<Value> SelectCursor::jsPrev(const Arguments& args)
+void SelectCursor::jsPrev(const FunctionCallbackInfo<Value>& args)
 {
 	auto pThis = UnwrapThis<SelectCursor>(args.This());
 
 	if(pThis->_CurPos == 0)
 	{
-		return Undefined();
+		return;
 	}
 	pThis->_CurPos--;
 	pThis->UpdateFilter();
-
-	return Undefined();
 }
 
 void SelectCursor::UpdateFilter()
@@ -160,7 +158,7 @@ void SelectCursor::UpdateFilter()
 //
 void QueryIteratorHelper::SelectLinesFromIteratorValue(QueryIterator* it, CBitSet& set)
 {
-	HandleScope scope;
+	HandleScope scope(Isolate::GetCurrent());
 	if(it->IsNative())
 	{
 		set.SetBit(it->NativeValue().Index);
@@ -179,7 +177,7 @@ void QueryIteratorHelper::SelectLinesFromIteratorValue(QueryIterator* it, CBitSe
 		else if(res->IsObject())
 		{
 			Handle<Object> objRes = res.As<Object>();
-			auto rangeJs = objRes->FindInstanceInPrototypeChain(TraceRange::GetTemplate());
+			auto rangeJs = objRes->FindInstanceInPrototypeChain(TraceRange::GetTemplate(Isolate::GetCurrent()));
 			if(rangeJs.IsEmpty())
 			{
 				throw V8RuntimeException("Only tracerange is supported");
@@ -203,54 +201,59 @@ View::View(const v8::Handle<v8::Object>& handle)
 	Wrap(handle);
 }
 
-void View::Init()
+void View::Init(Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>::New(FunctionTemplate::New(&jsNew));
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
-	_Template->InstanceTemplate()->Set(String::New("filter"), FunctionTemplate::New(jsFilter));
-	_Template->InstanceTemplate()->Set(String::New("filterinteractive"), FunctionTemplate::New(jsFilterInteractive));
-	_Template->InstanceTemplate()->Set(String::New("printfilters"), FunctionTemplate::New(jsPrintFilters));
-	_Template->InstanceTemplate()->Set(String::New("enablefilter"), FunctionTemplate::New(jsEnableFilter));
-	_Template->InstanceTemplate()->Set(String::New("removefilter"), FunctionTemplate::New(jsRemoveFilter));
-	_Template->InstanceTemplate()->Set(String::New("setviewlayout"), FunctionTemplate::New(jsSetViewLayout));
-	_Template->InstanceTemplate()->SetAccessor(String::New("globalfilter"), jsGlobalFilterGetter, jsGlobalFilterSetter);
-	_Template->InstanceTemplate()->SetAccessor(String::New("showfilters"), jsShowFiltersGetter, jsShowFiltersSetter);
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-	SelectCursor::Init();
+	auto tmpl_proto = tmpl->InstanceTemplate();
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "filter"), FunctionTemplate::New(iso, jsFilter));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "filterinteractive"), FunctionTemplate::New(iso, jsFilterInteractive));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "printfilters"), FunctionTemplate::New(iso, jsPrintFilters));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "enablefilter"), FunctionTemplate::New(iso, jsEnableFilter));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "removefilter"), FunctionTemplate::New(iso, jsRemoveFilter));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setviewlayout"), FunctionTemplate::New(iso, jsSetViewLayout));
+	tmpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(iso, "showfilters"), jsShowFiltersGetter, jsShowFiltersSetter);
+	tmpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(iso, "currentline"), jsCurrentLineGetter);
+
+	_Template.Reset(iso, tmpl);
+
+	SelectCursor::Init(iso);
 }
 
-Handle<Value> View::jsNew(const Arguments &args)
+void View::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	View *view = new View(args.This());
 	GetCurrentHost()->OnViewCreated(view);
 
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
-Handle<Value> View::jsFilter(const Arguments& args)
+void View::jsFilter(const FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args] 
 	{
 		auto pThis = UnwrapThis<View>(args.This());
 		return pThis->FilterWorker(args, false);
 	});
 }
 
-Handle<Value> View::jsFilterInteractive(const Arguments& args)
+void View::jsFilterInteractive(const FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args] 
 	{
 		auto pThis = UnwrapThis<View>(args.This());
 		return pThis->FilterWorker(args, true);
 	});
 }
 
-Handle<Value> View::jsPrintFilters(const Arguments& args)
+void View::jsPrintFilters(const FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
 		auto pThis = UnwrapThis<View>(args.This());
 		assert(args.Length() == 0);
+		LOG("@%p", pThis);
 
 		std::stringstream ss;
 		ss << "Filters:\r\n";
@@ -261,22 +264,20 @@ Handle<Value> View::jsPrintFilters(const Arguments& args)
 				" " << (*it).second->Description << "\r\n";
 		}
 		GetCurrentHost()->OutputLine(ss.str().c_str());
-
-		return Undefined();
+		return Local<Value>();
 	});
 }
 
-Handle<Value> View::jsRemoveFilter(const Arguments& args)
+void View::jsRemoveFilter(const FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] () -> Handle<Value>
+	TryCatchCpp(args, [&args] () -> Local<Value>
 	{
 		auto pThis = UnwrapThis<View>(args.This());
 		assert(args.Length() == 1);
 
 		if(args.Length() != 1 || !args[0]->IsInt32())
 		{
-			return ThrowException(Exception::SyntaxError(String::New(
-					"expected $v.removeFilter(id)\r\n")));
+			ThrowSyntaxError("expected $v.removeFilter(id)\r\n");
 		}
 
 		auto id = args[0]->Int32Value();
@@ -297,22 +298,20 @@ Handle<Value> View::jsRemoveFilter(const Arguments& args)
 		}
 
 		GetCurrentHost()->RefreshView();
-
-		return Undefined();
+		return Local<Value>();
 	});
 }
 
-Handle<Value> View::jsEnableFilter(const Arguments& args)
+void View::jsEnableFilter(const FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] () -> Handle<Value>
+	TryCatchCpp(args, [&args] () -> Local<Value>
 	{
 		auto pThis = UnwrapThis<View>(args.This());
 		assert(args.Length() == 2);
 
 		if(args.Length() != 2 || !args[0]->IsInt32() || !args[1]->IsBoolean())
 		{
-			return ThrowException(Exception::SyntaxError(String::New(
-					"expected $v.enableFilter(id, val)\r\n")));
+			ThrowSyntaxError("expected $v.enableFilter(id, val)\r\n");
 		}
 
 		auto id = args[0]->Int32Value();
@@ -338,63 +337,51 @@ Handle<Value> View::jsEnableFilter(const Arguments& args)
 		}
 
 		GetCurrentHost()->RefreshView();
-
-		return Undefined();
+		return Local<Value>();
 	});
 }
 
-Handle<Value> View::jsSetViewLayout(const Arguments& args)
+void View::jsSetViewLayout(const FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] () -> Handle<Value>
+	TryCatchCpp(args, [&args] () -> Local<Value>
 	{
 		auto pThis = UnwrapThis<View>(args.This());
 		assert(args.Length() == 2);
 
 		if(args.Length() != 2 || !args[0]->IsNumber() || !args[1]->IsNumber())
 		{
-			return ThrowException(Exception::SyntaxError(String::New(
-					"expected $v.setviewlayout(cmdheight, outheight)\r\n")));
+			ThrowSyntaxError("expected $v.setviewlayout(cmdheight, outheight)\r\n");
 		}
 
 		GetCurrentHost()->SetViewLayout(args[0]->NumberValue(), args[1]->NumberValue());
-		return Undefined();
+		return Local<Value>();
 	});
 }
 
-Handle<Value> View::jsShowFiltersGetter(Local<String> property, 
-											const AccessorInfo& info)
+void View::jsShowFiltersGetter(Local<String> property, const PropertyCallbackInfo<v8::Value>& info)
 {
 	auto pThis = UnwrapThis<View>(info.This());
-	return Boolean::New(pThis->_ShowFilters);
+	info.GetReturnValue().Set(Boolean::New(Isolate::GetCurrent(), pThis->_ShowFilters));
 }
 
 void View::jsShowFiltersSetter(Local<String> property, Local<Value> value,
-							const AccessorInfo& info)
+							const PropertyCallbackInfo<void>& info)
 {
 	auto pThis = UnwrapThis<View>(info.This());
 	pThis->ShowFiltersWorker(value->BooleanValue());
 }
 
-Handle<Value> View::jsGlobalFilterGetter(Local<String> property, 
-											const AccessorInfo& info)
+void View::jsCurrentLineGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
 	auto pThis = UnwrapThis<View>(info.This());
-	return pThis->_GlobalFilter;
+	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), GetCurrentHost()->GetCurrentLine()));
 }
 
-void View::jsGlobalFilterSetter(Local<String> property, Local<Value> value,
-							const AccessorInfo& info)
-{
-	auto pThis = UnwrapThis<View>(info.This());
-	pThis->_GlobalFilter = Persistent<Object>(value->ToObject());
-}
-
-Handle<Value> View::VerifySelectArgs(const Arguments& args)
+void View::VerifySelectArgs(const FunctionCallbackInfo<Value>& args)
 {
 	if(args.Length() < 2)
 	{
-		return ThrowException(Exception::SyntaxError(String::New(
-				"expected select(filter, color, name\r\n")));
+		ThrowSyntaxError("expected select(filter, color, name\r\n");
 	}
 
 	if(!args[0]->IsObject())
@@ -407,8 +394,7 @@ Handle<Value> View::VerifySelectArgs(const Arguments& args)
 		String::Utf8Value str(s);
 		ss << (*str);
 
-		return ThrowException(Exception::SyntaxError(String::New(
-				ss.str().c_str())));
+		ThrowSyntaxError(ss.str().c_str());
 	}
 
 	if(args.Length() >= 2)
@@ -420,39 +406,32 @@ Handle<Value> View::VerifySelectArgs(const Arguments& args)
 			ss << "second parameter is color\r\n";
 			ss << *String::Utf8Value(args[1]->ToString());
 
-			return ThrowException(Exception::SyntaxError(String::New(
-					ss.str().c_str())));
+			ThrowSyntaxError(ss.str().c_str());
 		}
 	}
 
 	if(args.Length() >= 3)
 	{
-		if(!args[2]->IsString())
+		if(!(args[2]->IsUndefined() || args[2]->IsNull() || args[2]->IsString()))
 		{
 			std::stringstream ss;
 
 			ss << "third parameter is description\r\n";
 			ss << *String::Utf8Value(args[2]->ToString());
 
-			return ThrowException(Exception::SyntaxError(String::New(
-					ss.str().c_str())));
+			ThrowSyntaxError(ss.str().c_str());
 		}
 	}
-
-	return Undefined();
 }
 
-Handle<Value> View::FilterWorker(const Arguments& args, bool iter)
+Local<Value> View::FilterWorker(const FunctionCallbackInfo<Value>& args, bool iter)
 {
-	auto verResult = VerifySelectArgs(args);
-	if(!verResult->IsUndefined())
-	{
-		return verResult;
-	}
+	LOG("@%p", this);
+	VerifySelectArgs(args);
 
 	auto sel = std::make_shared<FilterItem>();
 
-	sel->SelectFunc = Persistent<Object>::New(args[0].As<Object>());
+	sel->SelectFunc.Reset(Isolate::GetCurrent(), args[0].As<Object>());
 
 	// allocate ID
 	int id = 1;
@@ -476,15 +455,19 @@ Handle<Value> View::FilterWorker(const Arguments& args, bool iter)
 		sel->Name = *String::Utf8Value(args[2]->ToString());
 	}
 
-	Handle<Value> res(Undefined());
+	Local<Value> res;
 
 	// now we actually run the function
-	Query * pQuery = Query::TryGetQuery(sel->SelectFunc);
+	auto selectFunc(Local<Object>::New(Isolate::GetCurrent(), sel->SelectFunc));
+	Query * pQuery = Query::TryGetQuery(selectFunc);
 	if(pQuery)
 	{
 		if(!iter)
 		{
-			GetCurrentHost()->OutputLine("Start query\r\n");
+			std::string startMsg;
+			startMsg = std::string("Start query: ") + pQuery->MakeDescription() + "\r\n";
+
+			GetCurrentHost()->OutputLine(startMsg.c_str());
 
 			DWORD dwStart = GetTickCount();
 			{
@@ -519,29 +502,29 @@ Handle<Value> View::FilterWorker(const Arguments& args, bool iter)
 			sel->Description = std::string("interactive, query:") + pQuery->MakeDescription();
 			auto it = pQuery->Op()->CreateIterator();
 			
-			auto curJs = SelectCursor::GetTemplate()->GetFunction()->NewInstance();
+			auto curJs = SelectCursor::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance();
 			SelectCursor* cur = UnwrapThis<SelectCursor>(curJs);
 			cur->InitCursor(sel, std::move(it));
 
-			sel->Cursor = Persistent<Object>::New(curJs);
-			res = curJs;
+			sel->Cursor.Reset(Isolate::GetCurrent(), curJs);
+			res = Local<Value>::New(Isolate::GetCurrent(), curJs);
 		}
 	}
 	else
 	{
-		return ThrowException(Exception::Error(String::New(
-				"failed to run query")));
+		ThrowError("failed to run query");
 	}
 
 	// report to host
 	_Filters[id] = std::move(sel);
 	GetCurrentHost()->RefreshView();
 
-	return res;
+	return std::move(res);
 }
 
 void View::ShowFiltersWorker(bool val)
 {
+	LOG("@%p show=%d", this, (int)val);
 	_ShowFilters = val;
 	GetCurrentHost()->RefreshView();
 }

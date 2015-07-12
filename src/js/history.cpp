@@ -20,28 +20,32 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include "history.h"
-#include "funcwrap.h"
 #include "apphost.h"
 #include "error.h"
 #include "stringutils.h"
+#include "log.h"
 
 using namespace v8;
 
 namespace Js {
 
-v8::Persistent<v8::FunctionTemplate> History::_Template;
+v8::UniquePersistent<v8::FunctionTemplate> History::_Template;
 
-void History::Init()
+void History::Init(v8::Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>(FunctionTemplate::New(jsNew));
-	_Template->PrototypeTemplate()->Set("print", FunctionTemplate::New(&jsPrint));
-	_Template->PrototypeTemplate()->Set("exec", FunctionTemplate::New(&jsExec));
+	LOG("");
+	auto tmpl = FunctionTemplate::New(iso, jsNew);
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, &jsPrint));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "exec"), FunctionTemplate::New(iso, &jsExec));
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
+	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
+
 }
 
 void History::Append(const char* pszLine)
 {
+	LOG("@%p %s", this, pszLine);
 	bool found = false;
 	// if we can find entry, append it to the end
 	for(auto it = _Data.begin(); it != _Data.end(); it++)
@@ -75,11 +79,12 @@ void History::Append(const char* pszLine)
 	}
 }
 
-v8::Handle<v8::Value> History::jsNew(const v8::Arguments &args)
+void History::jsNew(const v8::FunctionCallbackInfo<Value> &args)
 {
 	History *hist = new History(args.This());
+	LOG("@%p", hist);
 	GetCurrentHost()->OnHistoryCreated(hist);
-	return args.This();
+	args.GetReturnValue().Set(args.This());
 }
 
 History::History(const v8::Handle<v8::Object>& handle)
@@ -138,11 +143,12 @@ History::~History()
 	GetCurrentHost()->OnHistoryCreated(nullptr);
 }
 
-v8::Handle<v8::Value> History::jsPrint(const v8::Arguments& args)
+void History::jsPrint(const v8::FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
 		auto pThis = UnwrapThis<History>(args.This());
+		LOG("@%p", pThis);
 		assert(args.Length() == 0);
 
 		std::stringstream ss;
@@ -153,39 +159,36 @@ v8::Handle<v8::Value> History::jsPrint(const v8::Arguments& args)
 			ss << id << ":" << (*(*it)) << "\r\n";
 		}
 		GetCurrentHost()->OutputLine(ss.str().c_str());
-
-		return Undefined();
+		return Local<Value>();
 	});
 }
 
-v8::Handle<v8::Value> History::jsExec(const v8::Arguments& args)
+void History::jsExec(const v8::FunctionCallbackInfo<Value>& args)
 {
-	return TryCatchCpp([&args]() -> v8::Handle<v8::Value>
+	TryCatchCpp(args, [&args]() -> v8::Handle<v8::Value>
 	{
 		auto pThis = UnwrapThis<History>(args.This());
+		LOG("@%p", pThis);
 		assert(args.Length() == 1);
 
 		if(args.Length() != 1 || !args[0]->IsInt32())
 		{
-			return ThrowException(Exception::SyntaxError(String::New(
-					"expected exec(id)\r\n")));
+			ThrowSyntaxError("expected exec(id)\r\n");
 		}
 
 		auto id = args[0]->Int32Value();
 		if(id >= pThis->_Data.size())
 		{
-			return ThrowException(Exception::SyntaxError(String::New(
-					"invalid history index\r\n")));
+			ThrowSyntaxError("invalid history index\r\n");
 		}
 
-		auto scriptSource = v8::String::New(pThis->GetEntry(id)->c_str());
-		auto scriptName = v8::String::New("*str");
+		auto scriptSource = v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pThis->GetEntry(id)->c_str());
+		auto scriptName = v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), "*str");
 
 		auto script = v8::Script::Compile(scriptSource, scriptName);
 		if (script.IsEmpty()) 
 		{
-			return ThrowException(Exception::TypeError(String::New(
-					"compile failed\r\n")));
+			ThrowTypeError("compile failed\r\n");
 		}
 
 		return script->Run();

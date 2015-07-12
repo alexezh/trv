@@ -24,7 +24,6 @@
 #include "querywhere.h"
 #include "querypair.h"
 #include "querytracesource.h"
-#include "funcwrap.h"
 #include "apphost.h"
 #include "bitset.h"
 #include "trace.h"
@@ -34,24 +33,25 @@ using namespace v8;
 
 namespace Js {
 
-Persistent<FunctionTemplate> Query::_Template;
+UniquePersistent<FunctionTemplate> Query::_Template;
 
-void Query::Init()
+void Query::Init(v8::Isolate* iso)
 {
-	_Template = Persistent<FunctionTemplate>(FunctionTemplate::New(jsNew));
-	_Template->PrototypeTemplate()->Set("and", FunctionTemplate::New(&jsAnd));
-	_Template->PrototypeTemplate()->Set("or", FunctionTemplate::New(&jsOr));
-	_Template->PrototypeTemplate()->Set("where", FunctionTemplate::New(&jsWhere));
-	_Template->PrototypeTemplate()->Set("map", FunctionTemplate::New(&jsMap));
-	_Template->PrototypeTemplate()->Set("pair", FunctionTemplate::New(&jsPair));
-	_Template->PrototypeTemplate()->Set("find", FunctionTemplate::New(&jsFind));
-	_Template->PrototypeTemplate()->Set("count", FunctionTemplate::New(&jsCount));
-	_Template->SetClassName(String::New("query"));
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "and"), FunctionTemplate::New(iso, jsAnd));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "or"), FunctionTemplate::New(iso, &jsOr));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "where"), FunctionTemplate::New(iso, &jsWhere));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "map"), FunctionTemplate::New(iso, &jsMap));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "pair"), FunctionTemplate::New(iso, &jsPair));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "find"), FunctionTemplate::New(iso, &jsFind));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "count"), FunctionTemplate::New(iso, &jsCount));
+	tmpl->SetClassName(String::NewFromUtf8(iso, "query"));
 
-	_Template->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	_Template.Reset(iso, tmpl);
 }
 
-Query::Query(const v8::Handle<v8::Object>& handle, const Arguments &args)
+Query::Query(const v8::Handle<v8::Object>& handle, const FunctionCallbackInfo<Value> &args)
 {
 	Wrap(handle);
 	if(args.Length() == 1)
@@ -65,14 +65,14 @@ Query::Query(const v8::Handle<v8::Object>& handle, const Arguments &args)
 		auto coll = args[0].As<Object>();
 
 		// check if this is trace collection
-		auto traceColl = coll->FindInstanceInPrototypeChain(Trace::GetTemplate());
+		auto traceColl = coll->FindInstanceInPrototypeChain(Trace::GetTemplate(Isolate::GetCurrent()));
 		if(traceColl.IsEmpty())
 		{
 			throw V8RuntimeException("Only trace collection is supported");
 		}
 
 		// store source
-		_Source = Persistent<Object>::New(traceColl);
+		_Source.Reset(Isolate::GetCurrent(), traceColl);
 		_Op.reset(new QueryOpTraceSource());
 	}
 	else
@@ -80,7 +80,7 @@ Query::Query(const v8::Handle<v8::Object>& handle, const Arguments &args)
 		OP op = (OP)args[0]->Int32Value();
 
 		Query * pLeft = UnwrapThis<Query>(args[1].As<Object>());
-		_Source = pLeft->_Source;
+		_Source.Reset(Isolate::GetCurrent(), pLeft->_Source);
 
 		if(op == WHERE)
 		{
@@ -102,7 +102,7 @@ Query::Query(const v8::Handle<v8::Object>& handle, const Arguments &args)
 		{
 			if(!args[2]->IsFunction())
 			{
-				throw V8RuntimeException("Unsupported parameter");
+				ThrowSyntaxError("Unsupported parameter");
 			}
 			_Op.reset(new QueryOpMap(pLeft->Op(), args[2].As<Function>())); 
 		}
@@ -113,9 +113,9 @@ Query::Query(const v8::Handle<v8::Object>& handle, const Arguments &args)
 	}
 }
 
-Handle<Value> Query::jsNew(const Arguments &args)
+void Query::jsNew(const FunctionCallbackInfo<Value> &args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args] 
 	{
 		Query *query;
 		query = new Query(args.This(), args);
@@ -123,35 +123,35 @@ Handle<Value> Query::jsNew(const Arguments &args)
 	});
 }
 
-Handle<Value> Query::jsWhere(const Arguments &args)
+void Query::jsWhere(const FunctionCallbackInfo<Value> &args)
 {
-	return BuildWhereExpr(args, WHERE);
+	args.GetReturnValue().Set(BuildWhereExpr(args, WHERE));
 }
 
-Handle<Value> Query::jsMap(const Arguments &args)
+void Query::jsMap(const FunctionCallbackInfo<Value> &args)
 {
-	return BuildWhereExpr(args, MAP);
+	args.GetReturnValue().Set(BuildWhereExpr(args, MAP));
 }
 
-Handle<Value> Query::jsPair(const Arguments &args)
+void Query::jsPair(const FunctionCallbackInfo<Value> &args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args] 
 	{
 		Local<Value> initArgs[2];
-		initArgs[0] = Integer::New(PAIR);
+		initArgs[0] = Integer::New(Isolate::GetCurrent(), PAIR);
 		initArgs[1] = args.This();
 
-		return Query::GetTemplate()->GetFunction()->NewInstance(2, initArgs);
+		return Query::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, initArgs);
 	});
 }
 
-Handle<Value> Query::jsFind(const v8::Arguments &args)
+void Query::jsFind(const v8::FunctionCallbackInfo<Value> &args)
 {
-	return TryCatchCpp([&args]
+	TryCatchCpp(args, [&args]
 	{
 		auto queryJs = BuildWhereExpr(args, WHERE);
 		Query * pThis = UnwrapThis<Query>(queryJs.As<Object>());
-
+		LOG("@%p", pThis);
 		auto it = pThis->Op()->CreateIterator();
 		if(it->IsEnd())
 		{
@@ -162,56 +162,55 @@ Handle<Value> Query::jsFind(const v8::Arguments &args)
 	});
 }
 
-Handle<Value> Query::jsCount(const Arguments &args)
+void Query::jsCount(const FunctionCallbackInfo<Value> &args)
 {
-	return TryCatchCpp([&args] 
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
 		Query * pThis = UnwrapThis<Query>(args.This());
 		size_t count = 0;
+		LOG("@%p", pThis);
 
 		for(auto it = pThis->Op()->CreateIterator(); !it->IsEnd(); it->Next())
 		{
 			count++;
 		}
 
-		return Integer::New(count);
+		return Integer::New(Isolate::GetCurrent(), count);
 	});
 }
 
-Handle<Value> Query::jsOr(const Arguments &args)
+void Query::jsOr(const FunctionCallbackInfo<Value> &args)
 {
-	return BuildWhereExpr(args, OR);
+	TryCatchCpp(args, [&args]() { return BuildWhereExpr(args, OR); });
 }
 
-Handle<Value> Query::jsAnd(const Arguments &args)
+void Query::jsAnd(const FunctionCallbackInfo<Value> &args)
 {
-	return BuildWhereExpr(args, AND);
+	TryCatchCpp(args, [&args]() { return BuildWhereExpr(args, AND); });
 }
 
-Handle<Value> Query::BuildWhereExpr(const Arguments &args, Query::OP op)
+Handle<Value> Query::BuildWhereExpr(const FunctionCallbackInfo<Value> &args, Query::OP op)
 {
-	return TryCatchCpp([&args, op]() -> Handle<Value>
+	auto pThis = UnwrapThis<Query>(args.This());
+	LOG("@%p", pThis);
+	if (args.Length() != 1)
 	{
-		auto pThis = UnwrapThis<Query>(args.This());
-		if(args.Length() != 1)
-		{
-			return ThrowException(Exception::TypeError(String::New("invalid number of arguments. where(expr)")));
-		}
+		ThrowTypeError("invalid number of FunctionCallbackInfo<Value>. where(expr)");
+	}
 
-		// pass op as first parameter, this as left and current value as right
-		Local<Value> initArgs[3];
-		initArgs[0] = Integer::New(op);
-		initArgs[1] = args.This();
-		initArgs[2] = args[0];
-		auto jsQuery = Query::GetTemplate()->GetFunction()->NewInstance(3, initArgs);
+	// pass op as first parameter, this as left and current value as right
+	Local<Value> initArgs[3];
+	initArgs[0] = Integer::New(Isolate::GetCurrent(), op);
+	initArgs[1] = args.This();
+	initArgs[2] = args[0];
+	auto jsQuery = Query::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(3, initArgs);
 
-		return jsQuery;
-	});
+	return jsQuery;
 }
 
-Query * Query::TryGetQuery(const Persistent<Object> & obj)
+Query* Query::TryGetQuery(const Local<Object> & obj)
 {
-	auto res = obj->FindInstanceInPrototypeChain(_Template);
+	auto res = obj->FindInstanceInPrototypeChain(GetTemplate(Isolate::GetCurrent()));
 	if(res.IsEmpty())
 	{
 		return nullptr;

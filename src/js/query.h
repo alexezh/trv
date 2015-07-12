@@ -37,7 +37,7 @@ namespace Js {
 //   and
 //   not
 //   map
-class Query : public ObjectWrap
+class Query : public BaseObject<Query>
 {
 public:
 	enum OP
@@ -49,17 +49,19 @@ public:
 		OR
 	};
 
-	Query(const v8::Handle<v8::Object>& handle, const v8::Arguments &args);
+	Query(const v8::Handle<v8::Object>& handle, const v8::FunctionCallbackInfo<v8::Value> &args);
 	~Query()
 	{
 	}
 
-	static void Init();
-
-	static v8::Persistent<v8::FunctionTemplate> & GetTemplate() { return _Template; }
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
 	// returns native Filter object (or null)
-	static Query * TryGetQuery(const v8::Persistent<v8::Object> & obj);
+	static Query * TryGetQuery(const v8::Local<v8::Object> & obj);
 
 	// returns a description for query
 	std::string MakeDescription();
@@ -67,23 +69,23 @@ public:
 	const std::shared_ptr<QueryOp>& Op() { return _Op; }
 
 private:
-	static v8::Handle<v8::Value> jsNew(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsOr(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsAnd(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsWhere(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsMap(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsPair(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsCount(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsSkipWhile(const v8::Arguments &args);
-	static v8::Handle<v8::Value> jsTakeWhile(const v8::Arguments &args);
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsOr(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsAnd(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsWhere(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsMap(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsPair(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsCount(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsSkipWhile(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsTakeWhile(const v8::FunctionCallbackInfo<v8::Value> &args);
 	// returns an element which matches condition
-	static v8::Handle<v8::Value> jsFind(const v8::Arguments &args);
+	static void jsFind(const v8::FunctionCallbackInfo<v8::Value> &args);
 	// index. adds index to a query so find works faster
-	static v8::Handle<v8::Value> jsIndex(const v8::Arguments &args);
-	static v8::Handle<v8::Value> BuildWhereExpr(const v8::Arguments &args, Query::OP op);
+	static void jsIndex(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static v8::Handle<v8::Value> BuildWhereExpr(const v8::FunctionCallbackInfo<v8::Value> &args, Query::OP op);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 
 	v8::Persistent<v8::Object> _Source;
 	// filter is either string expression or an object
