@@ -45,7 +45,7 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 // 
-class CTraceCollection
+class CTraceSource
 {
 public:
 	// Returns the current line count. 
@@ -54,7 +54,8 @@ public:
 
 	virtual LineInfoDesc& GetDesc() = 0;
     virtual LineInfo& GetLine(DWORD nIndex) = 0;
-	virtual void UpdateLinesActive(CBitSet & set, int change) = 0;
+	virtual void UpdateLineActive(DWORD line, int change) = 0;
+	virtual void UpdateLinesActive(const CBitSet & set, int change) = 0;
 	virtual void GetActiveLinesIndices(std::vector<DWORD> & lines) = 0;
 	virtual bool SetTraceFormat(const char * psz) = 0;
 
@@ -71,6 +72,6 @@ class CTraceFile
 public:
 	virtual ~CTraceFile() {}
 
-	virtual void CreateCollection(CTraceCollection ** ppCollection) = 0;
+	virtual void CreateCollection(CTraceSource ** ppCollection) = 0;
 };
 

@@ -121,15 +121,22 @@ LRESULT CInputCtrl::OnScrollHistory(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 		assert(false);
 		return 0;
 	}
+
+	SetText(szText);
+
+	return 0;
+}
+
+void CInputCtrl::SetText(const std::string& szText)
+{
 	std::vector<WCHAR> szTextW;
 
 	szTextW.resize(szText.length() + 1);
 	int cchWide = MultiByteToWideChar(CP_UTF8, 0, szText.c_str(), szText.length(), &szTextW[0], szTextW.size());
-    szTextW[cchWide] = '\0';
+	szTextW[cchWide] = '\0';
 
 	SetWindowText(&szTextW[0]);
-
-	return 0;
+	SendMessage(EM_SETSEL, szTextW.size(), szTextW.size());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -180,3 +187,7 @@ LRESULT CCommandView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
     return 0;
 }
 
+void CCommandView::SetText(const std::string& text)
+{
+	m_Input.SetText(text);
+}

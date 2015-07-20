@@ -20,72 +20,34 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
-#include "strstr.h"
-#include "stringref.h"
-#include "lineinfo.h"
-#include "queryop.h"
+#include "bitset.h"
 #include "objectwrap.h"
-#include "queryable.h"
-
-class CBitSet;
+#include "js/query.h"
 
 namespace Js {
 
-class QueryIteratorHelper
+class CommandViewProxy : public BaseObject<CommandViewProxy>
 {
 public:
-	static void SelectLinesFromIteratorValue(QueryIterator* it, CBitSet& set);
-};
-
-
-// query is entry function for query language
-// defines set of methods such as
-//   where
-//   or
-//   and
-//   not
-//   map
-class Query : public Queryable
-{
-public:
-	Query(const v8::Handle<v8::Object>& handle, const v8::FunctionCallbackInfo<v8::Value> &args);
-	~Query()
-	{
-	}
-
 	static void Init(v8::Isolate* iso);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
-	{
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso) 
+	{ 
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
 
-	// returns native Filter object (or null)
-	static Query * TryGetQuery(const v8::Local<v8::Object> & obj);
+private:
+	CommandViewProxy(const v8::Handle<v8::Object>& handle);
 
-	static inline Query* Unwrap(v8::Handle<v8::Object> handle)
-	{
-		return static_cast<Query*>(Queryable::Unwrap(handle));
-	}
-
-	// returns a description for query
-	std::string MakeDescription();
-
-	const std::shared_ptr<QueryOp>& Op() { return _Op; }
-
-	// generate collection from query
-	v8::Local<v8::Object> GetCollection();
-
-protected:
-	size_t ComputeCount() override;
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsSetText(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsSetFocus(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsVisibleGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsVisibleSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
 private:
-	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 
-	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
-
-	v8::Persistent<v8::Object> _Source;
-	// filter is either string expression or an object
-	std::shared_ptr<QueryOp> _Op;
+	static v8::Persistent<v8::FunctionTemplate> _Template;
 };
 
 } // Js
+

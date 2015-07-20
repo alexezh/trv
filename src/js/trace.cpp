@@ -34,7 +34,7 @@ namespace Js {
 
 UniquePersistent<FunctionTemplate> Trace::_Template;
 UniquePersistent<FunctionTemplate> TraceLine::_Template;
-UniquePersistent<FunctionTemplate> TraceRange::_Template;
+UniquePersistent<FunctionTemplate> TraceCollection::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -102,29 +102,95 @@ void TraceLine::jsMsgGetter(Local<String> property,
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void TraceRange::Init(Isolate* iso)
+void TraceCollection::Init(Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
-	tmpl->SetClassName(String::NewFromUtf8(iso,"tracerange"));
+	tmpl->SetClassName(String::NewFromUtf8(iso,"TraceCollection"));
 
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+	auto tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl_proto->Set(String::NewFromUtf8(iso, "addline"), FunctionTemplate::New(iso, jsAddLine));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "removeline"), FunctionTemplate::New(iso, jsRemoveLine));
+	Queryable::Init(iso, tmpl_proto);
+
 	_Template.Reset(iso, tmpl);
 }
 
-void TraceRange::jsNew(const v8::FunctionCallbackInfo<Value> &args)
+void TraceCollection::InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target)
 {
-	DWORD dwStart, dwEnd;
-	if(!(ValueToLineIndex(args[0], dwStart) && ValueToLineIndex(args[1], dwEnd)))
+	target->Set(String::NewFromUtf8(iso, "TraceCollection"), TraceCollection::GetTemplate(iso)->GetFunction());
+}
+
+void TraceCollection::jsNew(const v8::FunctionCallbackInfo<Value> &args)
+{
+	TraceCollection *tr = nullptr;
+	if (args.Length() == 0)
 	{
-		ThrowTypeError("Invalid parameter. Int or Line expected");
+		tr = new TraceCollection(args.This(), GetCurrentHost()->GetLineCount());
+	}
+	else if (args.Length() == 2)
+	{
+		DWORD dwStart, dwEnd;
+		if (!(ValueToLineIndex(args[0], dwStart) && ValueToLineIndex(args[1], dwEnd)))
+		{
+			ThrowTypeError("Invalid parameter. Int or Line expected");
+		}
+		tr = new TraceCollection(args.This(), dwStart, dwEnd);
+	}
+	else
+	{
+		ThrowTypeError("Invalid number of parameters");
 	}
 
-	TraceRange *tr = new TraceRange(args.This(), dwStart, dwEnd);
 
 	args.GetReturnValue().Set(args.This());
 }
 
-bool TraceRange::ValueToLineIndex(Local<Value>& v, DWORD& idx)
+void TraceCollection::jsAddLine(const v8::FunctionCallbackInfo<Value> &args)
+{
+	DWORD dwLine;
+	if (!(ValueToLineIndex(args[0], dwLine)))
+	{
+		ThrowTypeError("Invalid parameter. Int or Line expected");
+	}
+
+	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+	pThis->AddLine(dwLine);
+}
+
+void TraceCollection::jsRemoveLine(const v8::FunctionCallbackInfo<Value> &args)
+{
+	DWORD dwLine;
+	if (!(ValueToLineIndex(args[0], dwLine)))
+	{
+		ThrowTypeError("Invalid parameter. Int or Line expected");
+	}
+
+	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+	pThis->RemoveLine(dwLine);
+}
+
+void TraceCollection::AddLine(DWORD dwLine)
+{
+	auto oldLines(std::move(_Lines));
+	_Lines = std::make_shared<CBitSet>(oldLines->Clone());
+	_Lines->SetBit(dwLine);
+	
+	if (_Listener)
+		_Listener(this, *oldLines, *_Lines);
+}
+
+void TraceCollection::RemoveLine(DWORD dwLine)
+{
+	auto oldLines(std::move(_Lines));
+	_Lines = std::make_shared<CBitSet>(oldLines->Clone());
+	_Lines->ResetBit(dwLine);
+	if (_Listener)
+		_Listener(this, *oldLines, *_Lines);
+}
+
+bool TraceCollection::ValueToLineIndex(Local<Value>& v, DWORD& idx)
 {
 	if(v->IsInt32())
 	{
@@ -146,28 +212,51 @@ bool TraceRange::ValueToLineIndex(Local<Value>& v, DWORD& idx)
 	return true;
 }
 
-TraceRange::TraceRange(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end)
+TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, DWORD lineCount)
+	: Queryable(handle)
+	, _Lines(std::make_shared<CBitSet>())
 {
-	Wrap(handle);
+	_Lines->Init(lineCount);
+}
+
+TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end)
+	: Queryable(handle)
+{
 	if(start >= end)
 	{
 		throw V8RuntimeException("invalid parameter");
 	}
 
-	_Lines.Init(end - start + 1);
-	_Start = start;
-	for(DWORD i = 0; i <= end-start; i++)
+	// for now ignore start / end
+	_Lines->Init(end);
+	for(DWORD i = start; i <= end; i++)
 	{
-		_Lines.SetBit(i);
+		_Lines->SetBit(i);
 	}
 }
 
-void TraceRange::GetLines(CBitSet& set)
+TraceCollection* TraceCollection::TryGetCollection(const Local<Object> & obj)
 {
-	for(DWORD i = 0; i < _Lines.GetTotalBitCount(); i++)
+	auto res = obj->FindInstanceInPrototypeChain(GetTemplate(Isolate::GetCurrent()));
+	if (res.IsEmpty())
 	{
-		set.SetBit(_Start+i);
+		return nullptr;
 	}
+
+	auto pThis = Unwrap(obj);
+	return pThis;
+}
+
+void TraceCollection::SetChangeListener(const ChangeListener& listner)
+{
+	// do not allow multiple listners
+	assert(!(_Listener && listner));
+	_Listener = listner;
+}
+
+size_t TraceCollection::ComputeCount()
+{
+	return _Lines->GetSetBitCount();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -180,14 +269,16 @@ void Trace::Init(Isolate* iso)
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "linecount"), jsLineCountGetter);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "line"), FunctionTemplate::New(iso, jsGetLine));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "fromrange"), FunctionTemplate::New(iso, jsFromRange));
-	tmpl->SetClassName(String::NewFromUtf8(iso,"trace"));
+	Queryable::Init(iso, tmpl_proto);
+
+	tmpl->SetClassName(String::NewFromUtf8(iso, "trace"));
 
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
 	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
 
 	TraceLine::Init(iso);
-	TraceRange::Init(iso);
+	TraceCollection::Init(iso);
 }
 
 void Trace::jsNew(const FunctionCallbackInfo<Value> &args)
@@ -238,7 +329,7 @@ void Trace::jsFromRange(const v8::FunctionCallbackInfo<Value> &args)
 	Local<Value> v[2];
 	v[0] = args[0];
 	v[1] = args[1];
-	args.GetReturnValue().Set(TraceRange::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, v));
+	args.GetReturnValue().Set(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, v));
 }
 
 void Trace::jsLineCountGetter(Local<String> property, 
@@ -246,6 +337,11 @@ void Trace::jsLineCountGetter(Local<String> property,
 {
 	Trace * trace = UnwrapThis<Trace>(info.This());
 	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), GetCurrentHost()->GetLineCount()));
+}
+
+size_t Trace::ComputeCount()
+{
+	return GetCurrentHost()->GetLineCount();
 }
 
 } // Js

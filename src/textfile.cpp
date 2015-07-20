@@ -113,9 +113,9 @@ void CTextTraceFile::Load(QWORD nStop)
     QueueUserWorkItem((LPTHREAD_START_ROUTINE)LoadThreadInit, this, 0);
 }
 
-void CTextTraceFile::CreateCollection(CTraceCollection ** ppCollection)
+void CTextTraceFile::CreateCollection(CTraceSource ** ppCollection)
 {
-	(*ppCollection) = new CTextTraceCollection(this);
+	(*ppCollection) = new CTextTraceSource(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -333,7 +333,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-bool CTextTraceCollection::CacheIndex(DWORD nIndex)
+bool CTextTraceSource::CacheIndex(DWORD nIndex)
 {
 	if(m_pLastBlock)
 	{
@@ -375,7 +375,7 @@ bool CTextTraceCollection::CacheIndex(DWORD nIndex)
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-LineInfo& CTextTraceCollection::GetLine(DWORD nIndex)
+LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 {
 	LockGuard guard(m_Lock);
 	if(!CacheIndex(nIndex))
@@ -403,7 +403,39 @@ LineInfo& CTextTraceCollection::GetLine(DWORD nIndex)
 	return line;
 }
 
-void CTextTraceCollection::UpdateLinesActive(CBitSet & set, int change)
+void CTextTraceSource::UpdateLineActive(DWORD line, int change)
+{
+	LockGuard guard(m_Lock);
+	size_t nBlockStart = 0;
+
+	for (size_t i = 0; i < m_Blocks.size(); i++)
+	{
+		auto p = m_Blocks[i];
+
+		if (nBlockStart + p->Lines.GetCount() > line)
+		{
+			int curActive = p->Lines.GetAt(line - nBlockStart).Active;
+			int newActive = curActive + change;
+
+			if (curActive == 0)
+			{
+				m_nActive++;
+			}
+
+			if (newActive == 0)
+			{
+				m_nActive--;
+			}
+
+			p->Lines.GetAt(line - nBlockStart).Active = newActive;
+			break;
+		}
+
+		nBlockStart += p->Lines.GetCount();
+	}
+}
+
+void CTextTraceSource::UpdateLinesActive(const CBitSet & set, int change)
 {
 	LockGuard guard(m_Lock);
 	size_t nBlockStart = 0;
@@ -437,7 +469,7 @@ void CTextTraceCollection::UpdateLinesActive(CBitSet & set, int change)
 	}
 }
 
-void CTextTraceCollection::GetActiveLinesIndices(std::vector<DWORD> & lines)
+void CTextTraceSource::GetActiveLinesIndices(std::vector<DWORD> & lines)
 {
 	LockGuard guard(m_Lock);
 	if(m_nActive == 0)
@@ -466,7 +498,7 @@ void CTextTraceCollection::GetActiveLinesIndices(std::vector<DWORD> & lines)
 	}
 }
 
-bool CTextTraceCollection::SetTraceFormat(const char * psz)
+bool CTextTraceSource::SetTraceFormat(const char * psz)
 {
 	LockGuard guard(m_Lock);
 	LineInfoDesc::Reset(m_Desc);
@@ -499,7 +531,7 @@ bool CTextTraceCollection::SetTraceFormat(const char * psz)
 }
 
 // updates view with changes (if any)
-HRESULT CTextTraceCollection::Refresh()
+HRESULT CTextTraceSource::Refresh()
 {
 	LockGuard guard(m_Lock);
 	// for now do not fire any events

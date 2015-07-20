@@ -66,7 +66,7 @@ private:
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line)
+		bool NativeEval(LineInfo & line) override
 		{
 			return _Bc.Search(line.Msg.psz, line.Msg.cch) != nullptr;
 		}
@@ -122,18 +122,19 @@ private:
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line)
+		bool NativeEval(LineInfo & line) override
 		{
 			assert(false);
 			return false;
 		}
 
-		virtual bool JsEval(v8::Local<v8::Object> & line)
+		bool JsEval(v8::Local<v8::Value> & line) override
 		{
-			v8::Local<v8::Value> v = line;
+			v8::HandleScope handleScope(v8::Isolate::GetCurrent());
 			auto func(v8::Local<v8::Function>::New(v8::Isolate::GetCurrent(), _Func));
-			auto res = func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 1, &v);
-			return res->BooleanValue();
+			auto res = func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 1, &line);
+			bool v = res->BooleanValue();
+			return v;
 		}
 
 		std::string MakeDescription()
@@ -240,7 +241,7 @@ public:
 			}
 		}
 
-		bool Next()
+		bool Next() override
 		{
 			for(;;)
 			{
@@ -257,20 +258,20 @@ public:
 		
 			return false;
 		}
-		bool IsEnd()
+		bool IsEnd() override
 		{
 			return _Src->IsEnd();
 		}
-		bool IsNative()
+		bool IsNative() override
 		{
 			return _Src->IsNative() && _Expr->IsNative();
 		}
 
-		LineInfo& NativeValue()
+		LineInfo& NativeValue() override
 		{
 			return _Src->NativeValue();
 		}
-		v8::Handle<v8::Value> JsValue()
+		v8::Handle<v8::Value> JsValue() override
 		{
 			return _Src->JsValue();
 		}
@@ -322,35 +323,9 @@ public:
 		return std::unique_ptr<QueryIterator>(new Iterator(std::move(it), _Expr));
 	}
 
-	std::shared_ptr<QueryOp> Combine(EXPRTYPE type, const std::shared_ptr<Expr> & rightExpr)
-	{
-		std::shared_ptr<Expr> expr;
-		switch(type)
-		{
-		case OR: expr.reset(new ExprOr(_Expr, rightExpr)); break;
-		case AND: expr.reset(new ExprAnd(_Expr, rightExpr)); break;
-		default: assert(false);
-		}
+	std::shared_ptr<QueryOp> Combine(EXPRTYPE type, const std::shared_ptr<Expr> & rightExpr);
 
-		// create where query with the same source and new expr
-		return std::make_shared<QueryOpWhere>(_Source, QueryOpWhere::ALLMATCH, expr);
-	}
-
-	static std::shared_ptr<Expr> FromJs(v8::Handle<v8::Value> & val) 
-	{
-		if(val->IsString())
-		{
-			return std::make_shared<MatchMsg>(*v8::String::Utf8Value(val));
-		}
-		else if(val->IsFunction())
-		{
-			return std::make_shared<MatchJs>(val.As<v8::Function>());
-		}
-		else
-		{
-			throw V8RuntimeException("Unsupported parameter");
-		}
-	}
+	static std::shared_ptr<Expr> FromJs(v8::Handle<v8::Value> & val);
 
 protected:
 	std::shared_ptr<QueryOp> _Source;

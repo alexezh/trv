@@ -309,7 +309,7 @@ bool TraceLineParser::FormatParser::ParseSet(std::unique_ptr<TraceLineParser::Ma
 }
 bool TraceLineParser::FormatParser::IsEscapedSimple(char c)
 {
-	return (c == '.' || c == '/' || c == '\\' || c == '*' || c == '[' || c == ']');
+	return (c == '.' || c == '/' || c == '\\' || c == '*' || c == '[' || c == ']' || c == '(' || c == ')');
 }
 bool TraceLineParser::FormatParser::ParseEscapedChar(std::unique_ptr<MatchOp> & m)
 {

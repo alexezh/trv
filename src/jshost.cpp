@@ -22,19 +22,22 @@
 #include "traceapp.h"
 #include "outputview.h"
 #include "traceview.h"
+#include "commandview.h"
 #include "jshost.h"
 #include "make_unique.h"
 #include "color.h"
 #include "js/view.h"
 #include "js/history.h"
 #include "js/dotexpressions.h"
+#include "js/shortcuts.h"
+#include "stringutils.h"
 #include <include/libplatform/libplatform.h>
 
 using namespace v8;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void JsHost::Init(CTraceCollection * pColl)
+void JsHost::Init(CTraceSource * pColl)
 {
 	// TODO: add code to queue copy to another thread
 	_pTraceColl = pColl;
@@ -62,6 +65,12 @@ void JsHost::OnDotExpressionsCreated(Js::DotExpressions* de)
 {
 	LOG("@%p de=%p", this, de)
 	_pDotExpressions = de;
+}
+
+void JsHost::OnShortcutsCreated(Js::Shortcuts* obj)
+{
+	LOG("@%p obj=%p", this, obj)
+	_pShortcuts = obj;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,6 +107,9 @@ void JsHost::ScriptThread()
 	v8::Isolate* isolate = v8::Isolate::New(create_params);
 
 	Isolate::Scope isoScope(isolate);
+
+	// init path info
+	m_AppDataPath = GetKnownPath(FOLDERID_LocalAppData);
 
 	// now run
 	HandleScope handleScope(isolate);
@@ -244,6 +256,17 @@ void JsHost::ProcessInputLine(const char * pszLine)
 	QueueInput(std::move(call));
 }
 
+void JsHost::ProcessAccelerator(uint8_t modifier, uint16_t key)
+{
+	auto call = make_unique<std::function<void(Isolate* iso)>>([this, modifier, key](Isolate* iso)
+	{
+		if (_pShortcuts)
+			_pShortcuts->Execute(iso, modifier, key);
+	});
+
+	QueueInput(std::move(call));
+}
+
 size_t JsHost::GetHistoryCount()
 {
 	return _pHistory->GetCount();
@@ -262,6 +285,30 @@ BYTE JsHost::GetLineColor(DWORD dwLine)
 	}
 
 	return _pView->GetLineColor(dwLine);
+}
+
+void JsHost::AddShortcut(uint8_t modifier, uint16_t key)
+{
+	_pApp->PostWork([this, modifier, key]()
+	{
+		_pApp->AddShortcut(modifier, key);
+	});
+}
+
+void JsHost::ConsoleSetConsole(const std::string& szText)
+{
+	_pApp->PostWork([this, szText]()
+	{
+		_pApp->PCommandView()->SetText(szText);
+	});
+}
+
+void JsHost::ConsoleSetFocus()
+{
+	_pApp->PostWork([this]()
+	{
+		_pApp->PCommandView()->SetFocus();
+	});
 }
 
 void JsHost::ExecuteString(Isolate* iso, const std::string & line)
@@ -390,7 +437,22 @@ size_t JsHost::GetCurrentLine()
 	return _pApp->GetCurrentLine();
 }
 
-void JsHost::UpdateLinesActive(CBitSet & set, int change)
+void JsHost::UpdateLineActive(DWORD line, int change)
+{
+	if (!_pTraceColl)
+	{
+		return;
+	}
+
+	_pTraceColl->UpdateLineActive(line, change);
+
+	_pApp->PostWork([this]()
+	{
+		_pApp->PTraceView()->OnFilterChange();
+	});
+}
+
+void JsHost::UpdateLinesActive(const CBitSet & set, int change)
 {
 	if(!_pTraceColl)
 	{
@@ -427,4 +489,52 @@ bool JsHost::SetTraceFormat(const char * psz)
 	});
 
 	return true;
+}
+
+std::string JsHost::GetKnownPath(REFKNOWNFOLDERID id)
+{
+	CComPtr<IKnownFolderManager> kfm;
+	CComPtr<IKnownFolder> kf;
+
+	HRESULT hr = CoCreateInstance(CLSID_KnownFolderManager,
+		NULL,
+		CLSCTX_INPROC_SERVER,
+		__uuidof(IKnownFolderManager),
+		(void**)&kfm);
+	if (FAILED(hr))
+	{
+		assert(false);
+		return false;
+	}
+	hr = kfm->GetFolder(id, &kf);
+	if (FAILED(hr))
+	{
+		assert(false);
+		return false;
+	}
+	WCHAR* pszPath;
+	hr = kf->GetPath(KF_FLAG_DEFAULT_PATH, &pszPath);
+	if (FAILED(hr))
+	{
+		assert(false);
+		return false;
+	}
+
+	std::string path;
+	WszToString(pszPath, path);
+	CoTaskMemFree(pszPath);
+
+	path += "\\trv.js";
+
+	// make sure that folder exists
+	if (!CreateDirectoryA(path.c_str(), NULL))
+	{
+		DWORD err = GetLastError();
+		if (err != ERROR_ALREADY_EXISTS)
+		{
+			assert(false);
+		}
+	}
+
+	return path;
 }

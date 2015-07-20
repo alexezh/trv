@@ -24,7 +24,7 @@
 #include "js/apphost.h"
 
 class CTraceApp;
-class CTraceCollection;
+class CTraceSource;
 
 class AutoCS
 {
@@ -59,9 +59,10 @@ public:
 	}
 
 	// initialize console
-	void Init(CTraceCollection * pColl);
+	void Init(CTraceSource * pColl);
 
 	void ProcessInputLine(const char * pszLine);
+	void ProcessAccelerator(uint8_t modifier, uint16_t key);
 
 	size_t GetHistoryCount();
 	bool GetHistoryEntry(size_t idx, std::string& entry);
@@ -70,17 +71,31 @@ public:
 	BYTE GetLineColor(DWORD dwLine);
 
 public:
-	void OnViewCreated(Js::View*);
-	void OnHistoryCreated(Js::History*);
-	void OnDotExpressionsCreated(Js::DotExpressions*);
+	void OnViewCreated(Js::View*) override;
+	void OnHistoryCreated(Js::History*) override;
+	void OnDotExpressionsCreated(Js::DotExpressions*) override;
+	void OnShortcutsCreated(Js::Shortcuts*) override;
 
-	void LoadTrace(const char* pszName, int startPos, int endPos);
+	void LoadTrace(const char* pszName, int startPos, int endPos) override;
+
+	const std::string& GetAppDataDir() override
+	{
+		return m_AppDataPath;
+	}
 
 	// trace storage
 	LineInfo& GetLine(size_t idx) override;
 	size_t GetLineCount() override;
 	size_t GetCurrentLine() override;
-	void UpdateLinesActive(CBitSet & set, int change) override;
+
+	void AddShortcut(uint8_t modifier, uint16_t key) override;
+
+	void ConsoleSetConsole(const std::string& szText) override;
+	void ConsoleSetFocus() override;
+
+	void UpdateLineActive(DWORD line, int change) override;
+	void UpdateLinesActive(const CBitSet & set, int change) override;
+
 	bool SetTraceFormat(const char * psz) override;
 	void RefreshView() override;
 
@@ -89,6 +104,7 @@ public:
 	void SetViewLayout(double cmdHeight, double outHeight) override;
 
 private:
+	std::string GetKnownPath(REFKNOWNFOLDERID id);
 	void QueueInput(std::unique_ptr<std::function<void(v8::Isolate*)> > && item);
 	void ExecuteString(v8::Isolate* isolate, const std::string & line);
 	void ExecuteStringAsDotExpression(v8::Isolate* iso, const std::string & line);
@@ -105,12 +121,15 @@ private:
 	CRITICAL_SECTION _cs;
 	std::queue<std::unique_ptr<std::function<void(v8::Isolate*)> > > _InputQueue;
 
-	CTraceCollection* _pTraceColl;
+	CTraceSource* _pTraceColl = nullptr;
 
-	Js::View* _pView;
-	Js::History* _pHistory;
-	Js::DotExpressions* _pDotExpressions;
+	Js::View* _pView = nullptr;
+	Js::History* _pHistory = nullptr;
+	Js::Shortcuts* _pShortcuts = nullptr;
+	Js::DotExpressions* _pDotExpressions = nullptr;
 	v8::UniquePersistent<v8::ObjectTemplate> _Global;
 	v8::UniquePersistent<v8::Context> _Context;
+
+	std::string m_AppDataPath;
 };
 

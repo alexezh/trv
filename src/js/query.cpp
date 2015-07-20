@@ -33,89 +33,106 @@ using namespace v8;
 
 namespace Js {
 
+///////////////////////////////////////////////////////////////////////////////
+//
+void QueryIteratorHelper::SelectLinesFromIteratorValue(QueryIterator* it, CBitSet& set)
+{
+	HandleScope scope(Isolate::GetCurrent());
+	if (it->IsNative())
+	{
+		set.SetBit(it->NativeValue().Index);
+	}
+	else
+	{
+		auto res = it->JsValue();
+
+		// if result is line, return it
+		// if result is line set, return it
+		// otherwise fail
+		if (res->IsInt32())
+		{
+			set.SetBit(res->ToInteger()->Int32Value());
+			return;
+		}
+		else if (res->IsObject())
+		{
+			Handle<Object> objRes = res.As<Object>();
+			auto lineJs = objRes->FindInstanceInPrototypeChain(TraceLine::GetTemplate(Isolate::GetCurrent()));
+			if (!lineJs.IsEmpty())
+			{
+				TraceLine* line = TraceLine::Unwrap(lineJs);
+				set.SetBit(line->Line().Index);
+				return;
+			}
+
+			auto rangeJs = objRes->FindInstanceInPrototypeChain(TraceCollection::GetTemplate(Isolate::GetCurrent()));
+			if (!rangeJs.IsEmpty())
+			{
+				TraceCollection * range = UnwrapThis<TraceCollection>(rangeJs);
+				set.Or(*(range->GetLines()));
+			}
+		}
+
+		throw V8RuntimeException("Unsupported type for iterator value");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
 UniquePersistent<FunctionTemplate> Query::_Template;
 
 void Query::Init(v8::Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "and"), FunctionTemplate::New(iso, jsAnd));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "or"), FunctionTemplate::New(iso, &jsOr));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "where"), FunctionTemplate::New(iso, &jsWhere));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "map"), FunctionTemplate::New(iso, &jsMap));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "pair"), FunctionTemplate::New(iso, &jsPair));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "find"), FunctionTemplate::New(iso, &jsFind));
-	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "count"), FunctionTemplate::New(iso, &jsCount));
 	tmpl->SetClassName(String::NewFromUtf8(iso, "query"));
 
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	Queryable::Init(iso, tmpl->PrototypeTemplate());
 	_Template.Reset(iso, tmpl);
 }
 
 Query::Query(const v8::Handle<v8::Object>& handle, const FunctionCallbackInfo<Value> &args)
+	: Queryable(handle)
 {
-	Wrap(handle);
-	if(args.Length() == 1)
+	LOG("@%p", this);
+	assert(args.Length() == 3);
+	Queryable::OP op = (Queryable::OP)args[0]->Int32Value();
+
+	Query * pLeft = Query::TryGetQuery(args[1].As<Object>());
+	std::shared_ptr<QueryOp> leftOp;
+	if (pLeft != nullptr)
 	{
-		// parameter is a reference to collection
-		if(!args[0]->IsObject())
-		{
-			throw V8RuntimeException("Parameter must be collection");
-		}
-
-		auto coll = args[0].As<Object>();
-
-		// check if this is trace collection
-		auto traceColl = coll->FindInstanceInPrototypeChain(Trace::GetTemplate(Isolate::GetCurrent()));
-		if(traceColl.IsEmpty())
-		{
-			throw V8RuntimeException("Only trace collection is supported");
-		}
-
-		// store source
-		_Source.Reset(Isolate::GetCurrent(), traceColl);
-		_Op.reset(new QueryOpTraceSource());
+		leftOp = pLeft->Op();
+		_Source.Reset(Isolate::GetCurrent(), pLeft->_Source);
 	}
 	else
 	{
-		OP op = (OP)args[0]->Int32Value();
+		_Source.Reset(Isolate::GetCurrent(), args[1].As<Object>());
+		leftOp = std::make_shared<QueryOpTraceSource>();
+	}
 
-		Query * pLeft = UnwrapThis<Query>(args[1].As<Object>());
-		_Source.Reset(Isolate::GetCurrent(), pLeft->_Source);
-
-		if(op == WHERE)
+	if (op == Queryable::WHERE)
+	{
+		std::shared_ptr<QueryOp> rightOp;
+		_Op = std::make_shared<QueryOpWhere>(leftOp, QueryOpWhere::ALLMATCH, QueryOpWhere::FromJs(args[2])); 
+	}
+	else if (op == Queryable::MAP)
+	{
+		if(!args[2]->IsFunction())
 		{
-			std::shared_ptr<QueryOp> rightOp;
-			_Op = std::make_shared<QueryOpWhere>(pLeft->Op(), QueryOpWhere::ALLMATCH, QueryOpWhere::FromJs(args[2])); 
+			ThrowSyntaxError("Unsupported parameter");
 		}
-		else if(op == OR || op == AND)
-		{
-			if(pLeft == nullptr || pLeft->Op()->Type() != QueryOp::WHERE)
-			{
-				throw V8RuntimeException("Invalid op sequence");
-			}
-
-			QueryOpWhere * pWhere = static_cast<QueryOpWhere*>(pLeft->Op().get());
-			_Op = pWhere->Combine((op == OR) ? QueryOpWhere::OR : QueryOpWhere::AND, 
-						QueryOpWhere::FromJs(args[2]));
-		}
-		else if(op == MAP)
-		{
-			if(!args[2]->IsFunction())
-			{
-				ThrowSyntaxError("Unsupported parameter");
-			}
-			_Op.reset(new QueryOpMap(pLeft->Op(), args[2].As<Function>())); 
-		}
-		else // PAIR
-		{
-			_Op.reset(new QueryOpPair(pLeft->Op()));
-		}
+		_Op.reset(new QueryOpMap(leftOp, args[2].As<Function>())); 
+	}
+	else // PAIR
+	{
+		_Op.reset(new QueryOpPair(leftOp));
 	}
 }
 
 void Query::jsNew(const FunctionCallbackInfo<Value> &args)
 {
-	TryCatchCpp(args, [&args] 
+	TryCatchCpp(args, [&args]
 	{
 		Query *query;
 		query = new Query(args.This(), args);
@@ -123,89 +140,17 @@ void Query::jsNew(const FunctionCallbackInfo<Value> &args)
 	});
 }
 
-void Query::jsWhere(const FunctionCallbackInfo<Value> &args)
+size_t Query::ComputeCount()
 {
-	args.GetReturnValue().Set(BuildWhereExpr(args, WHERE));
-}
+	size_t count = 0;
+	LOG("@%p", this);
 
-void Query::jsMap(const FunctionCallbackInfo<Value> &args)
-{
-	args.GetReturnValue().Set(BuildWhereExpr(args, MAP));
-}
-
-void Query::jsPair(const FunctionCallbackInfo<Value> &args)
-{
-	TryCatchCpp(args, [&args] 
+	for (auto it = Op()->CreateIterator(); !it->IsEnd(); it->Next())
 	{
-		Local<Value> initArgs[2];
-		initArgs[0] = Integer::New(Isolate::GetCurrent(), PAIR);
-		initArgs[1] = args.This();
-
-		return Query::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, initArgs);
-	});
-}
-
-void Query::jsFind(const v8::FunctionCallbackInfo<Value> &args)
-{
-	TryCatchCpp(args, [&args]
-	{
-		auto queryJs = BuildWhereExpr(args, WHERE);
-		Query * pThis = UnwrapThis<Query>(queryJs.As<Object>());
-		LOG("@%p", pThis);
-		auto it = pThis->Op()->CreateIterator();
-		if(it->IsEnd())
-		{
-			throw V8RuntimeException("Cannot find item");
-		}
-
-		return it->JsValue();
-	});
-}
-
-void Query::jsCount(const FunctionCallbackInfo<Value> &args)
-{
-	TryCatchCpp(args, [&args]() -> Local<Value>
-	{
-		Query * pThis = UnwrapThis<Query>(args.This());
-		size_t count = 0;
-		LOG("@%p", pThis);
-
-		for(auto it = pThis->Op()->CreateIterator(); !it->IsEnd(); it->Next())
-		{
-			count++;
-		}
-
-		return Integer::New(Isolate::GetCurrent(), count);
-	});
-}
-
-void Query::jsOr(const FunctionCallbackInfo<Value> &args)
-{
-	TryCatchCpp(args, [&args]() { return BuildWhereExpr(args, OR); });
-}
-
-void Query::jsAnd(const FunctionCallbackInfo<Value> &args)
-{
-	TryCatchCpp(args, [&args]() { return BuildWhereExpr(args, AND); });
-}
-
-Handle<Value> Query::BuildWhereExpr(const FunctionCallbackInfo<Value> &args, Query::OP op)
-{
-	auto pThis = UnwrapThis<Query>(args.This());
-	LOG("@%p", pThis);
-	if (args.Length() != 1)
-	{
-		ThrowTypeError("invalid number of FunctionCallbackInfo<Value>. where(expr)");
+		count++;
 	}
 
-	// pass op as first parameter, this as left and current value as right
-	Local<Value> initArgs[3];
-	initArgs[0] = Integer::New(Isolate::GetCurrent(), op);
-	initArgs[1] = args.This();
-	initArgs[2] = args[0];
-	auto jsQuery = Query::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(3, initArgs);
-
-	return jsQuery;
+	return count;
 }
 
 Query* Query::TryGetQuery(const Local<Object> & obj)
@@ -223,6 +168,36 @@ Query* Query::TryGetQuery(const Local<Object> & obj)
 std::string Query::MakeDescription()
 {
 	return _Op->MakeDescription();
+}
+
+
+v8::Local<v8::Object> Query::GetCollection()
+{
+	std::string startMsg;
+	startMsg = std::string("Start query: ") + MakeDescription() + "\r\n";
+
+	GetCurrentHost()->OutputLine(startMsg.c_str());
+
+	auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
+	auto coll = TraceCollection::Unwrap(collJs);
+
+	DWORD dwStart = GetTickCount();
+	{
+		// populate set from query
+		for (auto it = Op()->CreateIterator(); !it->IsEnd(); it->Next())
+		{
+			QueryIteratorHelper::SelectLinesFromIteratorValue(it.get(), *coll->GetLines());
+		}
+	}
+	DWORD dwEnd = GetTickCount();
+
+	// echo to output
+	std::stringstream ss;
+	ss << "Query execution time " << (dwEnd - dwStart) << "ms\r\n";
+	ss << " match=" << coll->GetLines()->GetSetBitCount() << "\r\n";
+	GetCurrentHost()->OutputLine(ss.str().c_str());
+
+	return collJs;
 }
 
 } // Js

@@ -12,9 +12,9 @@ function test_and_string()
 
 function test_quick_collection()
 {
- 	var c = [];
-	c.push($v.currentline);
-	$.collections.quick.add($v.currentline);
+// 	var c = [];
+//	c.push($v.currentline);
+//	$.collections.quick.add($v.currentline);
 }
 
 function test1()

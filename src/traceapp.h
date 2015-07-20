@@ -33,7 +33,7 @@ class CPersistComponentContainer;
 
 class CTraceFile;
 class CTextTraceFile;
-class CTraceCollection;
+class CTraceSource;
 class CCommandView;
 class COutputView;
 class JsHost;
@@ -58,8 +58,6 @@ public:
     void LoadFile(const std::string& file, int startPos, int endPos);
     void LoadFile(QWORD nStart, QWORD nEnd);
 
-	size_t GetCurrentLine();
-
 protected:    
     void RebuildDock();
         
@@ -73,8 +71,9 @@ protected:
     LRESULT OnQueueWork(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
     LRESULT OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFind(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
@@ -96,7 +95,8 @@ protected:
         COMMAND_HANDLER(ID_VIEW_TRACEWINDOW, 1, OnNavList)
         COMMAND_HANDLER(ID_VIEW_MESSAGEWINDOW, 1, OnNavOutput)
         COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 1, OnNavConsole)
-        COMMAND_HANDLER(ID_EDIT_COPY, 1, OnCopy)
+		COMMAND_HANDLER(ID_VIEW_REFRESH, 1, OnRefresh)
+		COMMAND_HANDLER(ID_EDIT_COPY, 1, OnCopy)
         COMMAND_HANDLER(ID_EDIT_FIND, 1, OnFind)
         COMMAND_HANDLER(ID_EDIT_FINDNEXT, 1, OnFindNext)
         COMMAND_HANDLER(IDM_ABOUT, 0, OnAbout)
@@ -104,28 +104,42 @@ protected:
         COMMAND_HANDLER(ID_TOGGLEHIDE, 0, OnToggleHide)
         COMMAND_HANDLER(ID_VIEW_TRACEWINDOW, 0, OnNavList)
         COMMAND_HANDLER(ID_VIEW_MESSAGEWINDOW, 0, OnNavOutput)
-        COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 0, OnNavConsole)
-        COMMAND_HANDLER(ID_EDIT_COPY, 0, OnCopy)
+		COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 0, OnNavConsole)
+		COMMAND_HANDLER(ID_VIEW_REFRESH, 0, OnRefresh)
+		COMMAND_HANDLER(ID_EDIT_COPY, 0, OnCopy)
         COMMAND_HANDLER(ID_EDIT_FIND, 0, OnFind)
         COMMAND_HANDLER(ID_EDIT_FINDNEXT, 0, OnFindNext)
     END_MSG_MAP()
 
 public:
 
-    CPersistComponentContainer * PPersist() { return m_pPersist; }
+	bool HandleJsAccelerators(MSG& msg);
+	
+	CPersistComponentContainer * PPersist() { return m_pPersist; }
     CTextTraceFile * PFile() { return m_pFile; }
-	CTraceCollection * PFileColl() { return m_pFileColl; }
+	CTraceSource * PFileColl() { return m_pFileColl; }
 
     CTraceView * PTraceView() { return m_pTraceView; }
     JsHost * PJsHost() { return m_pJsHost; }
     COutputView * POutputView() { return m_pOutputView; }
+	CCommandView * PCommandView() { return m_pCommandView; }
 
 	// post work to app thread
 	void PostWork(const std::function<void()> & func);
 	void SetDockLayout(double cmdHeight, double outHeight);
 
+	size_t GetCurrentLine();
+	void AddShortcut(uint8_t modifier, uint16_t key);
+
 private:
-    std::wstring m_File;
+	enum class SourceType
+	{
+		File,
+		DebugOutput
+	};
+	SourceType m_SourceType;
+	std::wstring m_File;
+
 	Dock::HostWindow * m_pDock;
 	Dock::Table * m_pDockRoot;
 	size_t m_idxCmdColumn;
@@ -133,7 +147,7 @@ private:
 
     // file to read
     CTextTraceFile * m_pFile;
-	CTraceCollection * m_pFileColl;
+	CTraceSource * m_pFileColl;
 
 	JsHost * m_pJsHost;
 
@@ -149,7 +163,10 @@ private:
     DWORD m_cbMaxLoadWindow;
     
     // last Find expression
-    CAtlStringW m_szLastFind;
+    std::wstring m_szLastFind;
+
+	// map of BYTE + WORD
+	std::set<DWORD> m_Keys;
 };
 
 

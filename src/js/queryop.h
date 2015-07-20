@@ -32,6 +32,10 @@ namespace Js {
 class QueryIterator
 {
 public:
+	virtual ~QueryIterator()
+	{
+	}
+
 	virtual bool Next() = 0;
 	virtual bool IsEnd() = 0;
 	virtual bool IsNative() = 0;

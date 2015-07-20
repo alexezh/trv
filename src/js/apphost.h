@@ -29,6 +29,7 @@ namespace Js {
 class View;
 class History;
 class DotExpressions;
+class Shortcuts;
 
 class IAppHost
 {
@@ -37,13 +38,26 @@ public:
 	virtual void OnViewCreated(View*) = 0;
 	virtual void OnHistoryCreated(History*) = 0;
 	virtual void OnDotExpressionsCreated(DotExpressions*) = 0;
+	virtual void OnShortcutsCreated(Shortcuts*) = 0;
 
 	virtual void LoadTrace(const char* pszName, int startPos, int endPos) = 0;
+
+	virtual const std::string& GetAppDataDir() = 0;
+
+	virtual void ConsoleSetConsole(const std::string& szText) = 0;
+	virtual void ConsoleSetFocus() = 0;
+
 	// trace storage
 	virtual LineInfo& GetLine(size_t idx) = 0;
 	virtual size_t GetLineCount() = 0;
 	virtual size_t GetCurrentLine() = 0;
-	virtual void UpdateLinesActive(CBitSet & set, int change) = 0;
+	virtual void AddShortcut(uint8_t modifier, uint16_t key) = 0;
+
+	// host maintains global "active/non-active" counter for each line
+	// view logic is responsible for updating it
+	virtual void UpdateLineActive(DWORD line, int change) = 0;
+	virtual void UpdateLinesActive(const CBitSet & set, int change) = 0;
+
 	// set trace format
 	virtual bool SetTraceFormat(const char * psz) = 0;
 

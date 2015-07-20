@@ -24,39 +24,28 @@
 #include "objectwrap.h"
 #include "js/query.h"
 
+using namespace v8;
+
 namespace Js {
 
-// view should have format registry which is identified by id
+// TODO: rename to TraceViewProxy
+class View;
+
+// view maintains list of filters created for tracesource
+// each filter points to collection (which technically can change)
 class FilterItem
 {
 public:
-	static void Init(v8::Isolate* iso, v8::Handle<v8::Object> & target);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
-	{
-		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
-	}
+	FilterItem(Local<Object> view);
 
-	FilterItem()
-		: Id(0)
-		, Color(0)
-		, Enable(true)
-	{
-	}
-
-	~FilterItem()
-	{
-		Cursor.Reset();
-	}
-
-
-	int Id;
-	v8::Persistent<v8::Object> SelectFunc;
-	BYTE Color;
-	bool Enable;
+	int Id = 0;
+	UniquePersistent<Object> Collection;
+	BYTE Color = 0;
+	bool Enable = true;
 	std::string Name;
 	std::string Description;
 	std::shared_ptr<CBitSet> Set;
-	v8::Persistent<v8::Object> Cursor;
+	UniquePersistent<Object> Cursor;
 	std::mutex Lock;
 
 	bool IsLineSelected(DWORD nLine)
@@ -65,19 +54,60 @@ public:
 		return Set->GetBit(nLine);
 	}
 
+	void UpdateCollection(Local<Value> val);
+
 private:
-	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static void WeakViewCallback(
+		const v8::WeakCallbackData<v8::Object, FilterItem>& data);
+
+	// weak reference to view
+	Persistent<Object> _View;
+};
+
+class FilterItemProxy : public BaseObject<FilterItemProxy>
+{
+public:
+	static void Init(Isolate* iso);
+	static Local<FunctionTemplate> & GetTemplate(Isolate* iso)
+	{
+		return Local<FunctionTemplate>::New(iso, _Template);
+	}
+
+	static Local<Object> CreateFromFilter(const std::shared_ptr<FilterItem>& filter)
+	{
+		auto filterProxyJs = FilterItemProxy::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance();
+		auto filterProxy = FilterItemProxy::Unwrap(filterProxyJs);
+		filterProxy->_Filter = filter;
+		return filterProxyJs;
+	}
+
+private:
+	std::shared_ptr<FilterItem> _Filter;
+
+	FilterItemProxy(const Local<Object>& handle)
+	{
+		Wrap(handle);
+	}
+
+	static void jsNew(const FunctionCallbackInfo<Value> &args);
+	static void jsSourceGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
+	static void jsSourceSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
+	static void jsColorGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
+	static void jsColorSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
+	static void jsDescriptionGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
+	static void jsDescriptionSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
+
+	static Persistent<FunctionTemplate> _Template;
 };
 
 // iterate through select
 class SelectCursor : public BaseObject<SelectCursor>
 {
 public:
-	static void Init(v8::Isolate* iso);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	static void Init(Isolate* iso);
+	static Local<FunctionTemplate> & GetTemplate(Isolate* iso)
 	{
-		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+		return Local<FunctionTemplate>::New(iso, _Template);
 	}
 
 	void InitCursor(const std::weak_ptr<FilterItem>& sel, std::unique_ptr<QueryIterator>&& it)
@@ -88,17 +118,17 @@ public:
 	}
 
 private:
-	SelectCursor(const v8::Handle<v8::Object>& handle);
+	SelectCursor(const Local<Object>& handle);
 	void UpdateFilter();
 
-	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static void jsNext(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsPrev(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsFirst(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsLast(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsNew(const FunctionCallbackInfo<Value> &args);
+	static void jsNext(const FunctionCallbackInfo<Value>& args);
+	static void jsPrev(const FunctionCallbackInfo<Value>& args);
+	static void jsFirst(const FunctionCallbackInfo<Value>& args);
+	static void jsLast(const FunctionCallbackInfo<Value>& args);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static Persistent<FunctionTemplate> _Template;
 	std::unique_ptr<QueryIterator> _Iter;
 	std::weak_ptr<FilterItem> _Sel;
 
@@ -110,49 +140,46 @@ private:
 	size_t _CurPos;
 };
 
-class QueryIteratorHelper
-{
-public:
-	static void SelectLinesFromIteratorValue(QueryIterator* it, CBitSet& set);
-};
-
 class View : public BaseObject<View>
 {
 public:
-	static void Init(v8::Isolate* iso);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso) 
+	static void Init(Isolate* iso);
+	static Local<FunctionTemplate> & GetTemplate(Isolate* iso) 
 	{ 
-		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+		return Local<FunctionTemplate>::New(iso, _Template);
 	}
 
 	BYTE GetLineColor(DWORD nLine);
 
+	void UpdateFilter(FilterItem* filter);
+
 private:
-	View(const v8::Handle<v8::Object>& handle);
+	View(const Local<Object>& handle);
 
-	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static void jsFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsFilterInteractive(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsRemoveFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsPrintFilters(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsEnableFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsNew(const FunctionCallbackInfo<Value> &args);
+	static void jsFilter(const FunctionCallbackInfo<Value>& args);
+	static void jsFilterInteractive(const FunctionCallbackInfo<Value>& args);
+	static void jsRemoveFilter(const FunctionCallbackInfo<Value>& args);
+	static void jsPrintFilters(const FunctionCallbackInfo<Value>& args);
+	static void jsEnableFilter(const FunctionCallbackInfo<Value>& args);
 
-	static void jsShowFiltersGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
-	static void jsShowFiltersSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,	const v8::PropertyCallbackInfo<void>& info);
+	static void jsShowFiltersGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
+	static void jsShowFiltersSetter(Local<String> property, Local<Value> value,	const PropertyCallbackInfo<void>& info);
 
-	static void jsCurrentLineGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsCurrentLineGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
 
-	static void jsSetViewLayout(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsSetViewLayout(const FunctionCallbackInfo<Value>& args);
 
-	void VerifySelectArgs(const v8::FunctionCallbackInfo<v8::Value>& args);
-	v8::Local<v8::Value> FilterWorker(const v8::FunctionCallbackInfo<v8::Value>& args, bool iter);
+	void VerifySelectArgs(const FunctionCallbackInfo<Value>& args);
+	Local<Value> FilterWorker(const FunctionCallbackInfo<Value>& args, bool iter);
 	void ShowFiltersWorker(bool val);
+	Local<Value> RunQuery(const std::shared_ptr<FilterItem>& filter, Query* pQuery, bool iter);
 
 private:
-	static v8::Persistent<v8::FunctionTemplate> _Template;
+	static Persistent<FunctionTemplate> _Template;
 	bool _ShowFilters;
 	std::mutex _Lock;
-	std::map<int, std::shared_ptr<FilterItem> > _Filters;
+	std::map<int, std::shared_ptr<FilterItem>> _Filters;
 };
 
 } // Js

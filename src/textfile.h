@@ -28,11 +28,11 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-class CTextTraceCollection;
+class CTextTraceSource;
 
 class CTextTraceFile : public CTraceFile
 {
-	friend class CTextTraceCollection;
+	friend class CTextTraceSource;
 
 public:
 
@@ -89,7 +89,7 @@ public:
 	// dependent on reverse flag the position either indicates the end of beginning
 	void Load(QWORD nStop);
 
-    void CreateCollection(CTraceCollection ** ppCollection);
+	void CreateCollection(CTraceSource ** ppCollection);
 
 private:    
     static void WINAPI LoadThreadInit(void * pCtx);
@@ -126,40 +126,35 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-class CTextTraceCollection : public CTraceCollection
+class CTextTraceSource : public CTraceSource
 {
 public:
-	CTextTraceCollection(CTextTraceFile * pFile)
+	CTextTraceSource(CTextTraceFile * pFile)
 		: m_pFile(pFile)
-		, m_nTotal(0)
-		, m_nActive(0)
-		, m_pHandler(nullptr)
-		, m_nLastBlockIndex(-1)
-		, m_pLastBlock(nullptr)
-		, m_nLastBlockStart(0)
 	{
 		LineInfoDesc::Reset(m_Desc);
 	}
 
 	// Returns the current line count. 
 	// The count can change as we add more data at the end or in the beginning
-    DWORD GetLineCount()
+	DWORD GetLineCount() override
 	{
 		return m_nTotal;
 	}
 
-	LineInfoDesc& GetDesc()
+	LineInfoDesc& GetDesc() override
 	{
 		return m_Desc;
 	}
 
-    LineInfo& GetLine(DWORD nIndex);
-	void UpdateLinesActive(CBitSet & set, int change);
-	void GetActiveLinesIndices(std::vector<DWORD> & lines);
-	bool SetTraceFormat(const char * psz);
+	LineInfo& GetLine(DWORD nIndex) override;
+	void UpdateLineActive(DWORD line, int change) override;
+	void UpdateLinesActive(const CBitSet & set, int change) override;
+	void GetActiveLinesIndices(std::vector<DWORD> & lines) override;
+	bool SetTraceFormat(const char * psz) override;
 
 	// updates view with changes (if any)
-	HRESULT Refresh();
+	HRESULT Refresh() override;
 
 	// register update notification handlers
 	// called from Refresh()
@@ -175,23 +170,23 @@ private:
 	std::mutex m_Lock;
 	typedef std::lock_guard<std::mutex> LockGuard;
 
-	CTraceViewNotificationHandler * m_pHandler;
+	CTraceViewNotificationHandler * m_pHandler = nullptr;
 
 	LineInfoDesc m_Desc;
 
 	// collection of lines across all blocks
 	std::vector<CTextTraceFile::LoadBlock*> m_Blocks;
 
-	DWORD m_nTotal;
-	DWORD m_nActive;
+	DWORD m_nTotal = 0;
+	DWORD m_nActive = 0;
 
 	// cached last block info
-	CTextTraceFile::LoadBlock * m_pLastBlock;
-	size_t m_nLastBlockIndex;
+	CTextTraceFile::LoadBlock * m_pLastBlock = nullptr;
+	size_t m_nLastBlockIndex = -1;
 	// line number at which the last block starts
-	DWORD m_nLastBlockStart;
+	DWORD m_nLastBlockStart = 0;
 
 	std::unique_ptr<TraceLineParser> m_Parser;
 	
-	CTextTraceFile * m_pFile;
+	CTextTraceFile * m_pFile = nullptr;
 };

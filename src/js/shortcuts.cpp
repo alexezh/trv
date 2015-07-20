@@ -20,7 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include <locale>
-#include "DotExpressions.h"
+#include "shortcuts.h"
 #include "apphost.h"
 #include "color.h"
 #include "error.h"
@@ -30,16 +30,16 @@ using namespace v8;
 
 namespace Js {
 
-Persistent<FunctionTemplate> DotExpressions::_Template;
+Persistent<FunctionTemplate> Shortcuts::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-DotExpressions::DotExpressions(const v8::Handle<v8::Object>& handle)
+Shortcuts::Shortcuts(const v8::Handle<v8::Object>& handle)
 {
 	Wrap(handle);
 }
 
-void DotExpressions::Init(Isolate* iso)
+void Shortcuts::Init(Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -50,25 +50,25 @@ void DotExpressions::Init(Isolate* iso)
 	_Template.Reset(iso, tmpl);
 }
 
-void DotExpressions::jsNew(const FunctionCallbackInfo<Value> &args)
+void Shortcuts::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	LOG("");
-	DotExpressions *dotExpressions = new DotExpressions(args.This());
-	GetCurrentHost()->OnDotExpressionsCreated(dotExpressions);
+	Shortcuts *obj = new Shortcuts(args.This());
+	GetCurrentHost()->OnShortcutsCreated(obj);
 
 	args.GetReturnValue().Set(args.This());
 }
 
-void DotExpressions::jsAdd(const FunctionCallbackInfo<Value>& args)
+void Shortcuts::jsAdd(const FunctionCallbackInfo<Value>& args)
 {
-	TryCatchCpp(args, [&args] 
+	TryCatchCpp(args, [&args]
 	{
-		auto pThis = UnwrapThis<DotExpressions>(args.This());
+		auto pThis = UnwrapThis<Shortcuts>(args.This());
 		return pThis->AddWorker(args);
 	});
 }
 
-v8::Local<v8::Value> DotExpressions::AddWorker(const v8::FunctionCallbackInfo<v8::Value>& args)
+v8::Local<v8::Value> Shortcuts::AddWorker(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	LOG("@%p", this);
 	if (args.Length() != 2)
@@ -99,75 +99,69 @@ v8::Local<v8::Value> DotExpressions::AddWorker(const v8::FunctionCallbackInfo<v8
 		ThrowSyntaxError(ss.str().c_str());
 	}
 
-	auto token = args[0]->ToString();
-	String::Utf8Value strToken(token);
+	auto key = args[0]->ToString();
+	String::Utf8Value strKey(key);
+	auto szKey = std::string(*strKey, strKey.length());
+	size_t idx = szKey.find('+');
 
-	_Expressions.emplace(std::string(*strToken, strToken.length()), UniquePersistent<Function>(Isolate::GetCurrent(), args[1].As<Function>()));
+	if (idx == std::string::npos)
+		ThrowKeyError(szKey);
+
+	// parse key
+	auto szModifier = szKey.substr(0, idx);
+	auto szVKey = szKey.substr(idx+1);
+	if (szVKey.length() != 1)
+		ThrowKeyError(szKey);
+
+	uint8_t modifier = 0;
+	if (_stricmp(szModifier.c_str(), "ctrl") == 0)
+	{
+		modifier |= FCONTROL;
+	}
+	else if (_stricmp(szModifier.c_str(), "alt") == 0)
+	{
+		modifier |= FALT;
+	}
+	else
+	{
+		ThrowKeyError(szKey);
+	}
+
+	auto code = GetVKey(szVKey[0]);
+	_Keys.emplace(GetKey(modifier, code), UniquePersistent<Function>(Isolate::GetCurrent(), args[1].As<Function>()));
+
+	GetCurrentHost()->AddShortcut(modifier, code);
 
 	return v8::Local<v8::Value>();
 }
 
-std::vector<std::string> Tokenize(const std::string& line) 
+uint16_t Shortcuts::GetVKey(char c)
 {
-	std::vector<std::string> res;
-	std::locale loc;
-	size_t idxToken = std::string::npos;
-
-	for (size_t i = 0; i < line.length(); i++)
-	{
-		char c = line[i];
-		if (std::isspace(c, loc))
-		{
-			if (idxToken == std::string::npos)
-			{
-				continue;
-			}
-			else
-			{
-				res.push_back(std::string(&line[idxToken], &line[i]));
-				idxToken = std::string::npos;
-			}
-		}
-		else
-		{
-			if (idxToken == std::string::npos)
-				idxToken = i;
-		}
-	}
-
-	if (idxToken != std::string::npos)
-	{
-		res.push_back(std::string(&line[idxToken], &line[line.length()]));
-	}
-
-	return res;
+	return toupper(c);
 }
 
-void DotExpressions::Execute(Isolate* iso, const std::string & line)
+void Shortcuts::ThrowKeyError(const std::string& key)
 {
-	LOG("@%p line=%s", this, line.c_str());
-	auto tokens = Tokenize(line);
-	if (tokens.size() == 0)
-		return;
+	std::stringstream ss;
 
-	assert(tokens[0][0] == '.');
-	auto key = tokens[0].substr(1);
-	auto it = _Expressions.find(key);
-	if (it == _Expressions.end())
+	ss << "string should be in form Ctrl+X or Alt+X\r\n";
+	ss << key;
+
+	ThrowSyntaxError(ss.str().c_str());
+}
+
+void Shortcuts::Execute(Isolate* iso, uint8_t modifier, uint16_t key)
+{
+	auto it = _Keys.find(GetKey(modifier, key));
+	if (it == _Keys.end())
 	{
-		LOG("@%p cannot find expression %s", this, key.c_str());
+		LOG("@%p cannot find key", this);
 		return;
 	}
 
 	auto func(v8::Local<v8::Function>::New(v8::Isolate::GetCurrent(), it->second));
-	std::vector<v8::Local<Value>> args;
 
-	for (size_t i = 1; i < tokens.size(); i++)
-	{
-		args.push_back(String::NewFromUtf8(iso, tokens[i].c_str()));
-	}
-
-	func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), args.size(), args.data());
+	func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 0, nullptr);
 }
 
 } // Js

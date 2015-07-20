@@ -24,10 +24,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 //
 CBitSet::CBitSet()
-    : m_pBuf(NULL)
-	, m_nBuf(0)
-    , m_nSetBit(0)
-    , m_nTotalBit(0)
 {
 }
 
@@ -38,6 +34,20 @@ CBitSet::~CBitSet()
         delete m_pBuf;
     }
 }
+
+
+void CBitSet::Copy(CBitSet&& other)
+{
+	m_pBuf = other.m_pBuf;
+	other.m_pBuf = nullptr;
+
+	m_nBuf = other.m_nBuf;
+	m_nSetBit = other.m_nSetBit;
+	m_nTotalBit = other.m_nTotalBit;
+	m_nFirstBit = other.m_nFirstBit;
+	m_nLastBit = other.m_nLastBit;
+}
+
 
 void CBitSet::Init(DWORD nElems)
 {
@@ -68,15 +78,27 @@ void CBitSet::Fill(BOOL fSet)
     }
 }
 
-void CBitSet::CopyFrom(const CBitSet& src)
-{
-}
-
 void CBitSet::Or(CBitSet& src)
 {
-	DWORD nBuf = min(m_nBuf, src.m_nBuf);
-	for(DWORD i = 0; i < nBuf; i++)
+	DWORD srcFirst = src.m_nFirstBit >> 5;
+	DWORD srcLast = src.m_nLastBit >> 5;
+
+	DWORD nBuf = std::min<DWORD>(m_nBuf, srcLast);
+	for(DWORD i = src.m_nFirstBit; i < nBuf; i++)
 	{
 		m_pBuf[i] |= src.m_pBuf[i];
 	}
+}
+
+CBitSet CBitSet::Clone()
+{
+	CBitSet set;
+	set.m_pBuf = new DWORD[m_nBuf];
+	memcpy_s(set.m_pBuf, sizeof(DWORD)*m_nBuf, m_pBuf, sizeof(DWORD)*m_nBuf);
+	set.m_nBuf = m_nBuf;
+	set.m_nSetBit = m_nSetBit;
+	set.m_nTotalBit = m_nTotalBit;
+	set.m_nFirstBit = m_nFirstBit;
+	set.m_nLastBit = m_nLastBit;
+	return set;
 }

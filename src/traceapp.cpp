@@ -30,6 +30,7 @@
 #include "about.h"
 #include "file.h"
 #include "textfile.h"
+#include "debugoutputsource.h"
 #include "make_unique.h"
 #include "stringutils.h"
 #include "log.h"
@@ -81,7 +82,22 @@ HRESULT CTraceApp::Init(LPWSTR lpCmdLine)
     m_pPersist->Init();
 
     // save file name for later
-    m_File = lpCmdLine;
+	m_SourceType = SourceType::File;
+	if (wcslen(lpCmdLine) > 0)
+	{
+		if (lpCmdLine[0] == '-')
+		{
+			if (wcscmp(lpCmdLine, L"-debug") == 0)
+			{
+				m_SourceType = SourceType::DebugOutput;
+			}
+		}
+	}
+
+	if (m_SourceType == SourceType::File)
+	{
+		m_File = lpCmdLine;
+	}
 
     // create window
     hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDC_TRV));
@@ -127,17 +143,27 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
     RECT rect;
 
     GetClientRect(&rect);
-    
-    // open trace file
-    m_pFile = new CTextTraceFile;
-    if(m_pFile == NULL)
-    {
-        hr = E_OUTOFMEMORY;
-        goto Cleanup;
-    }
+ 
+	if (m_SourceType == SourceType::File)
+	{
+		// open trace file
+		m_pFile = new CTextTraceFile;
+		if (m_pFile == NULL)
+		{
+			hr = E_OUTOFMEMORY;
+			goto Cleanup;
+		}
 
-	// create collection
-	m_pFile->CreateCollection(&m_pFileColl);
+		// create collection
+		m_pFile->CreateCollection(&m_pFileColl);
+	}
+	else
+	{
+		auto coll = new CDebugOutputTraceSource();
+		coll->Init();
+
+		m_pFileColl = coll;
+	}
 
 	// create dock window
     m_pDock = new Dock::HostWindow;
@@ -357,7 +383,7 @@ LRESULT CTraceApp::OnFind(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandl
     }
 
     m_szLastFind = dlg.m_Expr;
-    m_pTraceView->Find(m_szLastFind, TRUE);
+    m_pTraceView->Find(m_szLastFind.c_str(), TRUE);
     
 done:
 
@@ -371,7 +397,7 @@ LRESULT CTraceApp::OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bH
     HRESULT hr = S_OK;
     bHandled = TRUE;
 
-    m_pTraceView->Find(m_szLastFind, FALSE);
+    m_pTraceView->Find(m_szLastFind.c_str(), FALSE);
 
     return 0;
 }
@@ -386,6 +412,15 @@ LRESULT CTraceApp::OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& 
     bHandled = TRUE;
 
     return 0;
+}
+
+LRESULT CTraceApp::OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+	m_pFileColl->Refresh();
+
+	m_pTraceView->Repaint();
+
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -463,6 +498,34 @@ void CTraceApp::RebuildDock()
 
 ///////////////////////////////////////////////////////////////////////////////
 //
+void CTraceApp::AddShortcut(uint8_t modifier, uint16_t key)
+{
+	m_Keys.insert(static_cast<int>(modifier) << 16 | static_cast<WORD>(key));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+bool CTraceApp::HandleJsAccelerators(MSG& msg)
+{
+	byte modifier = 0;
+
+	if ((GetAsyncKeyState(VK_CONTROL) & 0x80000000) != 0)
+		modifier |= FCONTROL;
+
+	if ((GetAsyncKeyState(VK_MENU) & 0x80000000) != 0)
+		modifier |= FALT;
+
+	auto it = m_Keys.find(static_cast<int>(modifier) << 16 | static_cast<WORD>(msg.wParam));
+	if (it == m_Keys.end())
+		return false;
+
+	m_pJsHost->ProcessAccelerator(modifier, msg.wParam);
+
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
 HRESULT InitTraceApp(LPWSTR lpCmdLine, int nCmdShow)
 {
     HRESULT hr = S_OK;
@@ -508,11 +571,18 @@ int PASCAL wWinMain(  HINSTANCE hInstance,
     /* Acquire and dispatch messages until a WM_QUIT uMessage is received. */
     while(GetMessage( &msg, NULL, 0, 0))
     {
-        if (!TranslateAccelerator(g_pApp->m_hWnd, hAccelTable, &msg)) 
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+		if (TranslateAccelerator(g_pApp->m_hWnd, hAccelTable, &msg))
+		{
+			continue;
+		}
+
+		if (msg.message == WM_KEYDOWN && g_pApp && g_pApp->HandleJsAccelerators(msg))
+		{
+			continue;
+		}
+
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 
     return (int)msg.wParam;
@@ -521,6 +591,7 @@ Cleanup:
 
     return FALSE;
 }
+
 
 
 

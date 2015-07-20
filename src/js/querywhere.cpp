@@ -18,36 +18,48 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
-#pragma once
-
-#include "objectwrap.h"
+#include "stdafx.h"
+#include "query.h"
+#include "querymap.h"
+#include "querywhere.h"
+#include "tid.h"
 
 namespace Js {
 
-// simple class for storing thread id
-class MatchTid : public BaseObject<MatchTid>
+std::shared_ptr<QueryOp> QueryOpWhere::Combine(EXPRTYPE type, const std::shared_ptr<Expr> & rightExpr)
 {
-public:
-	static void Init(v8::Isolate* iso);
-	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	std::shared_ptr<Expr> expr;
+	switch (type)
 	{
-		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	case OR: expr.reset(new ExprOr(_Expr, rightExpr)); break;
+	case AND: expr.reset(new ExprAnd(_Expr, rightExpr)); break;
+	default: assert(false);
 	}
 
-	static MatchTid* TryGetMatchTid(const v8::Local<v8::Object> & obj);
+	// create where query with the same source and new expr
+	return std::make_shared<QueryOpWhere>(_Source, QueryOpWhere::ALLMATCH, expr);
+}
 
-	int Tid() { return _Tid; }
-
-private:
-	MatchTid(const v8::Handle<v8::Object>& handle, int tid);
-
-	static void jsMake(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
-
-private:
-	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
-	int _Tid;
-};
+std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> & val)
+{
+	if (val->IsString())
+	{
+		return std::make_shared<MatchMsg>(*v8::String::Utf8Value(val));
+	}
+	else if (val->IsFunction())
+	{
+		return std::make_shared<MatchJs>(val.As<v8::Function>());
+	}
+	else if (val->IsObject())
+	{
+		auto match = Js::MatchTid::TryGetMatchTid(val.As<v8::Object>());
+		if (match != nullptr)
+		{
+			return std::make_shared<MatchTid>(match->Tid());
+		}
+	}
+	
+	throw V8RuntimeException("Unsupported parameter");
+}
 
 }

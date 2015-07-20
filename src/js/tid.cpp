@@ -33,21 +33,37 @@ UniquePersistent<FunctionTemplate> MatchTid::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void MatchTid::Init(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & target)
+void MatchTid::Init(v8::Isolate* iso)
 {
 	LOG("");
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
-	tmpl->SetClassName(String::NewFromUtf8(iso, "matchtid"));
+	tmpl->SetClassName(String::NewFromUtf8(iso, "MatchTid"));
 	_Template.Reset(iso, tmpl);
+}
 
-	target->Set(String::NewFromUtf8(iso, "matchtid"), v8::FunctionTemplate::New(iso, jsMake));
+void MatchTid::InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target)
+{
+	target->Set(String::NewFromUtf8(iso, "MatchTid"), MatchTid::GetTemplate(iso)->GetFunction());
+}
+
+MatchTid* MatchTid::TryGetMatchTid(const Local<Object> & obj)
+{
+	auto res = obj->FindInstanceInPrototypeChain(GetTemplate(Isolate::GetCurrent()));
+	if (res.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	auto pThis = Unwrap(obj);
+	return pThis;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-MatchTid::MatchTid(int tid)
+MatchTid::MatchTid(const v8::Handle<v8::Object>& handle, int tid)
 	: _Tid(tid)
 {
+	Wrap(handle);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,8 +85,7 @@ void MatchTid::jsNew(const FunctionCallbackInfo<Value> &args)
 		ThrowTypeError(s_InvalidArgs);
 	}
 
-	MatchTid *tid = new MatchTid(args[0]->Int32Value());
-	args.This()->SetInternalField(0, External::New(Isolate::GetCurrent(), tid));
+	MatchTid *tid = new MatchTid(args.This(), args[0]->Int32Value());
 
 	args.GetReturnValue().Set(args.This());
 }

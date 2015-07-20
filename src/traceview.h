@@ -23,7 +23,7 @@
 #include "resource.h"
 #include "persist.h"
 
-class CTraceCollection;
+class CTraceSource;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 
@@ -102,8 +102,9 @@ public:
 private:
     
     LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnPaint(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
     LRESULT OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
     LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
     LRESULT OnUpdateView(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
@@ -130,8 +131,9 @@ protected:
     
     BEGIN_MSG_MAP(CTraceView)
         MESSAGE_HANDLER(WM_CREATE, OnCreate)
-        MESSAGE_HANDLER(WM_SIZE, OnSize)
-        NOTIFY_HANDLER(ID_TRACEVIEW, LVN_GETDISPINFO, OnGetDispInfo)
+		MESSAGE_HANDLER(WM_SIZE, OnSize)
+//		MESSAGE_HANDLER(WM_PAINT, OnPaint)
+		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_GETDISPINFO, OnGetDispInfo)
         NOTIFY_HANDLER(ID_TRACEVIEW, LVN_ITEMCHANGED, OnItemChanged)
         NOTIFY_HANDLER(ID_TRACEVIEW, NM_CUSTOMDRAW, OnCustomDraw)
         NOTIFY_HANDLER(ID_TRACEVIEW, NM_DBLCLK, OnDblClk)
@@ -147,7 +149,7 @@ private:
 	CTraceViewConfig m_Config;
 
     // for now we read the whole file
-	CTraceCollection * m_pColl;
+	CTraceSource * m_pColl;
 
     // map from filtered lines to file lines
     std::vector<DWORD> m_ActiveLines;

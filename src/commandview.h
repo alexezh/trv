@@ -56,6 +56,7 @@ public:
 	LRESULT OnClearCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnScrollHistory(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
+	void SetText(const std::string& s);
 private:
     CTraceApp * m_pApp;
 	int m_HistoryIndex;
@@ -85,6 +86,8 @@ public:
 	{
 		m_Input.SetFocus();
 	}
+
+	void SetText(const std::string& text);
 
 private:
 	CTraceApp * m_pApp;

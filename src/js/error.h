@@ -21,6 +21,7 @@
 #pragma once
 
 #include "log.h"
+#include "apphost.h"
 
 namespace Js {
 
@@ -44,6 +45,7 @@ inline void TryCatchCpp(const v8::FunctionCallbackInfo<v8::Value>& args, const s
 	catch (V8RuntimeException e)
 	{
 		LOG(" v8 exception");
+		GetCurrentHost()->OutputLine(e.what());
 	}
 }
 

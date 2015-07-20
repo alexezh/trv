@@ -1,11 +1,17 @@
+// shortcuts for parts of $ object
 var $t = $.trace;
-var $q = $.query($.trace);
+var $v = $.view;
 function $p(p) { $.print(p); }
 
-// view operarions
-var $v = $.view;
-function vs(coll, title, color) { $.view.filter(coll, title, color); }
-function vsi(coll, title, color) { $.view.filterinteractive(coll, title, color); }
+// stores last filter created with vf call
+var $f = null;
+
+// add filter 
+function vf(coll, color, title) 
+{
+    $f = $.view.filter(coll, color, title); 
+}
+function vfi(coll, color, title) { $.view.filterinteractive(coll, color, title); }
 
 function vr(id) { $.view.removefilter(id); }
 
@@ -14,18 +20,30 @@ function vt() { $.view.showfilters = !$.view.showfilters; }
 $.dotexpressions.add("f", vt);
 
 // print filters
-function vp() { $.view.printfilters(); }
-$.dotexpressions.add("p", vp);
+function pf() { $.view.printfilters(); }
+$.dotexpressions.add("pf", pf);
 
 
 function vsw(condition, color, title) 
 { 
-    $.view.filter($q.where(condition), color, title); 
+    vf($.trace.where(condition), color, title); 
 }
 $.dotexpressions.add("a", vsw);
 
 function vd(id) { $.view.enablefilter(id, false); }
 function ve(id) { $.view.enablefilter(id, true); }
+
+// add current line to quick collection
+function ql() { quick.addline($.view.currentline); }
+$.dotexpressions.add("ql", ql);
+
+// move cursor to console and add .a in beginning
+function startEditFilter()
+{
+    $.console.setFocus();
+    $.console.setText(".a ");
+}
+$.shortcuts.add("ctrl+a", startEditFilter);
 
 // bind to keyboard here
 // $.keybinding.add("Ctrl+H", vt())
@@ -39,7 +57,8 @@ function he(id) { $.history.exec(id); }
 // $t.format = "\\[?year(\\d+)-?month(\\d+)-?day(\\d+) ?hour(\\d+):?minute(\\d+):?second(\\d+)\\] (.*)";
 
 // 06/22/2012-09:17:52.69610060 [14B0] 06/22/2012-09:17:52.69610060 [14B0]    File was created: 
-$t.format = "?month(\\d+)/?day(\\d+)/?year(\\d+)-?hour(\\d+):?minute(\\d+):?second(\\d+).?nanosecond(\\x+) \\[?tid(\\x+)\\]\\s*(.*)";
+// $t.format = "?month(\\d+)/?day(\\d+)/?year(\\d+)-?hour(\\d+):?minute(\\d+):?second(\\d+).?nanosecond(\\x+) \\[?tid(\\x+)\\]\\s*(.*)";
+$t.format = "MSI \\(s\\) \\(?tid(\\d+):(.*)"
 
 $v.setviewlayout(30, 0.3);
 

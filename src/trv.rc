@@ -15,13 +15,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -37,7 +35,7 @@ IDI_TRV                 ICON                    "trv.ico"
 // Menu
 //
 
-IDC_TRV MENU 
+IDC_TRV MENU
 BEGIN
     POPUP "&File"
     BEGIN
@@ -48,8 +46,8 @@ BEGIN
         MENUITEM "Copy\t<Ctrl+Ins>",            ID_EDIT_COPY
         MENUITEM "Select All",                  ID_EDIT_SELECTALL, GRAYED
         MENUITEM SEPARATOR
-        MENUITEM "Find\t<Ctrl+F>",                ID_EDIT_FIND
-        MENUITEM "Find Next\t<F3>",               ID_EDIT_FINDNEXT
+        MENUITEM "Find\t<Ctrl+F>",              ID_EDIT_FIND
+        MENUITEM "Find Next\t<F3>",             ID_EDIT_FINDNEXT
         MENUITEM "Goto Line",                   ID_EDIT_GOTOLINE, GRAYED
     END
     POPUP "&View"
@@ -59,6 +57,7 @@ BEGIN
         MENUITEM "Console Window\tAlt+C",       ID_VIEW_CONSOLEWINDOW
         MENUITEM SEPARATOR
         MENUITEM "Show Filtered\tCtrl+H",       32780
+        MENUITEM "Refresh",                     ID_VIEW_REFRESH
     END
     POPUP "&Help"
     BEGIN
@@ -72,7 +71,7 @@ END
 // Accelerator
 //
 
-IDC_TRV ACCELERATORS 
+IDC_TRV ACCELERATORS
 BEGIN
     "M",            ID_BOOKMARK,            VIRTKEY, CONTROL, NOINVERT
     VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
@@ -94,7 +93,7 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX  22, 17, 230, 75
+IDD_ABOUTBOX DIALOGEX 22, 17, 230, 75
 STYLE DS_SETFONT | DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
@@ -111,32 +110,25 @@ CAPTION "Message View"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,297,81,50,16
-    EDITTEXT        IDC_TIME,30,6,100,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
-                    WS_BORDER
+    EDITTEXT        IDC_TIME,30,6,100,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     EDITTEXT        IDC_MSG,7,24,341,48,ES_MULTILINE | ES_READONLY
-    EDITTEXT        IDC_PRI,284,6,30,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
-                    WS_BORDER
-    EDITTEXT        IDC_SUB,225,6,28,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
-                    WS_BORDER
+    EDITTEXT        IDC_PRI,284,6,30,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    EDITTEXT        IDC_SUB,225,6,28,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Time:",IDC_STATIC,7,6,18,8
     LTEXT           "Line:",IDC_STATIC,139,6,16,8
     LTEXT           "Pri:",IDC_STATIC,208,6,11,8
     LTEXT           "SS:",IDC_STATIC,266,6,12,8
-    EDITTEXT        IDC_LINE,159,6,38,12,ES_AUTOHSCROLL | ES_READONLY | NOT 
-                    WS_BORDER
+    EDITTEXT        IDC_LINE,159,6,38,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
 IDD_FINDDLG DIALOGEX 0, 0, 315, 106
-STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | 
-    WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Find"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     EDITTEXT        IDC_TEXT,49,7,259,15,ES_MULTILINE | ES_AUTOHSCROLL
-    CONTROL         "Use regular expression",IDC_CHECK1,"Button",
-                    BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,28,87,10
-    CONTROL         "Case sensitive",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
-                    WS_DISABLED | WS_TABSTOP,7,42,61,10
+    CONTROL         "Use regular expression",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,28,87,10
+    CONTROL         "Case sensitive",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,7,42,61,10
     DEFPUSHBUTTON   "OK",IDOK,175,83,50,16
     PUSHBUTTON      "Cancel",IDCANCEL,258,83,50,16
     LTEXT           "Find what:",IDC_STATIC,7,9,34,8
@@ -148,16 +140,15 @@ CAPTION "Loading..."
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,65,39,50,16
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,18,172,
-                    14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,18,172,14
 END
 
 IDD_CONSOLEDLG DIALOGEX 0, 0, 354, 186
-STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_CHILD | WS_VISIBLE 
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     EDITTEXT        IDC_CMD,1,125,341,31,ES_AUTOVSCROLL
-    CONTROL         "",IDC_HISTORY,"RichEdit20W",ES_MULTILINE | ES_AUTOVSCROLL,1,1,341,118
+    CONTROL         "",IDC_HISTORY,"RichEdit20W",0x44,1,1,341,118
 END
 
 
@@ -195,54 +186,21 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
-    IDD_FILTERDLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 308
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 99
-    END
-
     IDD_MSGVIEWDLG, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 347
-        TOPMARGIN, 6
-        BOTTOMMARGIN, 97
-    END
-
-    IDD_SUBSYSFILTERDLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 215
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 88
-    END
-
-    IDD_ALIASDLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 177
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 67
+        , 50
     END
 
     IDD_FINDDLG, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 179
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 88
+        , 50
     END
 
     IDD_PROGRESSDLG, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 179
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 55
+        , 50
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -253,13 +211,13 @@ END
 // String Table
 //
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDS_APP_TITLE           "trv"
     IDC_TRV                 "TRV"
 END
 
-#endif    // English (U.S.) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

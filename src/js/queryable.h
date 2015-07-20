@@ -20,34 +20,47 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
+#include "strstr.h"
+#include "stringref.h"
 #include "objectwrap.h"
+
+class CBitSet;
 
 namespace Js {
 
-// simple class for storing thread id
-class MatchTid : public BaseObject<MatchTid>
+class Queryable : public BaseObject<Queryable>
 {
 public:
-	static void Init(v8::Isolate* iso);
-	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	enum OP
 	{
-		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+		MAP,
+		WHERE,
+		PAIR
+	};
+
+	static void Init(v8::Isolate* iso, const v8::Local<v8::ObjectTemplate>& protoTempl);
+
+protected:
+	Queryable(const v8::Handle<v8::Object>& handle)
+	{
+		Wrap(handle);
 	}
 
-	static MatchTid* TryGetMatchTid(const v8::Local<v8::Object> & obj);
-
-	int Tid() { return _Tid; }
+	virtual size_t ComputeCount() = 0;
 
 private:
-	MatchTid(const v8::Handle<v8::Object>& handle, int tid);
-
-	static void jsMake(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
-
-private:
-	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
-	int _Tid;
+	static void jsWhere(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsSelect(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsPair(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsCount(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsSkipWhile(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsTakeWhile(const v8::FunctionCallbackInfo<v8::Value> &args);
+	// returns an element which matches condition
+	static void jsFind(const v8::FunctionCallbackInfo<v8::Value> &args);
+	// index. adds index to a query so find works faster
+	static void jsIndex(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static v8::Handle<v8::Value> BuildWhereExpr(const v8::FunctionCallbackInfo<v8::Value> &args, OP op);
 };
 
 }
+

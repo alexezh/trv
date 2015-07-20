@@ -43,21 +43,19 @@ struct LineInfo
 	}
 	LineInfo(CStringRef && content)
 		: Content(content)
-		, Active(0)
-		, Tid(0)
-		, Time(0)
 	{
 	}
 
 	CStringRef Content;
 
-	// line index in a file
+	// line index in the file
 	DWORD Index;
 
 	// parsed info
-	time_t Time;
-	DWORD Tid;
+	time_t Time = 0;
+	DWORD Tid = 0;
 	CStringRef Msg;
 
-	int Active;
+	// indicates number of filters which include this line
+	int Active = 0;
 };

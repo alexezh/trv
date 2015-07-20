@@ -33,7 +33,6 @@
 #define ID_VIEW_TRACEWINDOW             156
 #define ID_VIEW_CONSOLEWINDOW           163
 #define ID_EDIT_FINDNEXT                164
-
 #define IDC_MSG                         1000
 #define IDC_TIME                        1001
 #define IDC_MSG2                        1001
@@ -54,13 +53,17 @@
 #define IDC_CHECK1                      1018
 #define IDC_CHECK2                      1019
 #define IDC_HISTORY                     1019
-#define IDC_GROUP			1020
+#define IDC_GROUP                       1020
 #define ID_COPY                         32774
 #define ID_GOTO                         32775
 #define ID_BOOKMARK                     32776
 #define ID_TOGGLEHIDE                   32780
 #define ID_NAVFILTER                    32781
 #define ID_NAVLIST                      32782
+#define ID_FILE_NEWDEBUGOUTPUT          32788
+#define ID_FILE_OPEN                    32789
+#define ID_FILE_OPENDEBUGOUTPUT         32790
+#define ID_VIEW_REFRESH                 32791
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -69,7 +72,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        165
-#define _APS_NEXT_COMMAND_VALUE         32788
+#define _APS_NEXT_COMMAND_VALUE         32792
 #define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           118
 #endif

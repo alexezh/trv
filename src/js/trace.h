@@ -25,12 +25,13 @@
 #include "lineinfo.h"
 #include "bitset.h"
 #include "objectwrap.h"
+#include "queryable.h"
 
 class CBitSet;
 
 namespace Js {
 
-class TraceLine : public BaseObject<TraceLine>
+class TraceLine : public BaseObject<TraceLine> 
 {
 public:
 	static void Init(v8::Isolate* iso);
@@ -59,44 +60,74 @@ private:
 	LineInfo& _Line;
 };
 
-class TraceRange : public BaseObject<TraceRange>
+// observable collection of trace lines
+class TraceCollection : public Queryable
 {
 public:
 	static void Init(v8::Isolate* iso);
+	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
 
-	void GetLines(CBitSet& set);
+	static TraceCollection* TryGetCollection(const v8::Local<v8::Object> & obj);
+
+	static inline TraceCollection* Unwrap(v8::Handle<v8::Object> handle)
+	{
+		return static_cast<TraceCollection*>(Queryable::Unwrap(handle));
+	}
+
+	const std::shared_ptr<CBitSet>& GetLines() { return _Lines; }
+
+	using ChangeListener = std::function<void(TraceCollection* pSender, CBitSet& old, CBitSet& cur)>;
+	void SetChangeListener(const ChangeListener& listner);
+
+protected:
+	size_t TraceCollection::ComputeCount() override;
 
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsAddLine(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsRemoveLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 
-	TraceRange(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end);
+	TraceCollection(const v8::Handle<v8::Object>& handle, DWORD lineCount);
+	TraceCollection(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end);
 	static bool ValueToLineIndex(v8::Local<v8::Value>& v, DWORD& idx);
+
+	void AddLine(DWORD dwLine);
+	void RemoveLine(DWORD dwLine);
 
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	// for small sets it is better to use array
 	// for bigger sets - bitset. Ideally it would be nice to have compressed
 	// bitset where big ranges are collapsed
-	DWORD _Start;
-	CBitSet _Lines;
+	std::shared_ptr<CBitSet> _Lines;
+	ChangeListener _Listener;
 };
 
-class Trace : public BaseObject<Trace>
+class Trace : public Queryable
 {
 public:
 	Trace(const v8::Handle<v8::Object>& handle)
+		: Queryable(handle)
 	{
-		Wrap(handle);
 	}
 	static void Init(v8::Isolate* iso);
 	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
+
+	static inline Trace* Unwrap(v8::Handle<v8::Object> handle)
+	{
+		return static_cast<Trace*>(Queryable::Unwrap(handle));
+	}
+
+protected:
+
+	size_t ComputeCount() override;
 
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);

@@ -55,6 +55,7 @@
 #include <map>
 #include <set>
 #include <queue>
+#include <unordered_map>
 #include <list>
 #include <sstream>
 #include <memory>

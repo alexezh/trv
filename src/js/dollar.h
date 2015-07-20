@@ -32,18 +32,17 @@ public:
 	//	}
 	static void Init(v8::Isolate* iso);
 	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
-	static bool ImportFile(const char * pszFile);
+	static bool ImportFile(const char * pszFile, bool opt = false);
 
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsImport(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsQuery(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsLoadTrace(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 	static void jsGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
-	static v8::Handle<v8::Value> ImportWorker(const char * pszName, bool& success);
+	static bool ImportWorker(const char * pszName, bool opt);
 	static bool OpenScriptStream(const char * pszName, std::fstream& stm);
 
 private:

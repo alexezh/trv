@@ -95,44 +95,8 @@ History::History(const v8::Handle<v8::Object>& handle)
 
 bool History::InitFilePath()
 {
-    CComPtr<IKnownFolderManager> kfm;
-    CComPtr<IKnownFolder> kf;
-
-    HRESULT hr = CoCreateInstance(CLSID_KnownFolderManager, 
-							NULL, 
-							CLSCTX_INPROC_SERVER, 
-							__uuidof(IKnownFolderManager), 
-							(void**)&kfm);
-	if(FAILED(hr))
-	{
-		assert(false);
-		return false;
-	}
-	hr = kfm->GetFolder(FOLDERID_LocalAppData, &kf);
-	if(FAILED(hr))
-	{
-		assert(false);
-		return false;
-	}
-	WCHAR* pszPath;
-	hr = kf->GetPath(KF_FLAG_DEFAULT_PATH, &pszPath);
-	if(FAILED(hr))
-	{
-		assert(false);
-		return false;
-	}
-
-	std::string path;
-	WszToString(pszPath, path);
-	CoTaskMemFree(pszPath);
-
-	path += "\\trv.js";
-	
-	// make sure that folder exists
-	CreateDirectoryA(path.c_str(), NULL);
-
 	// read the file
-	_FilePath = path;
+	_FilePath = GetCurrentHost()->GetAppDataDir();
 	_FilePath += "\\.history";
 	return true;
 }

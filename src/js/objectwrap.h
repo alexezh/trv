@@ -96,7 +96,7 @@ private:
 		delete wrap;
 	}
 
-	v8::Persistent<v8::Object> m_Handle;
+	v8::UniquePersistent<v8::Object> m_Handle;
 };
 
 template <class T>

@@ -39,7 +39,7 @@ public:
 			_nLines = _Host->GetLineCount();
 			_idxLine = 0;
 		}
-		virtual bool Next()
+		bool Next() override
 		{
 			if(_idxLine >= _nLines)
 			{
@@ -52,19 +52,21 @@ public:
 			}
 			return true;
 		}
-		bool IsEnd()
+		bool IsEnd() override
 		{
 			return (_idxLine >= _nLines);
 		}
-		bool IsNative()
+		bool IsNative() override
 		{
 			return true;
 		}
-		LineInfo& NativeValue()
+		LineInfo& NativeValue() override
 		{
 			return _Host->GetLine(_idxLine);
 		}
-		v8::Handle<v8::Value> JsValue()
+
+		// return line wrapped in object
+		v8::Handle<v8::Value> JsValue() override
 		{
 			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), _idxLine);
 			return TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args);

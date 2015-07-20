@@ -26,6 +26,8 @@
 #include "view.h"
 #include "history.h"
 #include "dotexpressions.h"
+#include "shortcuts.h"
+#include "commandviewproxy.h"
 #include "log.h"
 
 using namespace v8;
@@ -40,12 +42,15 @@ void Dollar::Init(Isolate* iso)
 
 	v8::Handle<v8::ObjectTemplate> tmpl_proto = tmpl->PrototypeTemplate();
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
-	tmpl_proto->Set(String::NewFromUtf8(iso, "query"), FunctionTemplate::New(iso, jsQuery));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "import"), FunctionTemplate::New(iso, jsImport));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "loadtrace"), FunctionTemplate::New(iso, jsLoadTrace));
 
 	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
+
+	DotExpressions::Init(iso);
+	Shortcuts::Init(iso);
+	CommandViewProxy::Init(iso);
 }
 
 void Dollar::InitInstance(Isolate* iso, Handle<Object> & target)
@@ -78,16 +83,19 @@ void Dollar::jsNew(const FunctionCallbackInfo<Value> &args)
 	auto dotExpressions = DotExpressions::GetTemplate(iso)->GetFunction()->NewInstance();
 	args.This()->SetAccessor(String::NewFromUtf8(iso, "dotexpressions"), jsGetter, 0, dotExpressions);
 
+	auto shortcuts = Shortcuts::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "shortcuts"), jsGetter, 0, shortcuts);
+
+	auto console = CommandViewProxy::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "console"), jsGetter, 0, console);
+
 	args.GetReturnValue().Set(args.This());
 }
 
-bool Dollar::ImportFile(const char * pszFile)
+bool Dollar::ImportFile(const char * pszFile, bool opt)
 {
 	LOG(" %s", pszFile);
-	bool success;
-	ImportWorker(pszFile, success);
-	assert(success);
-	return success;
+	return ImportWorker(pszFile, opt);
 }
    
 void Dollar::jsGetter(Local<String> property, const PropertyCallbackInfo<v8::Value>& info)
@@ -98,14 +106,13 @@ void Dollar::jsGetter(Local<String> property, const PropertyCallbackInfo<v8::Val
 
 void Dollar::jsImport(const FunctionCallbackInfo<Value>& args)
 {
-	bool success;
 	if(args.Length() != 1)
 	{
 		ThrowTypeError("$.import requires one parameter\r\n");
 	}
 
 	v8::String::Utf8Value str(args[0]);
-	args.GetReturnValue().Set(ImportWorker(*str, success));
+	args.GetReturnValue().Set(ImportWorker(*str, false));
 }
 
 bool Dollar::OpenScriptStream(const char * pszName, std::fstream& stm)
@@ -119,7 +126,13 @@ bool Dollar::OpenScriptStream(const char * pszName, std::fstream& stm)
 			// use current dir
 			fileName = pszName;
 		}
-		else if(i == 1)
+		else if (i == 1)
+		{
+			fileName = GetCurrentHost()->GetAppDataDir();
+			fileName += "\\";
+			fileName += pszName;
+		}
+		else if (i == 2)
 		{
 			// exe directory 
 			char szPath[_MAX_PATH];
@@ -146,17 +159,22 @@ bool Dollar::OpenScriptStream(const char * pszName, std::fstream& stm)
 	return false;
 }
 
-Handle<Value> Dollar::ImportWorker(const char * pszName, bool& success)
+bool Dollar::ImportWorker(const char * pszName, bool opt)
 {
 	std::fstream stm;
-	success = true;
 
 	// search file in different locations
 	if(!OpenScriptStream(pszName, stm))
 	{
-		success = false;
-		std::string s = std::string("$.import cannot open file ") + pszName + "\r\n";
-		ThrowTypeError(s.c_str());
+		if (opt)
+		{
+			return false;
+		}
+		else
+		{
+			std::string s = std::string("$.import cannot open file ") + pszName + "\r\n";
+			ThrowTypeError(s.c_str());
+		}
 	}
 
 	std::string scriptLine((std::istreambuf_iterator<char>(stm)), std::istreambuf_iterator<char>());
@@ -167,7 +185,6 @@ Handle<Value> Dollar::ImportWorker(const char * pszName, bool& success)
 	auto script = v8::Script::Compile(scriptSource, scriptName);
 	if (script.IsEmpty()) 
 	{
-		success = false;
 		std::string s = std::string("$.import compile failed for file ") + pszName + "\r\n";
 		ThrowTypeError(s.c_str());
 	}
@@ -175,20 +192,10 @@ Handle<Value> Dollar::ImportWorker(const char * pszName, bool& success)
 	auto v = script->Run();
 	if(v.IsEmpty())
 	{
-		success = false;
+		return false;
 	}
 
-	return v;
-}
-
-void Dollar::jsQuery(const FunctionCallbackInfo<Value>& args)
-{
-	if(args.Length() != 1)
-	{
-		ThrowTypeError("$.query requires one parameter\r\n");
-	}
-
-	args.GetReturnValue().Set(Query::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args[0]));
+	return true;
 }
 
 void Dollar::jsLoadTrace(const v8::FunctionCallbackInfo<Value>& args)

@@ -46,6 +46,19 @@
     <ClCompile Include="src\js\dotexpressions.cpp">
       <Filter>js</Filter>
     </ClCompile>
+    <ClCompile Include="src\js\querywhere.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\queryable.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\shortcuts.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\commandviewproxy.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\debugoutputsource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\About.h" />
@@ -127,6 +140,16 @@
     <ClInclude Include="src\js\dotexpressions.h">
       <Filter>js</Filter>
     </ClInclude>
+    <ClInclude Include="src\js\queryable.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\shortcuts.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\commandviewproxy.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\debugoutputsource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\trv.rc" />

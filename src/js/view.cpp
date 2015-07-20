@@ -31,26 +31,94 @@ using namespace v8;
 
 namespace Js {
 
-Persistent<FunctionTemplate> FilterItem::_Template;
+Persistent<FunctionTemplate> FilterItemProxy::_Template;
 Persistent<FunctionTemplate> SelectCursor::_Template;
 Persistent<FunctionTemplate> View::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void FilterItem::Init(Isolate* iso, Local<Object> & target)
+void FilterItemProxy::Init(Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
+
+	auto tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "source"), jsSourceGetter, jsSourceSetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "color"), jsColorGetter, jsColorSetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "description"), jsDescriptionGetter, jsDescriptionSetter);
+
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 	tmpl->SetClassName(v8::String::NewFromUtf8(iso, "Filter"));
 	_Template.Reset(iso, tmpl);
 }
 
-void FilterItem::jsNew(const FunctionCallbackInfo<Value> &args)
+void FilterItemProxy::jsNew(const FunctionCallbackInfo<Value> &args)
 {
-	FilterItem *item = new FilterItem();
-	args.This()->SetInternalField(0, External::New(Isolate::GetCurrent(), item));
+	FilterItemProxy *item = new FilterItemProxy(args.This());
 
 	args.GetReturnValue().Set(args.This());
+}
+
+void FilterItemProxy::jsSourceGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
+	info.GetReturnValue().Set(proxy->_Filter->Collection);
+}
+
+void FilterItemProxy::jsSourceSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
+{
+	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
+	proxy->_Filter->UpdateCollection(value);
+}
+
+void FilterItemProxy::jsColorGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
+	// info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), trace->_Format.c_str()));
+}
+
+void FilterItemProxy::jsColorSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
+{
+}
+
+void FilterItemProxy::jsDescriptionGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
+	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), proxy->_Filter->Description.c_str()));
+}
+
+void FilterItemProxy::jsDescriptionSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
+{
+	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
+	proxy->_Filter->Description = *String::Utf8Value(value->ToString());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
+FilterItem::FilterItem(Local<Object> view)
+{
+	_View.Reset(Isolate::GetCurrent(), view);
+	_View.SetWeak(this, WeakViewCallback);
+	_View.MarkIndependent();
+}
+
+void FilterItem::WeakViewCallback(
+	const v8::WeakCallbackData<v8::Object, FilterItem>& data)
+{
+	v8::Isolate* isolate = data.GetIsolate();
+	v8::HandleScope scope(isolate);
+	FilterItem* wrap = data.GetParameter();
+	LOG("@%p", wrap);
+	wrap->_View.Reset();
+}
+
+void FilterItem::UpdateCollection(Local<Value> val)
+{
+	Collection.Reset(Isolate::GetCurrent(), val.As<Object>());
+	auto view = View::Unwrap(Local<Object>::New(Isolate::GetCurrent(), _View));
+	view->UpdateFilter(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -156,45 +224,6 @@ void SelectCursor::UpdateFilter()
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void QueryIteratorHelper::SelectLinesFromIteratorValue(QueryIterator* it, CBitSet& set)
-{
-	HandleScope scope(Isolate::GetCurrent());
-	if(it->IsNative())
-	{
-		set.SetBit(it->NativeValue().Index);
-	}
-	else
-	{
-		auto res = it->JsValue();
-
-		// if result is line, return it
-		// if result is line set, return it
-		// otherwise fail
-		if(res->IsInt32())
-		{
-			set.SetBit(res->ToInteger()->Int32Value());
-		}
-		else if(res->IsObject())
-		{
-			Handle<Object> objRes = res.As<Object>();
-			auto rangeJs = objRes->FindInstanceInPrototypeChain(TraceRange::GetTemplate(Isolate::GetCurrent()));
-			if(rangeJs.IsEmpty())
-			{
-				throw V8RuntimeException("Only tracerange is supported");
-			}
-
-			TraceRange * range = UnwrapThis<TraceRange>(rangeJs);
-			range->GetLines(set);
-		}
-		else
-		{
-			throw V8RuntimeException("Only int or tracerange is supported");
-		}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//
 View::View(const v8::Handle<v8::Object>& handle)
 	: _ShowFilters(true)
 {
@@ -219,6 +248,7 @@ void View::Init(Isolate* iso)
 	_Template.Reset(iso, tmpl);
 
 	SelectCursor::Init(iso);
+	FilterItemProxy::Init(iso);
 }
 
 void View::jsNew(const FunctionCallbackInfo<Value> &args)
@@ -259,9 +289,10 @@ void View::jsPrintFilters(const FunctionCallbackInfo<Value>& args)
 		ss << "Filters:\r\n";
 		for(auto it = pThis->_Filters.begin(); it != pThis->_Filters.end(); it++)
 		{
-			ss << (*it).first << " " << CColor::Name((*it).second->Color) << 
-				" " << (*it).second->Name << 
-				" " << (*it).second->Description << "\r\n";
+			FilterItem* filter = it->second.get();
+			ss << (*it).first << " " << CColor::Name(filter->Color) << 
+				" " << filter->Name << 
+				" " << filter->Description << "\r\n";
 		}
 		GetCurrentHost()->OutputLine(ss.str().c_str());
 		return Local<Value>();
@@ -319,10 +350,11 @@ void View::jsEnableFilter(const FunctionCallbackInfo<Value>& args)
 		auto it = pThis->_Filters.find(id);
 		if(it != pThis->_Filters.end())
 		{
-			if((*it).second->Enable != val)
+			FilterItem* filter = it->second.get();
+			if(filter->Enable != val)
 			{
-				(*it).second->Enable = val;
-				GetCurrentHost()->UpdateLinesActive(*(*it).second->Set, (val) ? 1 : -1);
+				filter->Enable = val;
+				GetCurrentHost()->UpdateLinesActive(*filter->Set, (val) ? 1 : -1);
 
 				std::stringstream ss;
 				ss << "Filters id=" << id << " " << ((val) ? "enabled" : "disabled") << "\r\n";
@@ -424,14 +456,19 @@ void View::VerifySelectArgs(const FunctionCallbackInfo<Value>& args)
 	}
 }
 
-Local<Value> View::FilterWorker(const FunctionCallbackInfo<Value>& args, bool iter)
+void View::UpdateFilter(FilterItem* filter)
 {
 	LOG("@%p", this);
+}
+
+Local<Value> View::FilterWorker(const FunctionCallbackInfo<Value>& args, bool iter)
+{
+	LOG("@%p iter=%d", this, (int)iter);
 	VerifySelectArgs(args);
 
-	auto sel = std::make_shared<FilterItem>();
+	auto filter = std::make_shared<FilterItem>(args.This());
 
-	sel->SelectFunc.Reset(Isolate::GetCurrent(), args[0].As<Object>());
+	auto selectFunc(args[0].As<Object>());
 
 	// allocate ID
 	int id = 1;
@@ -442,84 +479,102 @@ Local<Value> View::FilterWorker(const FunctionCallbackInfo<Value>& args, bool it
 			break;
 		}
 	}
-	sel->Id = id;
+	filter->Id = id;
 
 	// check if we have color
 	if(args.Length() >= 2)
 	{
-		sel->Color = CColor::FromName(*String::Utf8Value(args[1]->ToString()));
+		filter->Color = CColor::FromName(*String::Utf8Value(args[1]->ToString()));
 	}
 
 	if(args.Length() >= 3)
 	{
-		sel->Name = *String::Utf8Value(args[2]->ToString());
+		filter->Name = *String::Utf8Value(args[2]->ToString());
 	}
 
-	Local<Value> res;
-
 	// now we actually run the function
-	auto selectFunc(Local<Object>::New(Isolate::GetCurrent(), sel->SelectFunc));
+	//auto selectFunc(Local<Object>::New(Isolate::GetCurrent(), sel->SelectFunc));
 	Query * pQuery = Query::TryGetQuery(selectFunc);
+	Local<Object> collJs;
 	if(pQuery)
 	{
-		if(!iter)
-		{
-			std::string startMsg;
-			startMsg = std::string("Start query: ") + pQuery->MakeDescription() + "\r\n";
-
-			GetCurrentHost()->OutputLine(startMsg.c_str());
-
-			DWORD dwStart = GetTickCount();
-			{
-				std::lock_guard<std::mutex> guard(sel->Lock);
-
-				sel->Set = std::make_shared<CBitSet>();
-				sel->Set->Init(GetCurrentHost()->GetLineCount());
-
-				for(auto it = pQuery->Op()->CreateIterator(); !it->IsEnd(); it->Next())
-				{
-					QueryIteratorHelper::SelectLinesFromIteratorValue(it.get(), *sel->Set);
-				}
-			}
-			DWORD dwEnd = GetTickCount();
-
-			// mark lines as active
-			GetCurrentHost()->UpdateLinesActive(*sel->Set, 1);
-			char bitA[32];
-
-			sel->Description = std::string("lines match: ") + 
-					_itoa(sel->Set->GetSetBitCount(), bitA, 10) + 
-					" query: " + pQuery->MakeDescription();
-
-			// echo to output
-			std::stringstream ss;
-			ss << "Query execution time " << (dwEnd - dwStart) << "ms\r\n";
-			ss << "Add Filters id=" << id << " match=" << sel->Set->GetSetBitCount() << "\r\n";
-			GetCurrentHost()->OutputLine(ss.str().c_str());
-		}
-		else
-		{
-			sel->Description = std::string("interactive, query:") + pQuery->MakeDescription();
-			auto it = pQuery->Op()->CreateIterator();
-			
-			auto curJs = SelectCursor::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance();
-			SelectCursor* cur = UnwrapThis<SelectCursor>(curJs);
-			cur->InitCursor(sel, std::move(it));
-
-			sel->Cursor.Reset(Isolate::GetCurrent(), curJs);
-			res = Local<Value>::New(Isolate::GetCurrent(), curJs);
-		}
+		LOG("@%p input is query. Compute", this);
+		collJs = pQuery->GetCollection();
+		// RunQuery(filter, pQuery, iter);
 	}
 	else
 	{
-		ThrowError("failed to run query");
+		collJs = selectFunc;
+	}
+
+	TraceCollection* pColl = TraceCollection::TryGetCollection(collJs);
+	if (pColl)
+	{
+		LOG("@%p input is collection", this);
+
+		// save reference to collection and register for notifications
+		filter->Collection.Reset(Isolate::GetCurrent(), collJs);
+		std::weak_ptr<FilterItem> weakFilter(filter);
+		pColl->SetChangeListener([this, weakFilter](TraceCollection* pColl, const CBitSet& oldSet, const CBitSet& newSet)
+		{
+			auto filter(weakFilter.lock());
+			if (filter == nullptr)
+				return;
+
+			GetCurrentHost()->UpdateLinesActive(oldSet, -1);
+			GetCurrentHost()->UpdateLinesActive(newSet, 1);
+			filter->Set = pColl->GetLines();
+			GetCurrentHost()->RefreshView();
+		});
+
+		// we do not know if we already displaying this collection
+		filter->Set = pColl->GetLines();
+		GetCurrentHost()->UpdateLinesActive(*filter->Set, 1);
+
+		// have to listen for changes and update view
+	}
+	else
+	{
+		ThrowError("unknown argument type");
 	}
 
 	// report to host
-	_Filters[id] = std::move(sel);
+	_Filters[id] = filter;
 	GetCurrentHost()->RefreshView();
 
-	return std::move(res);
+	// wrap filter into filter proxy and return
+	return FilterItemProxy::CreateFromFilter(filter);
+}
+
+Local<Value> View::RunQuery(const std::shared_ptr<FilterItem>& filter, Query* pQuery, bool iter)
+{
+	Local<Value> res;
+	if (!iter)
+	{
+
+		// mark lines as active
+		GetCurrentHost()->UpdateLinesActive(*filter->Set, 1);
+		char bitA[32];
+
+		filter->Description = std::string("lines match: ") +
+			_itoa(filter->Set->GetSetBitCount(), bitA, 10) +
+			" query: " + pQuery->MakeDescription();
+
+	}
+	else
+	{
+		filter->Description = std::string("interactive, query:") + pQuery->MakeDescription();
+		auto it = pQuery->Op()->CreateIterator();
+
+		auto curJs = SelectCursor::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance();
+		SelectCursor* cur = UnwrapThis<SelectCursor>(curJs);
+		cur->InitCursor(filter, std::move(it));
+
+		filter->Cursor.Reset(Isolate::GetCurrent(), curJs);
+		res = Local<Value>::New(Isolate::GetCurrent(), curJs);
+	}
+
+	return res;
 }
 
 void View::ShowFiltersWorker(bool val)

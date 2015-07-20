@@ -166,6 +166,11 @@ LRESULT CTraceView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandl
     return 0;
 }
 
+LRESULT CTraceView::OnPaint(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	return 0;
+}
+
 HRESULT CTraceView::InitColumns()
 {
 	HRESULT hr = S_OK;
