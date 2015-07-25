@@ -1,4 +1,3 @@
-# Overview
 Trv.js is a trace view program which utilizes JScript to enable powerful filtering options. 
 
 Imagine the following case. You have a server application processing a lot of requests. The request processing takes a lot of steps all of each is done asynchronously; multiple requests can be processed at the same time. You want to see traces which belongs to a single request. With a simple tracing program you load trace into a viewer, and by using traceid or some other mechanism to find all traces for a request.
