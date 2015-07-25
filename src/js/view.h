@@ -30,75 +30,7 @@ namespace Js {
 
 // TODO: rename to TraceViewProxy
 class View;
-
-// view maintains list of filters created for tracesource
-// each filter points to collection (which technically can change)
-class FilterItem
-{
-public:
-	FilterItem(Local<Object> view);
-
-	int Id = 0;
-	UniquePersistent<Object> Collection;
-	BYTE Color = 0;
-	bool Enable = true;
-	std::string Name;
-	std::string Description;
-	std::shared_ptr<CBitSet> Set;
-	UniquePersistent<Object> Cursor;
-	std::mutex Lock;
-
-	bool IsLineSelected(DWORD nLine)
-	{
-		std::lock_guard<std::mutex> guard(Lock);
-		return Set->GetBit(nLine);
-	}
-
-	void UpdateCollection(Local<Value> val);
-
-private:
-	static void WeakViewCallback(
-		const v8::WeakCallbackData<v8::Object, FilterItem>& data);
-
-	// weak reference to view
-	Persistent<Object> _View;
-};
-
-class FilterItemProxy : public BaseObject<FilterItemProxy>
-{
-public:
-	static void Init(Isolate* iso);
-	static Local<FunctionTemplate> & GetTemplate(Isolate* iso)
-	{
-		return Local<FunctionTemplate>::New(iso, _Template);
-	}
-
-	static Local<Object> CreateFromFilter(const std::shared_ptr<FilterItem>& filter)
-	{
-		auto filterProxyJs = FilterItemProxy::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance();
-		auto filterProxy = FilterItemProxy::Unwrap(filterProxyJs);
-		filterProxy->_Filter = filter;
-		return filterProxyJs;
-	}
-
-private:
-	std::shared_ptr<FilterItem> _Filter;
-
-	FilterItemProxy(const Local<Object>& handle)
-	{
-		Wrap(handle);
-	}
-
-	static void jsNew(const FunctionCallbackInfo<Value> &args);
-	static void jsSourceGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
-	static void jsSourceSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
-	static void jsColorGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
-	static void jsColorSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
-	static void jsDescriptionGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
-	static void jsDescriptionSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info);
-
-	static Persistent<FunctionTemplate> _Template;
-};
+class FilterItem;
 
 // iterate through select
 class SelectCursor : public BaseObject<SelectCursor>
@@ -151,8 +83,8 @@ public:
 
 	BYTE GetLineColor(DWORD nLine);
 
-	void UpdateFilter(FilterItem* filter);
-
+	void UpdateFilter(FilterItem* filter, Local<Object> filterFunc);
+	void RefreshView();
 private:
 	View(const Local<Object>& handle);
 

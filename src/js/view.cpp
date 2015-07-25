@@ -23,6 +23,8 @@
 #include "apphost.h"
 #include "query.h"
 #include "trace.h"
+#include "tracecollection.h"
+#include "filteritem.h"
 #include "color.h"
 #include "error.h"
 #include "log.h"
@@ -31,95 +33,8 @@ using namespace v8;
 
 namespace Js {
 
-Persistent<FunctionTemplate> FilterItemProxy::_Template;
 Persistent<FunctionTemplate> SelectCursor::_Template;
 Persistent<FunctionTemplate> View::_Template;
-
-///////////////////////////////////////////////////////////////////////////////
-//
-void FilterItemProxy::Init(Isolate* iso)
-{
-	auto tmpl(FunctionTemplate::New(iso, jsNew));
-
-	auto tmpl_proto = tmpl->PrototypeTemplate();
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "source"), jsSourceGetter, jsSourceSetter);
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "color"), jsColorGetter, jsColorSetter);
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "description"), jsDescriptionGetter, jsDescriptionSetter);
-
-	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
-	tmpl->SetClassName(v8::String::NewFromUtf8(iso, "Filter"));
-	_Template.Reset(iso, tmpl);
-}
-
-void FilterItemProxy::jsNew(const FunctionCallbackInfo<Value> &args)
-{
-	FilterItemProxy *item = new FilterItemProxy(args.This());
-
-	args.GetReturnValue().Set(args.This());
-}
-
-void FilterItemProxy::jsSourceGetter(Local<String> property,
-	const PropertyCallbackInfo<v8::Value>& info)
-{
-	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
-	info.GetReturnValue().Set(proxy->_Filter->Collection);
-}
-
-void FilterItemProxy::jsSourceSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
-{
-	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
-	proxy->_Filter->UpdateCollection(value);
-}
-
-void FilterItemProxy::jsColorGetter(Local<String> property,
-	const PropertyCallbackInfo<v8::Value>& info)
-{
-	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
-	// info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), trace->_Format.c_str()));
-}
-
-void FilterItemProxy::jsColorSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
-{
-}
-
-void FilterItemProxy::jsDescriptionGetter(Local<String> property,
-	const PropertyCallbackInfo<v8::Value>& info)
-{
-	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
-	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), proxy->_Filter->Description.c_str()));
-}
-
-void FilterItemProxy::jsDescriptionSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
-{
-	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
-	proxy->_Filter->Description = *String::Utf8Value(value->ToString());
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//
-FilterItem::FilterItem(Local<Object> view)
-{
-	_View.Reset(Isolate::GetCurrent(), view);
-	_View.SetWeak(this, WeakViewCallback);
-	_View.MarkIndependent();
-}
-
-void FilterItem::WeakViewCallback(
-	const v8::WeakCallbackData<v8::Object, FilterItem>& data)
-{
-	v8::Isolate* isolate = data.GetIsolate();
-	v8::HandleScope scope(isolate);
-	FilterItem* wrap = data.GetParameter();
-	LOG("@%p", wrap);
-	wrap->_View.Reset();
-}
-
-void FilterItem::UpdateCollection(Local<Value> val)
-{
-	Collection.Reset(Isolate::GetCurrent(), val.As<Object>());
-	auto view = View::Unwrap(Local<Object>::New(Isolate::GetCurrent(), _View));
-	view->UpdateFilter(this);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -456,9 +371,71 @@ void View::VerifySelectArgs(const FunctionCallbackInfo<Value>& args)
 	}
 }
 
-void View::UpdateFilter(FilterItem* filter)
+void View::UpdateFilter(FilterItem* filter, Local<Object> filterFunc)
 {
 	LOG("@%p", this);
+
+	// now we actually run the function
+	//auto selectFunc(Local<Object>::New(Isolate::GetCurrent(), sel->SelectFunc));
+	Query * pQuery = Query::TryGetQuery(filterFunc);
+	Local<Object> collJs;
+	if (pQuery)
+	{
+		LOG("@%p input is query. Compute", this);
+		collJs = pQuery->GetCollection();
+		// RunQuery(filter, pQuery, iter);
+	}
+	else
+	{
+		collJs = filterFunc;
+	}
+
+	// update collection on filter
+	filter->Collection.Reset(Isolate::GetCurrent(), collJs.As<Object>());
+
+	// update items
+	TraceCollection* pColl = TraceCollection::TryGetCollection(collJs);
+	if (pColl)
+	{
+		LOG("@%p input is collection", this);
+
+		// remove lines which selected now
+		if (filter->Set && filter->Set->GetSetBitCount() != 0)
+		{
+			GetCurrentHost()->UpdateLinesActive(*filter->Set, -1);
+		}
+
+		filter->Set = pColl->GetLines();
+
+		// save reference to collection and register for notifications
+		std::weak_ptr<FilterItem> weakFilter(filter->shared_from_this());
+		pColl->SetChangeListener([this, weakFilter](TraceCollection* pColl, const CBitSet& oldSet, const CBitSet& newSet)
+		{
+			auto filter(weakFilter.lock());
+			if (filter == nullptr)
+				return;
+
+			GetCurrentHost()->UpdateLinesActive(oldSet, -1);
+			GetCurrentHost()->UpdateLinesActive(newSet, 1);
+			filter->Set = pColl->GetLines();
+			GetCurrentHost()->RefreshView();
+		});
+
+		// we do not know if we already displaying this collection
+		filter->Set = pColl->GetLines();
+		GetCurrentHost()->UpdateLinesActive(*filter->Set, 1);
+
+		// have to listen for changes and update view
+	}
+	else
+	{
+		ThrowError("unknown argument type");
+	}
+}
+
+void View::RefreshView()
+{
+	GetCurrentHost()->RefreshView();
 }
 
 Local<Value> View::FilterWorker(const FunctionCallbackInfo<Value>& args, bool iter)
@@ -492,51 +469,7 @@ Local<Value> View::FilterWorker(const FunctionCallbackInfo<Value>& args, bool it
 		filter->Name = *String::Utf8Value(args[2]->ToString());
 	}
 
-	// now we actually run the function
-	//auto selectFunc(Local<Object>::New(Isolate::GetCurrent(), sel->SelectFunc));
-	Query * pQuery = Query::TryGetQuery(selectFunc);
-	Local<Object> collJs;
-	if(pQuery)
-	{
-		LOG("@%p input is query. Compute", this);
-		collJs = pQuery->GetCollection();
-		// RunQuery(filter, pQuery, iter);
-	}
-	else
-	{
-		collJs = selectFunc;
-	}
-
-	TraceCollection* pColl = TraceCollection::TryGetCollection(collJs);
-	if (pColl)
-	{
-		LOG("@%p input is collection", this);
-
-		// save reference to collection and register for notifications
-		filter->Collection.Reset(Isolate::GetCurrent(), collJs);
-		std::weak_ptr<FilterItem> weakFilter(filter);
-		pColl->SetChangeListener([this, weakFilter](TraceCollection* pColl, const CBitSet& oldSet, const CBitSet& newSet)
-		{
-			auto filter(weakFilter.lock());
-			if (filter == nullptr)
-				return;
-
-			GetCurrentHost()->UpdateLinesActive(oldSet, -1);
-			GetCurrentHost()->UpdateLinesActive(newSet, 1);
-			filter->Set = pColl->GetLines();
-			GetCurrentHost()->RefreshView();
-		});
-
-		// we do not know if we already displaying this collection
-		filter->Set = pColl->GetLines();
-		GetCurrentHost()->UpdateLinesActive(*filter->Set, 1);
-
-		// have to listen for changes and update view
-	}
-	else
-	{
-		ThrowError("unknown argument type");
-	}
+	UpdateFilter(filter.get(), args[0].As<Object>());
 
 	// report to host
 	_Filters[id] = filter;

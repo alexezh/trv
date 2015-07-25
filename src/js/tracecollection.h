@@ -31,48 +31,56 @@ class CBitSet;
 
 namespace Js {
 
-class Trace : public Queryable
+// observable collection of trace lines
+class TraceCollection : public Queryable
 {
 public:
-	Trace(const v8::Handle<v8::Object>& handle);
-
 	static void Init(v8::Isolate* iso);
+	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
 
-	static inline Trace* Unwrap(v8::Handle<v8::Object> handle)
+	static TraceCollection* TryGetCollection(const v8::Local<v8::Object> & obj);
+
+	static inline TraceCollection* Unwrap(v8::Handle<v8::Object> handle)
 	{
-		return static_cast<Trace*>(Queryable::Unwrap(handle));
+		return static_cast<TraceCollection*>(Queryable::Unwrap(handle));
 	}
+
+	const std::shared_ptr<CBitSet>& GetLines() { return _Lines; }
+
+	using ChangeListener = std::function<void(TraceCollection* pSender, CBitSet& old, CBitSet& cur)>;
+	void SetChangeListener(const ChangeListener& listner);
 
 	const std::shared_ptr<QueryOp>& Op() override { return _Op; }
 	v8::Local<v8::Object> Source() override { return Handle(); }
 
 protected:
-
-	size_t ComputeCount() override;
+	size_t TraceCollection::ComputeCount() override;
 
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
-	// returns a line by index
-	static void jsGetLine(const v8::FunctionCallbackInfo<v8::Value> &args);
-	// returns set of lines based on range
-	static void jsFromRange(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static void jsLineCountGetter(v8::Local<v8::String> property, 
-												const v8::PropertyCallbackInfo<v8::Value>& info);
-	static void jsFormatGetter(v8::Local<v8::String> property, 
-												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsAddLine(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsRemoveLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 
-	static void jsFormatSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
-								const v8::PropertyCallbackInfo<void>& info);
+	TraceCollection(const v8::Handle<v8::Object>& handle, DWORD lineCount);
+	TraceCollection(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end);
+	static bool ValueToLineIndex(v8::Local<v8::Value>& v, DWORD& idx);
 
-	void SetFormat(const char * pszFormat);
+	void AddLine(DWORD dwLine);
+	void RemoveLine(DWORD dwLine);
+
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
-	std::string _Format;
-	// filter is either string expression or an object
+	// for small sets it is better to use array
+	// for bigger sets - bitset. Ideally it would be nice to have compressed
+	// bitset where big ranges are collapsed
+	std::shared_ptr<CBitSet> _Lines;
+	ChangeListener _Listener;
+
+	// operation exposing collection as source
 	std::shared_ptr<QueryOp> _Op;
 };
 

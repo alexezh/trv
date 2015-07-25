@@ -30,6 +30,7 @@
     <ClCompile Include="src\js\commandviewproxy.cpp" />
     <ClCompile Include="src\js\dollar.cpp" />
     <ClCompile Include="src\js\dotexpressions.cpp" />
+    <ClCompile Include="src\js\filteritem.cpp" />
     <ClCompile Include="src\js\history.cpp" />
     <ClCompile Include="src\js\init.cpp" />
     <ClCompile Include="src\js\output.cpp" />
@@ -39,6 +40,8 @@
     <ClCompile Include="src\js\shortcuts.cpp" />
     <ClCompile Include="src\js\tid.cpp" />
     <ClCompile Include="src\js\trace.cpp" />
+    <ClCompile Include="src\js\tracecollection.cpp" />
+    <ClCompile Include="src\js\traceline.cpp" />
     <ClCompile Include="src\js\view.cpp" />
     <ClCompile Include="src\log.cpp" />
     <ClCompile Include="src\outputview.cpp" />
@@ -71,6 +74,7 @@
     <ClInclude Include="src\js\dollar.h" />
     <ClInclude Include="src\js\dotexpressions.h" />
     <ClInclude Include="src\js\error.h" />
+    <ClInclude Include="src\js\filteritem.h" />
     <ClInclude Include="src\js\funcwrap.h" />
     <ClInclude Include="src\js\history.h" />
     <ClInclude Include="src\js\init.h" />
@@ -86,6 +90,8 @@
     <ClInclude Include="src\js\shortcuts.h" />
     <ClInclude Include="src\js\tid.h" />
     <ClInclude Include="src\js\trace.h" />
+    <ClInclude Include="src\js\tracecollection.h" />
+    <ClInclude Include="src\js\traceline.h" />
     <ClInclude Include="src\js\view.h" />
     <ClInclude Include="src\lineinfo.h" />
     <ClInclude Include="src\log.h" />

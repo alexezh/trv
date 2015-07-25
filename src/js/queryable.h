@@ -23,6 +23,7 @@
 #include "strstr.h"
 #include "stringref.h"
 #include "objectwrap.h"
+#include "queryop.h"
 
 class CBitSet;
 
@@ -38,8 +39,15 @@ public:
 		PAIR
 	};
 
-	static void Init(v8::Isolate* iso, const v8::Local<v8::ObjectTemplate>& protoTempl);
+	static void Init(v8::Isolate* iso);
+	static Queryable * TryGetQueryable(const v8::Local<v8::Object> & obj);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
+	virtual const std::shared_ptr<QueryOp>& Op() = 0;
+	virtual v8::Local<v8::Object> Source() = 0;
 protected:
 	Queryable(const v8::Handle<v8::Object>& handle)
 	{
@@ -60,6 +68,8 @@ private:
 	// index. adds index to a query so find works faster
 	static void jsIndex(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static v8::Handle<v8::Value> BuildWhereExpr(const v8::FunctionCallbackInfo<v8::Value> &args, OP op);
+
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 };
 
 }

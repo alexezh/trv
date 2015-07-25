@@ -30,13 +30,34 @@ using namespace v8;
 
 namespace Js {
 
-void Queryable::Init(v8::Isolate* iso, const Local<ObjectTemplate>& protoTempl)
+UniquePersistent<FunctionTemplate> Queryable::_Template;
+
+void Queryable::Init(v8::Isolate* iso)
 {
+	auto tmpl(FunctionTemplate::New(iso));
+	tmpl->SetClassName(String::NewFromUtf8(iso, "Queryable"));
+	auto protoTempl = tmpl->PrototypeTemplate();
+
 	protoTempl->Set(String::NewFromUtf8(iso, "where"), FunctionTemplate::New(iso, &jsWhere));
 	protoTempl->Set(String::NewFromUtf8(iso, "select"), FunctionTemplate::New(iso, &jsSelect));
 	protoTempl->Set(String::NewFromUtf8(iso, "pair"), FunctionTemplate::New(iso, &jsPair));
 	protoTempl->Set(String::NewFromUtf8(iso, "find"), FunctionTemplate::New(iso, &jsFind));
 	protoTempl->Set(String::NewFromUtf8(iso, "count"), FunctionTemplate::New(iso, &jsCount));
+
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	_Template.Reset(iso, tmpl);
+}
+
+Queryable * Queryable::TryGetQueryable(const v8::Local<v8::Object> & obj)
+{
+	auto res = obj->FindInstanceInPrototypeChain(GetTemplate(Isolate::GetCurrent()));
+	if (res.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	auto pThis = UnwrapThis<Query>(obj);
+	return pThis;
 }
 
 void Queryable::jsWhere(const FunctionCallbackInfo<Value> &args)

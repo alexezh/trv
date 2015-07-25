@@ -70,7 +70,8 @@ public:
 	// returns a description for query
 	std::string MakeDescription();
 
-	const std::shared_ptr<QueryOp>& Op() { return _Op; }
+	const std::shared_ptr<QueryOp>& Op() override { return _Op; }
+	v8::Local<v8::Object> Source() override { return v8::Local<v8::Object>::New(v8::Isolate::GetCurrent(), _Source); }
 
 	// generate collection from query
 	v8::Local<v8::Object> GetCollection();

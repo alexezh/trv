@@ -27,6 +27,8 @@
 #include "apphost.h"
 #include "bitset.h"
 #include "trace.h"
+#include "traceline.h"
+#include "tracecollection.h"
 #include "error.h"
 
 using namespace v8;
@@ -84,10 +86,9 @@ UniquePersistent<FunctionTemplate> Query::_Template;
 void Query::Init(v8::Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
-	tmpl->SetClassName(String::NewFromUtf8(iso, "query"));
-
+	tmpl->SetClassName(String::NewFromUtf8(iso, "Query"));
+	tmpl->Inherit(Queryable::GetTemplate(iso));
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
-	Queryable::Init(iso, tmpl->PrototypeTemplate());
 	_Template.Reset(iso, tmpl);
 }
 
@@ -98,18 +99,15 @@ Query::Query(const v8::Handle<v8::Object>& handle, const FunctionCallbackInfo<Va
 	assert(args.Length() == 3);
 	Queryable::OP op = (Queryable::OP)args[0]->Int32Value();
 
-	Query * pLeft = Query::TryGetQuery(args[1].As<Object>());
+	Queryable * pLeft = Queryable::TryGetQueryable(args[1].As<Object>());
 	std::shared_ptr<QueryOp> leftOp;
-	if (pLeft != nullptr)
+	if (pLeft == nullptr)
 	{
-		leftOp = pLeft->Op();
-		_Source.Reset(Isolate::GetCurrent(), pLeft->_Source);
+		ThrowSyntaxError("Left object should be Queryable");
 	}
-	else
-	{
-		_Source.Reset(Isolate::GetCurrent(), args[1].As<Object>());
-		leftOp = std::make_shared<QueryOpTraceSource>();
-	}
+
+	leftOp = pLeft->Op();
+	_Source.Reset(Isolate::GetCurrent(), pLeft->Source());
 
 	if (op == Queryable::WHERE)
 	{

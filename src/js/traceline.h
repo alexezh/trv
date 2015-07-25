@@ -18,41 +18,46 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
-#include "stdafx.h"
-#include "init.h"
-#include "dollar.h"
-#include "query.h"
-#include "trace.h"
-#include "tracecollection.h"
-#include "view.h"
-#include "history.h"
-#include "tid.h"
+#pragma once
+
+#include "strstr.h"
+#include "stringref.h"
+#include "lineinfo.h"
+#include "bitset.h"
+#include "objectwrap.h"
+#include "queryable.h"
+
+class CBitSet;
 
 namespace Js {
 
-void InitRuntimeTemplate(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & target)
+class TraceLine : public BaseObject<TraceLine> 
 {
-	Dollar::Init(iso);
-	Queryable::Init(iso);
-	Trace::Init(iso);
-	Query::Init(iso);
-	View::Init(iso);
-	History::Init(iso);
-	MatchTid::Init(iso);
-}
+public:
+	static void Init(v8::Isolate* iso);
+	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
+	}
 
-bool InitRuntime(v8::Isolate* iso, v8::Handle<v8::Object> & target)
-{
-	Dollar::InitInstance(iso, target);
-	TraceCollection::InitInstance(iso, target);
-	MatchTid::InitInstance(iso, target);
+	const LineInfo& Line() { return _Line; }
 
-	if (!Dollar::ImportFile("trv.std.js"))
-		return false;
+private:
+	TraceLine(const v8::Handle<v8::Object>& handle, int lineNum);
 
-	Dollar::ImportFile(".user.js", true);
-	return true;
-}
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+
+	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsTimeGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsThreadGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsMsgGetter(v8::Local<v8::String> property, 
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+
+private:
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
+	LineInfo& _Line;
+};
 
 } // Js
-

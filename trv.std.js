@@ -24,18 +24,14 @@ function pf() { $.view.printfilters(); }
 $.dotexpressions.add("pf", pf);
 
 
-function vsw(condition, color, title) 
+function a(condition, color, title) 
 { 
     vf($.trace.where(condition), color, title); 
 }
-$.dotexpressions.add("a", vsw);
+$.dotexpressions.add("a", a);
 
 function vd(id) { $.view.enablefilter(id, false); }
 function ve(id) { $.view.enablefilter(id, true); }
-
-// add current line to quick collection
-function ql() { quick.addline($.view.currentline); }
-$.dotexpressions.add("ql", ql);
 
 // move cursor to console and add .a in beginning
 function startEditFilter()

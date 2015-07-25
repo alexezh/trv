@@ -22,7 +22,7 @@
 
 #include "queryop.h"
 #include "apphost.h"
-#include "trace.h"
+#include "traceline.h"
 
 namespace Js {
 
@@ -90,6 +90,77 @@ public:
 	{
 		return std::unique_ptr<QueryIterator>(new Iterator());
 	}
+};
+
+class QueryOpTraceCollection : public QueryOp
+{
+public:
+
+	class Iterator : public QueryIterator
+	{
+	public:
+		Iterator(const std::shared_ptr<CBitSet>& lines)
+			: Lines(lines)
+		{
+			_Host = GetCurrentHost();
+		}
+		bool Next() override
+		{
+			if (_idxLine >= Lines->GetTotalBitCount())
+				return false;
+
+			for(++_idxLine;_idxLine < Lines->GetTotalBitCount() && !Lines->GetBit(_idxLine); ++_idxLine);
+
+			if (_idxLine >= Lines->GetTotalBitCount())
+				return false;
+
+			return true;
+		}
+		bool IsEnd() override
+		{
+			return (_idxLine >= Lines->GetTotalBitCount());
+		}
+		bool IsNative() override
+		{
+			return true;
+		}
+		LineInfo& NativeValue() override
+		{
+			return _Host->GetLine(_idxLine);
+		}
+
+		// return line wrapped in object
+		v8::Handle<v8::Value> JsValue() override
+		{
+			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), _idxLine);
+			return TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args);
+		}
+
+	private:
+		IAppHost* _Host;
+		std::shared_ptr<CBitSet> Lines;
+		size_t _idxLine = 0;
+	};
+
+	QueryOpTraceCollection(const std::shared_ptr<CBitSet>& lines)
+		: _Lines(lines)
+	{}
+
+	TYPE Type() { return SOURCE; }
+
+	std::string MakeDescription()
+	{
+		return std::string("trace collection");
+	}
+
+	// evaluate source and produces iterator
+	std::unique_ptr<QueryIterator> CreateIterator()
+	{
+		return std::unique_ptr<QueryIterator>(new Iterator(_Lines));
+	}
+
+private:
+	std::shared_ptr<CBitSet> _Lines;
 };
 
 } // Js
