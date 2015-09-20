@@ -52,12 +52,15 @@ public:
 	// The count can change as we add more data at the end or in the beginning
     virtual DWORD GetLineCount() = 0;
 
-	virtual LineInfoDesc& GetDesc() = 0;
-    virtual LineInfo& GetLine(DWORD nIndex) = 0;
-	virtual void UpdateLineActive(DWORD line, int change) = 0;
-	virtual void UpdateLinesActive(const CBitSet & set, int change) = 0;
-	virtual void GetActiveLinesIndices(std::vector<DWORD> & lines) = 0;
+	virtual const LineInfoDesc& GetDesc() = 0;
+    virtual const LineInfo& GetLine(DWORD nIndex) = 0;
 	virtual bool SetTraceFormat(const char * psz) = 0;
+
+	// scope defines a set of lines which should be included in queries
+	// when scope changes, marks might become invalid and should be recalculated
+	// scope does not affect line numbers
+	virtual void SetScope(const std::shared_ptr<CBitSet>& scope) = 0;
+	virtual const std::shared_ptr<CBitSet>& GetScope() = 0;
 
 	// updates view with changes (if any)
 	virtual HRESULT Refresh() = 0;
@@ -72,6 +75,6 @@ class CTraceFile
 public:
 	virtual ~CTraceFile() {}
 
-	virtual void CreateCollection(CTraceSource ** ppCollection) = 0;
+	virtual std::shared_ptr<CTraceSource> CreateSource() = 0;
 };
 

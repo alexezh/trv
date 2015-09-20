@@ -54,7 +54,7 @@ public:
 	}
 
 	static void Init(v8::Isolate* iso);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
@@ -71,7 +71,7 @@ public:
 	std::string MakeDescription();
 
 	const std::shared_ptr<QueryOp>& Op() override { return _Op; }
-	v8::Local<v8::Object> Source() override { return v8::Local<v8::Object>::New(v8::Isolate::GetCurrent(), _Source); }
+	const std::shared_ptr<CTraceSource>& Source() override;
 
 	// generate collection from query
 	v8::Local<v8::Object> GetCollection();
@@ -81,10 +81,11 @@ protected:
 
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsAsCollection(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 
-	v8::Persistent<v8::Object> _Source;
+	std::shared_ptr<CTraceSource> _Source;
 	// filter is either string expression or an object
 	std::shared_ptr<QueryOp> _Op;
 };

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -23,7 +23,6 @@
     <ClCompile Include="src\bitset.cpp" />
     <ClCompile Include="src\color.cpp" />
     <ClCompile Include="src\commandview.cpp" />
-    <ClCompile Include="src\debugoutputsource.cpp" />
     <ClCompile Include="src\dock.cpp" />
     <ClCompile Include="src\FindDlg.cpp" />
     <ClCompile Include="src\jshost.cpp" />
@@ -38,11 +37,12 @@
     <ClCompile Include="src\js\queryable.cpp" />
     <ClCompile Include="src\js\querywhere.cpp" />
     <ClCompile Include="src\js\shortcuts.cpp" />
+    <ClCompile Include="src\js\tagger.cpp" />
     <ClCompile Include="src\js\tid.cpp" />
     <ClCompile Include="src\js\trace.cpp" />
     <ClCompile Include="src\js\tracecollection.cpp" />
     <ClCompile Include="src\js\traceline.cpp" />
-    <ClCompile Include="src\js\view.cpp" />
+    <ClCompile Include="src\js\viewproxy.cpp" />
     <ClCompile Include="src\log.cpp" />
     <ClCompile Include="src\outputview.cpp" />
     <ClCompile Include="src\persist.cpp" />
@@ -53,6 +53,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\strstr.cpp" />
+    <ClCompile Include="src\subtracesource.cpp" />
     <ClCompile Include="src\textfile.cpp" />
     <ClCompile Include="src\traceapp.cpp" />
     <ClCompile Include="src\tracelineparser.cpp" />
@@ -64,7 +65,6 @@
     <ClInclude Include="src\blockarray.h" />
     <ClInclude Include="src\color.h" />
     <ClInclude Include="src\commandview.h" />
-    <ClInclude Include="src\debugoutputsource.h" />
     <ClInclude Include="src\dock.h" />
     <ClInclude Include="src\file.h" />
     <ClInclude Include="src\FindDlg.h" />
@@ -88,11 +88,12 @@
     <ClInclude Include="src\js\querytracesource.h" />
     <ClInclude Include="src\js\querywhere.h" />
     <ClInclude Include="src\js\shortcuts.h" />
+    <ClInclude Include="src\js\tagger.h" />
     <ClInclude Include="src\js\tid.h" />
     <ClInclude Include="src\js\trace.h" />
     <ClInclude Include="src\js\tracecollection.h" />
     <ClInclude Include="src\js\traceline.h" />
-    <ClInclude Include="src\js\view.h" />
+    <ClInclude Include="src\js\viewproxy.h" />
     <ClInclude Include="src\lineinfo.h" />
     <ClInclude Include="src\log.h" />
     <ClInclude Include="src\make_unique.h" />
@@ -104,6 +105,7 @@
     <ClInclude Include="src\stringref.h" />
     <ClInclude Include="src\stringutils.h" />
     <ClInclude Include="src\strstr.h" />
+    <ClInclude Include="src\subtracesource.h" />
     <ClInclude Include="src\testassert.h" />
     <ClInclude Include="src\textfile.h" />
     <ClInclude Include="src\traceapp.h" />
@@ -119,9 +121,8 @@
     <ResourceCompile Include="src\trv.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="help.js" />
-    <None Include="std.js" />
-    <None Include="test.js" />
+    <None Include=".user.js" />
+    <None Include="trv.std.js" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{ED11AF74-5424-4F68-9A3F-5E7E16026F8D}</ProjectGuid>
@@ -132,21 +133,21 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfAtl>Static</UseOfAtl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfAtl>Static</UseOfAtl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfAtl>Static</UseOfAtl>
@@ -154,7 +155,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfAtl>Static</UseOfAtl>

@@ -46,10 +46,16 @@ void TraceLine::Init(Isolate* iso)
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "thread"), jsThreadGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "msg"), jsMsgGetter);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
-	tmpl->SetClassName(String::NewFromUtf8(iso, "traceline"));
+
+	tmpl->SetClassName(String::NewFromUtf8(iso, "TraceLine"));
 
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 	_Template.Reset(iso, tmpl);
+}
+
+void TraceLine::InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target)
+{
+	target->Set(String::NewFromUtf8(iso, "TraceLine"), TraceLine::GetTemplate(iso)->GetFunction());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

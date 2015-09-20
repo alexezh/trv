@@ -1,8 +1,10 @@
 #pragma once
 
-#define TRV_CONCAT4_(x1, x2, x3, x4) x1##x2##x3##x4
-#define TRV_CONCAT4(x1, x2, x3, x4) TRV_CONCAT4_(x1, x2, x3, x4)
-#define LOG(format, ...) TrvTrace(TRV_CONCAT4("%d ", __FUNCTION__, format, "\n"), GetCurrentThreadId(), __VA_ARGS__);
+#if 1
+#define LOG(format, ...) TrvTrace(__FUNCTION__, GetCurrentThreadId(), format, __VA_ARGS__);
+#else
+#define LOG(format,...)
+#endif
 
-void TrvTrace(const char * pszFormat, ...);
+void TrvTrace(const char* pszFunc, DWORD dwThreadId, const char * pszFormat, ...);
 

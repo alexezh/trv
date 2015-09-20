@@ -47,10 +47,6 @@ private:
 
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
-	v8::Persistent<v8::Object> _Dollar;
-	v8::Persistent<v8::Object> _History;
-	v8::Persistent<v8::Object> _View;
-	v8::Persistent<v8::Object> _Trace;
 };
 
 } // Js

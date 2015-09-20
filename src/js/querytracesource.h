@@ -23,6 +23,7 @@
 #include "queryop.h"
 #include "apphost.h"
 #include "traceline.h"
+#include "file.h"
 
 namespace Js {
 
@@ -33,20 +34,21 @@ public:
 	class Iterator : public QueryIterator
 	{
 	public:
-		Iterator()
+		Iterator(const std::shared_ptr<CTraceSource>& source)
+			: m_Source(source)
 		{
-			_Host = GetCurrentHost();
-			_nLines = _Host->GetLineCount();
-			_idxLine = 0;
+			m_Host = GetCurrentHost();
+			m_nLines = m_Source->GetLineCount();
+			m_idxLine = 0;
 		}
 		bool Next() override
 		{
-			if(_idxLine >= _nLines)
+			if(m_idxLine >= m_nLines)
 			{
 				return false;
 			}
-			_idxLine++;
-			if(_idxLine >= _nLines)
+			m_idxLine++;
+			if(m_idxLine >= m_nLines)
 			{
 				return false;
 			}
@@ -54,29 +56,35 @@ public:
 		}
 		bool IsEnd() override
 		{
-			return (_idxLine >= _nLines);
+			return (m_idxLine >= m_nLines);
 		}
 		bool IsNative() override
 		{
 			return true;
 		}
-		LineInfo& NativeValue() override
+		const LineInfo& NativeValue() override
 		{
-			return _Host->GetLine(_idxLine);
+			return m_Source->GetLine(m_idxLine);
 		}
 
 		// return line wrapped in object
 		v8::Handle<v8::Value> JsValue() override
 		{
-			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), _idxLine);
+			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), m_idxLine);
 			return TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args);
 		}
 	
 	private:
-		IAppHost* _Host;
-		size_t _idxLine;
-		size_t _nLines;
+		std::shared_ptr<CTraceSource> m_Source;
+		IAppHost* m_Host;
+		size_t m_idxLine;
+		size_t m_nLines;
 	};
+
+	QueryOpTraceSource(const std::shared_ptr<CTraceSource>& source)
+		: m_Source(source)
+	{
+	}
 
 	TYPE Type() { return SOURCE; }
 
@@ -88,8 +96,11 @@ public:
 	// evaluate source and produces iterator
 	std::unique_ptr<QueryIterator> CreateIterator()
 	{
-		return std::unique_ptr<QueryIterator>(new Iterator());
+		return std::unique_ptr<QueryIterator>(new Iterator(m_Source));
 	}
+
+private:
+	std::shared_ptr<CTraceSource> m_Source;
 };
 
 class QueryOpTraceCollection : public QueryOp
@@ -99,51 +110,54 @@ public:
 	class Iterator : public QueryIterator
 	{
 	public:
-		Iterator(const std::shared_ptr<CBitSet>& lines)
+		Iterator(const std::shared_ptr<CTraceSource>& src, const std::shared_ptr<CBitSet>& lines)
 			: Lines(lines)
+			, m_Source(src)
 		{
-			_Host = GetCurrentHost();
+			m_Host = GetCurrentHost();
 		}
 		bool Next() override
 		{
-			if (_idxLine >= Lines->GetTotalBitCount())
+			if (m_idxLine >= Lines->GetTotalBitCount())
 				return false;
 
-			for(++_idxLine;_idxLine < Lines->GetTotalBitCount() && !Lines->GetBit(_idxLine); ++_idxLine);
+			for(++m_idxLine;m_idxLine < Lines->GetTotalBitCount() && !Lines->GetBit(m_idxLine); ++m_idxLine);
 
-			if (_idxLine >= Lines->GetTotalBitCount())
+			if (m_idxLine >= Lines->GetTotalBitCount())
 				return false;
 
 			return true;
 		}
 		bool IsEnd() override
 		{
-			return (_idxLine >= Lines->GetTotalBitCount());
+			return (m_idxLine >= Lines->GetTotalBitCount());
 		}
 		bool IsNative() override
 		{
 			return true;
 		}
-		LineInfo& NativeValue() override
+		const LineInfo& NativeValue() override
 		{
-			return _Host->GetLine(_idxLine);
+			return m_Source->GetLine(m_idxLine);
 		}
 
 		// return line wrapped in object
 		v8::Handle<v8::Value> JsValue() override
 		{
-			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), _idxLine);
+			v8::Local<v8::Value> args = v8::Integer::New(v8::Isolate::GetCurrent(), m_idxLine);
 			return TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &args);
 		}
 
 	private:
-		IAppHost* _Host;
+		std::shared_ptr<CTraceSource> m_Source;
+		IAppHost* m_Host;
 		std::shared_ptr<CBitSet> Lines;
-		size_t _idxLine = 0;
+		size_t m_idxLine = 0;
 	};
 
-	QueryOpTraceCollection(const std::shared_ptr<CBitSet>& lines)
-		: _Lines(lines)
+	QueryOpTraceCollection(const std::shared_ptr<CTraceSource>& src, const std::shared_ptr<CBitSet>& lines)
+		: m_Lines(lines)
+		, m_Source(src)
 	{}
 
 	TYPE Type() { return SOURCE; }
@@ -156,11 +170,12 @@ public:
 	// evaluate source and produces iterator
 	std::unique_ptr<QueryIterator> CreateIterator()
 	{
-		return std::unique_ptr<QueryIterator>(new Iterator(_Lines));
+		return std::unique_ptr<QueryIterator>(new Iterator(m_Source, m_Lines));
 	}
 
 private:
-	std::shared_ptr<CBitSet> _Lines;
+	std::shared_ptr<CTraceSource> m_Source;
+	std::shared_ptr<CBitSet> m_Lines;
 };
 
 } // Js

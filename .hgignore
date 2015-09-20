@@ -1,0 +1,27 @@
+syntax: glob
+*.obj
+*.pch
+*.pdb
+*.idb
+*.log
+*.user
+*.wrn
+*.err
+*.aps
+*.ncb
+*.suo
+obj
+Debug
+Release
+Bin
+install
+ClientBin
+amd64chk
+x86chk
+x64chk
+*.opensdf
+*.sdf
+*.filters
+_ReSharper.dmc
+ipch
+.git

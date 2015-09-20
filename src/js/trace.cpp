@@ -19,38 +19,39 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
-#include "trace.h"
-#include "traceline.h"
-#include "tracecollection.h"
-#include "querytracesource.h"
+#include "Trace.h"
+#include "Traceline.h"
+#include "TraceCollection.h"
+#include "queryTraceSource.h"
 #include "apphost.h"
 #include "bitset.h"
 #include "stringreader.h"
 #include "make_unique.h"
-#include "tracelineparser.h"
+#include "TraceLineparser.h"
 #include "error.h"
 #include "log.h"
+#include "file.h"
 
 using namespace v8;
 
 namespace Js {
 
-UniquePersistent<FunctionTemplate> Trace::_Template;
+UniquePersistent<FunctionTemplate> TraceSourceProxy::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void Trace::Init(Isolate* iso)
+void TraceSourceProxy::Init(Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
 	tmpl->Inherit(Queryable::GetTemplate(iso));
 
 	auto tmpl_proto = tmpl->PrototypeTemplate();
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "format"), jsFormatGetter, jsFormatSetter);
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "linecount"), jsLineCountGetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "lineCount"), jsLineCountGetter);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "line"), FunctionTemplate::New(iso, jsGetLine));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "fromrange"), FunctionTemplate::New(iso, jsFromRange));
 
-	tmpl->SetClassName(String::NewFromUtf8(iso, "Trace"));
+	tmpl->SetClassName(String::NewFromUtf8(iso, "TraceSourceProxy"));
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
 	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
@@ -59,29 +60,37 @@ void Trace::Init(Isolate* iso)
 	TraceCollection::Init(iso);
 }
 
-Trace::Trace(const v8::Handle<v8::Object>& handle)
+TraceSourceProxy::TraceSourceProxy(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& source)
 	: Queryable(handle)
+	, _Source(source)
 {
-	_Op = std::make_shared<QueryOpTraceSource>();
+	_Op = std::make_shared<QueryOpTraceSource>(source);
 }
 
-void Trace::jsNew(const FunctionCallbackInfo<Value> &args)
+void TraceSourceProxy::jsNew(const FunctionCallbackInfo<Value> &args)
 {
-	Trace *trace = new Trace(args.This());
+	if (args.Length() != 1)
+	{
+		ThrowTypeError("invalid number of parameters");
+	}
+	auto source = reinterpret_cast<std::shared_ptr<CTraceSource>*>(args[0].As<External>()->Value());
+
+	TraceSourceProxy *pThis = new TraceSourceProxy(args.This(), *source);
 
 	args.GetReturnValue().Set(args.This());
 }
 
-void Trace::jsFormatGetter(Local<String> property, 
+void TraceSourceProxy::jsFormatGetter(Local<String> property, 
 												const PropertyCallbackInfo<v8::Value>& info)
 {
-	Trace * trace = UnwrapThis<Trace>(info.This());
-	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), trace->_Format.c_str()));
+	TraceSourceProxy * pThis = UnwrapThis<TraceSourceProxy>(info.This());
+	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Format.c_str()));
 }
 
-void Trace::jsFormatSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
+void TraceSourceProxy::jsFormatSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
 {
-	Trace * pThis = UnwrapThis<Trace>(info.This());
+	LOG("@");
+	TraceSourceProxy * pThis = UnwrapThis<TraceSourceProxy>(info.This());
 	auto s = value->ToString();
 	String::Utf8Value str(s);
 
@@ -89,9 +98,9 @@ void Trace::jsFormatSetter(Local<String> property, Local<Value> value, const Pro
 	GetCurrentHost()->SetTraceFormat(pThis->_Format.c_str());
 }
 
-void Trace::jsGetLine(const FunctionCallbackInfo<Value> &args)
+void TraceSourceProxy::jsGetLine(const FunctionCallbackInfo<Value> &args)
 {
-	auto pThis = UnwrapThis<Trace>(args.This());
+	auto pThis = UnwrapThis<TraceSourceProxy>(args.This());
 	if(args.Length() != 1 || !args[0]->IsInt32())
 	{
 		ThrowTypeError("invalid number of FunctionCallbackInfo<Value>. Format getline(int)");
@@ -102,30 +111,33 @@ void Trace::jsGetLine(const FunctionCallbackInfo<Value> &args)
 	args.GetReturnValue().Set(jsLine);
 }
 
-void Trace::jsFromRange(const v8::FunctionCallbackInfo<Value> &args)
+void TraceSourceProxy::jsFromRange(const v8::FunctionCallbackInfo<Value> &args)
 {
 	if(args.Length() != 2)
 	{
 		ThrowTypeError("invalid number of FunctionCallbackInfo<Value>. Format fromrange(int, int)");
 	}
 
-	// return trace collection object as a set of lines between 
+	// return TraceSourceProxy collection object as a set of lines between 
 	Local<Value> v[2];
 	v[0] = args[0];
 	v[1] = args[1];
 	args.GetReturnValue().Set(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, v));
 }
 
-void Trace::jsLineCountGetter(Local<String> property, 
+void TraceSourceProxy::jsLineCountGetter(Local<String> property, 
 											const PropertyCallbackInfo<v8::Value>& info)
 {
-	Trace * trace = UnwrapThis<Trace>(info.This());
-	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), GetCurrentHost()->GetLineCount()));
+	TraceSourceProxy * pThis = UnwrapThis<TraceSourceProxy>(info.This());
+	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), pThis->_Source->GetLineCount()));
 }
 
-size_t Trace::ComputeCount()
+size_t TraceSourceProxy::ComputeCount()
 {
-	return GetCurrentHost()->GetLineCount();
+	if (_Source == nullptr)
+		return 0;
+
+	return _Source->GetLineCount();
 }
 
 } // Js

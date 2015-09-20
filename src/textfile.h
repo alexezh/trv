@@ -89,7 +89,7 @@ public:
 	// dependent on reverse flag the position either indicates the end of beginning
 	void Load(QWORD nStop);
 
-	void CreateCollection(CTraceSource ** ppCollection);
+	std::shared_ptr<CTraceSource> CreateSource() override;
 
 private:    
     static void WINAPI LoadThreadInit(void * pCtx);
@@ -142,16 +142,22 @@ public:
 		return m_nTotal;
 	}
 
-	LineInfoDesc& GetDesc() override
+	const LineInfoDesc& GetDesc() override
 	{
 		return m_Desc;
 	}
 
-	LineInfo& GetLine(DWORD nIndex) override;
-	void UpdateLineActive(DWORD line, int change) override;
-	void UpdateLinesActive(const CBitSet & set, int change) override;
-	void GetActiveLinesIndices(std::vector<DWORD> & lines) override;
+	const LineInfo& GetLine(DWORD nIndex) override;
 	bool SetTraceFormat(const char * psz) override;
+
+	void SetScope(const std::shared_ptr<CBitSet>& scope) override
+	{
+		m_Scope = scope;
+	}
+	const std::shared_ptr<CBitSet>& GetScope() override
+	{
+		return m_Scope;
+	}
 
 	// updates view with changes (if any)
 	HRESULT Refresh() override;
@@ -174,11 +180,12 @@ private:
 
 	LineInfoDesc m_Desc;
 
+	std::shared_ptr<CBitSet> m_Scope;
+
 	// collection of lines across all blocks
 	std::vector<CTextTraceFile::LoadBlock*> m_Blocks;
 
 	DWORD m_nTotal = 0;
-	DWORD m_nActive = 0;
 
 	// cached last block info
 	CTextTraceFile::LoadBlock * m_pLastBlock = nullptr;

@@ -24,7 +24,7 @@
 #include "query.h"
 #include "trace.h"
 #include "tracecollection.h"
-#include "view.h"
+#include "tagger.h"
 #include "color.h"
 #include "error.h"
 #include "log.h"
@@ -34,6 +34,7 @@ using namespace v8;
 namespace Js {
 
 Persistent<FunctionTemplate> FilterItemProxy::_Template;
+Persistent<FunctionTemplate> SelectCursor::_Template;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -68,7 +69,7 @@ void FilterItemProxy::jsSourceGetter(Local<String> property,
 void FilterItemProxy::jsSourceSetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<void>& info)
 {
 	FilterItemProxy * proxy = UnwrapThis<FilterItemProxy>(info.This());
-	proxy->_Filter->UpdateCollection(value);
+	proxy->_Filter->UpdateFilter(value);
 }
 
 void FilterItemProxy::jsColorGetter(Local<String> property,
@@ -101,9 +102,9 @@ void FilterItemProxy::jsDescriptionSetter(Local<String> property, Local<Value> v
 //
 FilterItem::FilterItem(Local<Object> view)
 {
-	_View.Reset(Isolate::GetCurrent(), view);
-	_View.SetWeak(this, WeakViewCallback);
-	_View.MarkIndependent();
+	_Tagger.Reset(Isolate::GetCurrent(), view);
+	_Tagger.SetWeak(this, WeakViewCallback);
+	_Tagger.MarkIndependent();
 }
 
 void FilterItem::WeakViewCallback(
@@ -113,22 +114,160 @@ void FilterItem::WeakViewCallback(
 	v8::HandleScope scope(isolate);
 	FilterItem* wrap = data.GetParameter();
 	LOG("@%p", wrap);
-	wrap->_View.Reset();
+	wrap->_Tagger.Reset();
 }
 
-void FilterItem::UpdateCollection(Local<Value> val)
+void FilterItem::UpdateFilter(Local<Value> val)
 {
-	auto view = View::Unwrap(Local<Object>::New(Isolate::GetCurrent(), _View));
-	view->UpdateFilter(this, val.As<Object>());
+	auto tagger = Tagger::Unwrap(Local<Object>::New(Isolate::GetCurrent(), _Tagger));
+	FilterFunc.Reset(Isolate::GetCurrent(), val.As<Object>());
+	tagger->UpdateFilter(this);
 }
 
 void FilterItem::UpdateColor(BYTE c)
 {
 	Color = c;
-	auto view = View::Unwrap(Local<Object>::New(Isolate::GetCurrent(), _View));
-	view->RefreshView();
+	GetCurrentHost()->RefreshView();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//
+SelectCursor::SelectCursor(const v8::Handle<v8::Object>& handle)
+	: _CurPos(0)
+{
+	Wrap(handle);
+}
+
+void SelectCursor::Init(Isolate* iso)
+{
+	auto tmpl(FunctionTemplate::New(iso, jsNew));
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "next"), FunctionTemplate::New(iso, jsNext));
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "prev"), FunctionTemplate::New(iso, jsPrev));
+	_Template.Reset(iso, tmpl);
+}
+
+void SelectCursor::jsNew(const FunctionCallbackInfo<Value> &args)
+{
+	SelectCursor *cursor = new SelectCursor(args.This());
+	args.GetReturnValue().Set(args.This());
+}
+
+void SelectCursor::jsNext(const FunctionCallbackInfo<Value>& args)
+{
+	auto pThis = UnwrapThis<SelectCursor>(args.This());
+
+	if (pThis->_CurPos + 1 == pThis->_Cache.size())
+	{
+		if (pThis->_Iter->IsEnd())
+		{
+			return;
+		}
+
+		if (!pThis->_Iter->Next())
+		{
+			return;
+		}
+
+		pThis->_CurPos++;
+		pThis->UpdateFilter();
+	}
+	else
+	{
+		pThis->_CurPos++;
+		pThis->UpdateFilter();
+	}
+}
+
+void SelectCursor::jsPrev(const FunctionCallbackInfo<Value>& args)
+{
+	auto pThis = UnwrapThis<SelectCursor>(args.This());
+
+	if (pThis->_CurPos == 0)
+	{
+		return;
+	}
+	pThis->_CurPos--;
+	pThis->UpdateFilter();
+}
+
+void SelectCursor::UpdateFilter()
+{
+	auto sel = _Sel.lock();
+	if (!sel)
+	{
+		return;
+	}
+
+	// undo previous Filter
+	if (sel->Set)
+	{
+		// GetCurrentHost()->UpdateLinesActive(sel->Set, -1);
+		assert(false);
+	}
+
+	if (_CurPos == _Cache.size())
+	{
+		// TODO: sparse bitset
+		sel->Set = std::make_shared<CBitSet>();
+		sel->Set->Init(GetCurrentHost()->GetLineCount());
+
+		QueryIteratorHelper::SelectLinesFromIteratorValue(_Iter.get(), *sel->Set);
+
+		// cache the result
+		_Cache.push_back(sel->Set);
+	}
+	else
+	{
+		assert(_CurPos < _Cache.size());
+		sel->Set = _Cache[_CurPos];
+	}
+
+	// mark lines as active
+	// GetCurrentHost()->UpdateLinesActive(sel->Set, 1);
+	assert(false);
+
+	// echo to output
+	std::stringstream ss;
+	ss << "Add Filters id=" << sel->Id << " match=" << sel->Set->GetSetBitCount() << "\r\n";
+	GetCurrentHost()->OutputLine(ss.str().c_str());
+}
+
+#if 0
+
+Local<Value> Tagger::RunQuery(const std::shared_ptr<FilterItem>& filter, Query* pQuery, bool iter)
+{
+	Local<Value> res;
+	if (!iter)
+	{
+		// mark lines as active
+		// GetCurrentHost()->UpdateLinesActive(filter->Set, 1);
+		assert(false);
+		char bitA[32];
+
+		filter->Description = std::string("lines match: ") +
+			_itoa(filter->Set->GetSetBitCount(), bitA, 10) +
+			" query: " + pQuery->MakeDescription();
+
+	}
+	else
+	{
+		filter->Description = std::string("interactive, query:") + pQuery->MakeDescription();
+		auto it = pQuery->Op()->CreateIterator();
+
+		auto curJs = SelectCursor::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance();
+		SelectCursor* cur = UnwrapThis<SelectCursor>(curJs);
+		cur->InitCursor(filter, std::move(it));
+
+		filter->Cursor.Reset(Isolate::GetCurrent(), curJs);
+		res = Local<Value>::New(Isolate::GetCurrent(), curJs);
+	}
+
+	return res;
+}
+
+
+#endif
 
 } // Js
 

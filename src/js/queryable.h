@@ -41,13 +41,14 @@ public:
 
 	static void Init(v8::Isolate* iso);
 	static Queryable * TryGetQueryable(const v8::Local<v8::Object> & obj);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
 
 	virtual const std::shared_ptr<QueryOp>& Op() = 0;
-	virtual v8::Local<v8::Object> Source() = 0;
+	virtual const std::shared_ptr<CTraceSource>& Source() = 0;
+
 protected:
 	Queryable(const v8::Handle<v8::Object>& handle)
 	{

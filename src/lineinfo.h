@@ -29,9 +29,13 @@ struct LineInfoDesc
 		ZeroMemory(&v, sizeof(v));
 	}
 
-	bool Tid;
-	bool Time;
-	bool Msg;
+	uint16_t Tid : 1;
+	uint16_t Time : 1;
+	uint16_t Msg : 1;
+	uint16_t User1 : 1;
+	uint16_t User2 : 1;
+	uint16_t User3 : 1;
+	uint16_t User4 : 1;
 };
 
 struct LineInfo
@@ -50,12 +54,14 @@ struct LineInfo
 
 	// line index in the file
 	DWORD Index;
-
-	// parsed info
-	time_t Time = 0;
 	DWORD Tid = 0;
-	CStringRef Msg;
 
-	// indicates number of filters which include this line
-	int Active = 0;
+	// we can compress fields by referencing content in string
+	// since string is short (we can limit to 65K), we can package to 32bit
+	CStringRef Time;
+	CStringRef User1;
+	CStringRef User2;
+	CStringRef User3;
+	CStringRef User4;
+	CStringRef Msg;
 };

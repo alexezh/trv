@@ -30,7 +30,6 @@
 #include "about.h"
 #include "file.h"
 #include "textfile.h"
-#include "debugoutputsource.h"
 #include "make_unique.h"
 #include "stringutils.h"
 #include "log.h"
@@ -155,14 +154,14 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
 		}
 
 		// create collection
-		m_pFile->CreateCollection(&m_pFileColl);
+		m_pFileColl = m_pFile->CreateSource();
 	}
 	else
 	{
-		auto coll = new CDebugOutputTraceSource();
-		coll->Init();
-
-		m_pFileColl = coll;
+		// auto coll = new CDebugOutputTraceSource();
+		// coll->Init();
+		// m_pFileColl = coll;
+		assert(false);
 	}
 
 	// create dock window
@@ -178,6 +177,9 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
     // create trace view
     m_pTraceView = new CTraceView;
     m_pTraceView->Init(this);
+
+	// display file collection initially
+	m_pTraceView->SetTraceSource(m_pFileColl);
     
     if(m_pTraceView->Create(m_pDock->m_hWnd, &rect) == NULL)
     {
@@ -211,11 +213,8 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
 
 	// start file load
     LoadFile(0, -1);
-    
-	// create js host
-	// m_pFile->CreateCollection(&m_pJsColl);
-	m_pJsHost = new JsHost(this);
-	m_pJsHost->Init(m_pFileColl);
+
+	// wait with host initialization until we have file
 
 Cleanup:
 
@@ -283,8 +282,10 @@ LRESULT CTraceApp::OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 	m_pFileColl->Refresh();
 	// m_pJsColl->Refresh();
 
-	// reload view
-    m_pTraceView->LoadView();
+	// create js host
+	// m_pFile->CreateCollection(&m_pJsColl);
+	m_pJsHost = new JsHost(this);
+	m_pJsHost->Init(m_pFileColl);
 
     return 0;
 }
@@ -315,9 +316,7 @@ LRESULT CTraceApp::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandle
 LRESULT CTraceApp::OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
     m_pTraceView->SetFocus();
-    
     bHandled = TRUE;
-    
     return 0;
 }
 
@@ -341,23 +340,12 @@ LRESULT CTraceApp::OnQueueWork(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
 //
 LRESULT CTraceApp::OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
-    HANDLE hMem;
-    HRESULT hr;
-
-    OpenClipboard();    
-
-    EmptyClipboard();
-    
-    IFC(m_pTraceView->GetSelectedLines(&hMem));
-
-    SetClipboardData(CF_TEXT, hMem);
-
-Cleanup:
-
-    CloseClipboard();
+	if (m_pClipboardHandler)
+		m_pClipboardHandler->OnCopy();
+	else
+		m_pTraceView->OnCopy();
 
     bHandled = TRUE;
-    
     return 0;
 }
 
@@ -425,16 +413,6 @@ LRESULT CTraceApp::OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHa
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-size_t CTraceApp::GetCurrentLine()
-{
-	if (m_pTraceView == nullptr)
-		return 0;
-
-	return m_pTraceView->GetFocusLine();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//
 LRESULT CTraceApp::OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
     m_pTraceView->SetFocus();
@@ -478,6 +456,11 @@ void CTraceApp::SetDockLayout(double cmdHeight, double outHeight)
 	m_pDockRoot->ResizeColumn(m_idxOutputColumn, outHeight);
 
 	m_pDock->UpdateDock();
+}
+
+void CTraceApp::SetTraceColumns(const std::vector<ColumnId>& columns)
+{
+	m_pTraceView->SetColumns(columns);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

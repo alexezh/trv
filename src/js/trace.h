@@ -28,27 +28,41 @@
 #include "queryable.h"
 
 class CBitSet;
+class CTraceSource;
 
 namespace Js {
 
-class Trace : public Queryable
+class TraceSourceProxy : public Queryable
 {
 public:
-	Trace(const v8::Handle<v8::Object>& handle);
+	TraceSourceProxy(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& source);
 
 	static void Init(v8::Isolate* iso);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
 
-	static inline Trace* Unwrap(v8::Handle<v8::Object> handle)
+	static inline TraceSourceProxy* Unwrap(v8::Handle<v8::Object> handle)
 	{
-		return static_cast<Trace*>(Queryable::Unwrap(handle));
+		return static_cast<TraceSourceProxy*>(Queryable::Unwrap(handle));
+	}
+
+	static TraceSourceProxy* TryGetTraceSource(const v8::Local<v8::Object> & obj)
+	{
+		auto res = obj->FindInstanceInPrototypeChain(GetTemplate(v8::Isolate::GetCurrent()));
+		if (res.IsEmpty())
+		{
+			return nullptr;
+		}
+
+		auto pThis = Unwrap(obj);
+		return pThis;
 	}
 
 	const std::shared_ptr<QueryOp>& Op() override { return _Op; }
-	v8::Local<v8::Object> Source() override { return Handle(); }
+
+	const std::shared_ptr<CTraceSource>& Source() override { return _Source; }
 
 protected:
 
@@ -68,12 +82,12 @@ private:
 	static void jsFormatSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 								const v8::PropertyCallbackInfo<void>& info);
 
-	void SetFormat(const char * pszFormat);
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	std::string _Format;
 	// filter is either string expression or an object
 	std::shared_ptr<QueryOp> _Op;
+	std::shared_ptr<CTraceSource> _Source;
 };
 
 } // Js

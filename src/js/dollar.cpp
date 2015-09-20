@@ -23,11 +23,14 @@
 #include "query.h"
 #include "apphost.h"
 #include "trace.h"
-#include "view.h"
+#include "viewproxy.h"
 #include "history.h"
 #include "dotexpressions.h"
 #include "shortcuts.h"
 #include "commandviewproxy.h"
+#include "tagger.h"
+#include "tracecollection.h"
+#include "subtracesource.h"
 #include "log.h"
 
 using namespace v8;
@@ -51,6 +54,7 @@ void Dollar::Init(Isolate* iso)
 	DotExpressions::Init(iso);
 	Shortcuts::Init(iso);
 	CommandViewProxy::Init(iso);
+	Tagger::Init(iso);
 }
 
 void Dollar::InitInstance(Isolate* iso, Handle<Object> & target)
@@ -70,8 +74,9 @@ void Dollar::jsNew(const FunctionCallbackInfo<Value> &args)
 	auto iso = Isolate::GetCurrent();
 	args.This()->SetInternalField(0, v8::External::New(iso, dollar));
 
-	auto trace = Trace::GetTemplate(iso)->GetFunction()->NewInstance();
-	args.This()->SetAccessor(String::NewFromUtf8(iso, "trace"), jsGetter, 0, trace);
+	auto source = GetCurrentHost()->GetFileTraceSource();
+	auto sourceProxy = TraceSourceProxy::GetTemplate(iso)->GetFunction()->NewInstance(1, &v8::External::New(iso, &source).As<Value>());
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "trace"), jsGetter, 0, sourceProxy);
 
 	// create an instance of view object and make a property
 	auto view = View::GetTemplate(iso)->GetFunction()->NewInstance();
@@ -88,6 +93,9 @@ void Dollar::jsNew(const FunctionCallbackInfo<Value> &args)
 
 	auto console = CommandViewProxy::GetTemplate(iso)->GetFunction()->NewInstance();
 	args.This()->SetAccessor(String::NewFromUtf8(iso, "console"), jsGetter, 0, console);
+
+	auto tagger = Tagger::GetTemplate(iso)->GetFunction()->NewInstance();
+	args.This()->SetAccessor(String::NewFromUtf8(iso, "tagger"), jsGetter, 0, tagger);
 
 	args.GetReturnValue().Set(args.This());
 }
@@ -162,6 +170,7 @@ bool Dollar::OpenScriptStream(const char * pszName, std::fstream& stm)
 bool Dollar::ImportWorker(const char * pszName, bool opt)
 {
 	std::fstream stm;
+	TryCatch try_catch;
 
 	// search file in different locations
 	if(!OpenScriptStream(pszName, stm))
@@ -185,13 +194,14 @@ bool Dollar::ImportWorker(const char * pszName, bool opt)
 	auto script = v8::Script::Compile(scriptSource, scriptName);
 	if (script.IsEmpty()) 
 	{
-		std::string s = std::string("$.import compile failed for file ") + pszName + "\r\n";
-		ThrowTypeError(s.c_str());
+		GetCurrentHost()->ReportException(Isolate::GetCurrent(), try_catch);
+		return false;
 	}
 
 	auto v = script->Run();
 	if(v.IsEmpty())
 	{
+		GetCurrentHost()->ReportException(Isolate::GetCurrent(), try_catch);
 		return false;
 	}
 
@@ -241,6 +251,11 @@ void Dollar::jsPrint(const v8::FunctionCallbackInfo<Value>& args)
 	}
 
 	args.GetReturnValue().SetUndefined();
+}
+
+void ThrowInvalidOpenCollection()
+{
+	ThrowTypeError("expected $.openCollection(collection)\r\n");
 }
 
 } // Js

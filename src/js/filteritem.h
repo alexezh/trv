@@ -39,6 +39,7 @@ public:
 	FilterItem(Local<Object> view);
 
 	int Id = 0;
+	UniquePersistent<Object> FilterFunc;
 	UniquePersistent<Object> Collection;
 	BYTE Color = 0;
 	bool Enable = true;
@@ -51,25 +52,28 @@ public:
 	bool IsLineSelected(DWORD nLine)
 	{
 		std::lock_guard<std::mutex> guard(Lock);
+		if (nLine >= Set->GetTotalBitCount())
+			return false;
+
 		return Set->GetBit(nLine);
 	}
 
-	void UpdateCollection(Local<Value> val);
+	void UpdateFilter(Local<Value> val);
 	void UpdateColor(BYTE c);
 
 private:
 	static void WeakViewCallback(
 		const v8::WeakCallbackData<v8::Object, FilterItem>& data);
 
-	// weak reference to view
-	Persistent<Object> _View;
+	// weak reference to tagger
+	Persistent<Object> _Tagger;
 };
 
 class FilterItemProxy : public BaseObject<FilterItemProxy>
 {
 public:
 	static void Init(Isolate* iso);
-	static Local<FunctionTemplate> & GetTemplate(Isolate* iso)
+	static Local<FunctionTemplate> GetTemplate(Isolate* iso)
 	{
 		return Local<FunctionTemplate>::New(iso, _Template);
 	}
@@ -100,6 +104,47 @@ private:
 
 	static Persistent<FunctionTemplate> _Template;
 };
+
+// iterate through select
+class SelectCursor : public BaseObject<SelectCursor>
+{
+public:
+	static void Init(Isolate* iso);
+	static Local<FunctionTemplate> GetTemplate(Isolate* iso)
+	{
+		return Local<FunctionTemplate>::New(iso, _Template);
+	}
+
+	void InitCursor(const std::weak_ptr<FilterItem>& sel, std::unique_ptr<QueryIterator>&& it)
+	{
+		_Sel = sel;
+		_Iter = std::move(it);
+		UpdateFilter();
+	}
+
+private:
+	SelectCursor(const Local<Object>& handle);
+	void UpdateFilter();
+
+	static void jsNew(const FunctionCallbackInfo<Value> &args);
+	static void jsNext(const FunctionCallbackInfo<Value>& args);
+	static void jsPrev(const FunctionCallbackInfo<Value>& args);
+	static void jsFirst(const FunctionCallbackInfo<Value>& args);
+	static void jsLast(const FunctionCallbackInfo<Value>& args);
+
+private:
+	static Persistent<FunctionTemplate> _Template;
+	std::unique_ptr<QueryIterator> _Iter;
+	std::weak_ptr<FilterItem> _Sel;
+
+	// cache values so prev works
+	std::vector<std::shared_ptr<CBitSet> > _Cache;
+
+	// current position of the cursor
+	// if current position is less than _Cache.size, we take from cache
+	size_t _CurPos;
+};
+
 
 } // Js
 

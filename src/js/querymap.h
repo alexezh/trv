@@ -50,7 +50,7 @@ public:
 			return false;
 		}
 
-		LineInfo& NativeValue()
+		const LineInfo& NativeValue()
 		{
 			throw V8RuntimeException("invalid operation");
 		}

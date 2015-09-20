@@ -73,6 +73,11 @@ LRESULT COutputView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
     return 0;
 }
 
+void COutputView::OnCopy()
+{
+
+}
+
 void COutputView::OutputLineA(LPCSTR pszLine, DWORD cch)
 {
 	if(cch == 0)
@@ -136,3 +141,9 @@ LRESULT COutputView::OnProtected(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 	return 1;
 }
 
+LRESULT COutputView::OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	m_pApp->SetClipboardHandler(this);
+	bHandled = true;
+	return 0;
+}

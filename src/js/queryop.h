@@ -40,7 +40,7 @@ public:
 	virtual bool IsEnd() = 0;
 	virtual bool IsNative() = 0;
 
-	virtual LineInfo& NativeValue() = 0;
+	virtual const LineInfo& NativeValue() = 0;
 	virtual v8::Handle<v8::Value> JsValue() = 0;
 };
 

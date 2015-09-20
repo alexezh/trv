@@ -113,9 +113,10 @@ void CTextTraceFile::Load(QWORD nStop)
     QueueUserWorkItem((LPTHREAD_START_ROUTINE)LoadThreadInit, this, 0);
 }
 
-void CTextTraceFile::CreateCollection(CTraceSource ** ppCollection)
+std::shared_ptr<CTraceSource> CTextTraceFile::CreateSource()
 {
-	(*ppCollection) = new CTextTraceSource(this);
+	auto src = std::make_shared<CTextTraceSource>(this);
+	return std::dynamic_pointer_cast<CTraceSource>(src);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -375,7 +376,7 @@ bool CTextTraceSource::CacheIndex(DWORD nIndex)
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
+const LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 {
 	LockGuard guard(m_Lock);
 	if(!CacheIndex(nIndex))
@@ -402,102 +403,6 @@ LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 
 	return line;
 }
-
-void CTextTraceSource::UpdateLineActive(DWORD line, int change)
-{
-	LockGuard guard(m_Lock);
-	size_t nBlockStart = 0;
-
-	for (size_t i = 0; i < m_Blocks.size(); i++)
-	{
-		auto p = m_Blocks[i];
-
-		if (nBlockStart + p->Lines.GetCount() > line)
-		{
-			int curActive = p->Lines.GetAt(line - nBlockStart).Active;
-			int newActive = curActive + change;
-
-			if (curActive == 0)
-			{
-				m_nActive++;
-			}
-
-			if (newActive == 0)
-			{
-				m_nActive--;
-			}
-
-			p->Lines.GetAt(line - nBlockStart).Active = newActive;
-			break;
-		}
-
-		nBlockStart += p->Lines.GetCount();
-	}
-}
-
-void CTextTraceSource::UpdateLinesActive(const CBitSet & set, int change)
-{
-	LockGuard guard(m_Lock);
-	size_t nBlockStart = 0;
-
-	for(size_t i = 0; i < m_Blocks.size(); i++)
-	{
-		auto p = m_Blocks[i];
-
-		for(size_t idx = 0; idx < p->Lines.GetCount(); idx++)
-		{
-			if(set.GetBit(nBlockStart+idx))
-			{
-				int curActive = p->Lines.GetAt(idx).Active;
-				int newActive = curActive + change;
-
-				if(curActive == 0)
-				{
-					m_nActive++;
-				}
-
-				if(newActive == 0)
-				{
-					m_nActive--;
-				}
-
-				p->Lines.GetAt(idx).Active = newActive;
-			}
-		}
-
-		nBlockStart += p->Lines.GetCount();
-	}
-}
-
-void CTextTraceSource::GetActiveLinesIndices(std::vector<DWORD> & lines)
-{
-	LockGuard guard(m_Lock);
-	if(m_nActive == 0)
-	{
-		return;
-	}
-
-	lines.resize(m_nActive);
-	size_t nBlockStart = 0;
-	size_t k = 0;
-
-	for(size_t i = 0; i < m_Blocks.size(); i++)
-	{
-		auto p = m_Blocks[i];
-
-		for(size_t idx = 0; idx < p->Lines.GetCount(); idx++)
-		{
-			if(p->Lines.GetAt(idx).Active)
-			{
-				assert(lines.size() >= k);
-				lines[k++] = idx + nBlockStart;
-			}
-		}
-
-		nBlockStart += p->Lines.GetCount();
-	}
-}
-
 bool CTextTraceSource::SetTraceFormat(const char * psz)
 {
 	LockGuard guard(m_Lock);
@@ -505,7 +410,7 @@ bool CTextTraceSource::SetTraceFormat(const char * psz)
 	m_Parser.reset(new TraceLineParser());
 	try
 	{
-		m_Parser->SetFormat(psz, 0);
+		m_Parser->SetFormat(psz, 0, { '\t' });
 	}
 	catch(std::invalid_argument&)
 	{
@@ -513,11 +418,31 @@ bool CTextTraceSource::SetTraceFormat(const char * psz)
 	}
 
 	// check what we captured
-	for(auto it = m_Parser->GetFields().begin(); it != m_Parser->GetFields().end(); ++it)
+	for (auto it = m_Parser->GetFields().begin(); it != m_Parser->GetFields().end(); ++it)
 	{
-		if(*it == TraceLineParser::FieldId::Thread)
+		if (*it == TraceLineParser::FieldId::ThreadId)
 		{
 			m_Desc.Tid = true;
+		}
+		else if (*it == TraceLineParser::FieldId::Time)
+		{
+			m_Desc.Time = true;
+		}
+		else if (*it == TraceLineParser::FieldId::User1)
+		{
+			m_Desc.User1 = true;
+		}
+		else if (*it == TraceLineParser::FieldId::User2)
+		{
+			m_Desc.User2 = true;
+		}
+		else if (*it == TraceLineParser::FieldId::User3)
+		{
+			m_Desc.User3 = true;
+		}
+		else if (*it == TraceLineParser::FieldId::User4)
+		{
+			m_Desc.User4 = true;
 		}
 	}
 

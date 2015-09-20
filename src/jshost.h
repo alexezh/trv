@@ -55,11 +55,10 @@ public:
 		, _pHistory(nullptr)
 	{
 		_pApp = pApp;
-		_pTraceColl = nullptr;
 	}
 
 	// initialize console
-	void Init(CTraceSource * pColl);
+	void Init(const std::shared_ptr<CTraceSource>& pColl);
 
 	void ProcessInputLine(const char * pszLine);
 	void ProcessAccelerator(uint8_t modifier, uint16_t key);
@@ -75,6 +74,7 @@ public:
 	void OnHistoryCreated(Js::History*) override;
 	void OnDotExpressionsCreated(Js::DotExpressions*) override;
 	void OnShortcutsCreated(Js::Shortcuts*) override;
+	void OnTaggerCreated(Js::Tagger*) override;
 
 	void LoadTrace(const char* pszName, int startPos, int endPos) override;
 
@@ -84,24 +84,26 @@ public:
 	}
 
 	// trace storage
-	LineInfo& GetLine(size_t idx) override;
+	std::shared_ptr<CTraceSource> GetFileTraceSource() override;
+
+	const LineInfo& GetLine(size_t idx) override;
 	size_t GetLineCount() override;
 	size_t GetCurrentLine() override;
-
 	void AddShortcut(uint8_t modifier, uint16_t key) override;
 
 	void ConsoleSetConsole(const std::string& szText) override;
 	void ConsoleSetFocus() override;
 
-	void UpdateLineActive(DWORD line, int change) override;
-	void UpdateLinesActive(const CBitSet & set, int change) override;
-
 	bool SetTraceFormat(const char * psz) override;
 	void RefreshView() override;
+	void SetViewSource(const std::shared_ptr<CBitSet>& scope) override;
 
 	// console access
 	void OutputLine(const char * psz) override;
 	void SetViewLayout(double cmdHeight, double outHeight) override;
+	void SetColumns(const std::vector<std::string>& name) override;
+
+	void ReportException(v8::Isolate* isolate, v8::TryCatch& try_catch) override;
 
 private:
 	std::string GetKnownPath(REFKNOWNFOLDERID id);
@@ -109,7 +111,6 @@ private:
 	void ExecuteString(v8::Isolate* isolate, const std::string & line);
 	void ExecuteStringAsDotExpression(v8::Isolate* iso, const std::string & line);
 	void ExecuteStringAsScript(v8::Isolate* iso, const std::string & line);
-	void ReportException(v8::Isolate* isolate, v8::TryCatch& try_catch);
 
     static void WINAPI ScriptThreadInit(void * pCtx);
     void ScriptThread();
@@ -121,12 +122,13 @@ private:
 	CRITICAL_SECTION _cs;
 	std::queue<std::unique_ptr<std::function<void(v8::Isolate*)> > > _InputQueue;
 
-	CTraceSource* _pTraceColl = nullptr;
+	std::shared_ptr<CTraceSource> _pFileTraceSource;
 
 	Js::View* _pView = nullptr;
 	Js::History* _pHistory = nullptr;
 	Js::Shortcuts* _pShortcuts = nullptr;
 	Js::DotExpressions* _pDotExpressions = nullptr;
+	Js::Tagger* _pTagger = nullptr;
 	v8::UniquePersistent<v8::ObjectTemplate> _Global;
 	v8::UniquePersistent<v8::Context> _Context;
 

@@ -152,6 +152,9 @@ void Shortcuts::ThrowKeyError(const std::string& key)
 
 void Shortcuts::Execute(Isolate* iso, uint8_t modifier, uint16_t key)
 {
+	TryCatch try_catch;
+	try_catch.SetVerbose(true);
+
 	auto it = _Keys.find(GetKey(modifier, key));
 	if (it == _Keys.end())
 	{
@@ -162,6 +165,11 @@ void Shortcuts::Execute(Isolate* iso, uint8_t modifier, uint16_t key)
 	auto func(v8::Local<v8::Function>::New(v8::Isolate::GetCurrent(), it->second));
 
 	func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 0, nullptr);
+
+	if (try_catch.HasCaught())
+	{
+		GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
+	}
 }
 
 } // Js

@@ -37,7 +37,7 @@ std::shared_ptr<QueryOp> QueryOpWhere::Combine(EXPRTYPE type, const std::shared_
 	}
 
 	// create where query with the same source and new expr
-	return std::make_shared<QueryOpWhere>(_Source, QueryOpWhere::ALLMATCH, expr);
+	return std::make_shared<QueryOpWhere>(_Left, QueryOpWhere::ALLMATCH, expr);
 }
 
 std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> & val)
@@ -52,11 +52,24 @@ std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> &
 	}
 	else if (val->IsObject())
 	{
-		auto match = Js::MatchTid::TryGetMatchTid(val.As<v8::Object>());
+		// if expression is object, treat it as json
+		auto obj = val.As<v8::Object>();
+		auto maybeTid = GetObjectField(obj, "tid");
+		if (!maybeTid.IsEmpty())
+		{
+			auto tid = maybeTid.ToLocalChecked();
+			if (tid->IsInt32())
+			{
+				return std::make_shared<MatchTid>(tid->ToInteger()->Int32Value());
+			}
+		}
+/*
+		auto match = Js::MatchTid::TryGetMatchTid();
 		if (match != nullptr)
 		{
 			return std::make_shared<MatchTid>(match->Tid());
 		}
+		*/
 	}
 	
 	throw V8RuntimeException("Unsupported parameter");

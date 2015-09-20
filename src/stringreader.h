@@ -35,7 +35,14 @@ public:
         _hr = S_OK;
     }
 
-    CStringReaderT()
+	 CStringReaderT(const CStringReaderT& rdr)
+	 {
+		 _psz = rdr._psz;
+		 _pszEnd = rdr._pszEnd;
+		 _hr = S_OK;
+	 }
+	 
+	 CStringReaderT()
     {
         _psz = NULL;
         _pszEnd = NULL;
@@ -72,6 +79,14 @@ public:
                 BOOL fCaseSensitive = TRUE);
     
     // reading of system types
+	 static uint32_t ReadUInt32(const T* pszStart, const T* pszEnd, int ibase = 10)
+	 {
+		 CStringReaderA rdr(pszStart, pszEnd - pszStart);
+		 unsigned long temp;
+		 rdr.ReadUInt32(&temp, ibase);
+		 return temp;
+	 }
+
     BOOL ReadUInt32( 
                 unsigned long *pl, 
                 int ibase = 10 );

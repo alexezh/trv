@@ -20,6 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "stdafx.h"
 #include "traceline.h"
+#include "trace.h"
 #include "tracecollection.h"
 #include "querytracesource.h"
 #include "apphost.h"
@@ -45,8 +46,9 @@ void TraceCollection::Init(Isolate* iso)
 	tmpl->SetClassName(String::NewFromUtf8(iso,"TraceCollection"));
 
 	auto tmpl_proto = tmpl->PrototypeTemplate();
-	tmpl_proto->Set(String::NewFromUtf8(iso, "addline"), FunctionTemplate::New(iso, jsAddLine));
-	tmpl_proto->Set(String::NewFromUtf8(iso, "removeline"), FunctionTemplate::New(iso, jsRemoveLine));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "addLine"), FunctionTemplate::New(iso, jsAddLine));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "removeLine"), FunctionTemplate::New(iso, jsRemoveLine));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "intersect"), FunctionTemplate::New(iso, jsIntersect));
 
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 	_Template.Reset(iso, tmpl);
@@ -57,12 +59,17 @@ void TraceCollection::InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & ta
 	target->Set(String::NewFromUtf8(iso, "TraceCollection"), TraceCollection::GetTemplate(iso)->GetFunction());
 }
 
+static void ThrowIncorrectNewSyntax()
+{
+	ThrowTypeError("use TraceCollection(source, [start, end])");
+}
+
 void TraceCollection::jsNew(const v8::FunctionCallbackInfo<Value> &args)
 {
 	TraceCollection *tr = nullptr;
 	if (args.Length() == 0)
 	{
-		tr = new TraceCollection(args.This(), GetCurrentHost()->GetLineCount());
+		tr = new TraceCollection(args.This(), GetCurrentHost()->GetFileTraceSource(), GetCurrentHost()->GetFileTraceSource()->GetLineCount());
 	}
 	else if (args.Length() == 2)
 	{
@@ -71,7 +78,7 @@ void TraceCollection::jsNew(const v8::FunctionCallbackInfo<Value> &args)
 		{
 			ThrowTypeError("Invalid parameter. Int or Line expected");
 		}
-		tr = new TraceCollection(args.This(), dwStart, dwEnd);
+		tr = new TraceCollection(args.This(), GetCurrentHost()->GetFileTraceSource(), dwStart, dwEnd);
 	}
 	else
 	{
@@ -106,6 +113,35 @@ void TraceCollection::jsRemoveLine(const v8::FunctionCallbackInfo<Value> &args)
 	pThis->RemoveLine(dwLine);
 }
 
+void TraceCollection::jsIntersect(const v8::FunctionCallbackInfo<v8::Value> &args)
+{
+	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+	if(args.Length() != 1 || !args[0]->IsObject())
+	{
+		ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
+	}
+
+	auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
+	if(other == nullptr)
+	{
+		ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
+	}
+
+	auto res = pThis->_Lines->Clone();
+	res.And(*other->GetLines());
+
+	auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
+	auto coll = TraceCollection::Unwrap(collJs);
+	coll->SetLines(std::move(res));
+
+	args.GetReturnValue().Set(collJs);
+}
+
+void TraceCollection::AddLines(const CBitSet& lines)
+{
+	_Lines->Or(lines);
+}
+
 void TraceCollection::AddLine(DWORD dwLine)
 {
 	auto oldLines(std::move(_Lines));
@@ -113,7 +149,7 @@ void TraceCollection::AddLine(DWORD dwLine)
 	_Lines->SetBit(dwLine);
 	
 	if (_Listener)
-		_Listener(this, *oldLines, *_Lines);
+		_Listener(this, oldLines, _Lines);
 }
 
 void TraceCollection::RemoveLine(DWORD dwLine)
@@ -122,7 +158,7 @@ void TraceCollection::RemoveLine(DWORD dwLine)
 	_Lines = std::make_shared<CBitSet>(oldLines->Clone());
 	_Lines->ResetBit(dwLine);
 	if (_Listener)
-		_Listener(this, *oldLines, *_Lines);
+		_Listener(this, oldLines, _Lines);
 }
 
 bool TraceCollection::ValueToLineIndex(Local<Value>& v, DWORD& idx)
@@ -147,16 +183,18 @@ bool TraceCollection::ValueToLineIndex(Local<Value>& v, DWORD& idx)
 	return true;
 }
 
-TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, DWORD lineCount)
+TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& src, DWORD lineCount)
 	: Queryable(handle)
+	, _Source(src)
 	, _Lines(std::make_shared<CBitSet>())
 {
 	_Lines->Init(lineCount);
-	_Op = std::make_shared<QueryOpTraceCollection>(_Lines);
+	_Op = std::make_shared<QueryOpTraceCollection>(_Source, _Lines);
 }
 
-TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end)
+TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& src, DWORD start, DWORD end)
 	: Queryable(handle)
+	, _Source(src)
 {
 	if(start >= end)
 	{
@@ -169,7 +207,7 @@ TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, DWORD sta
 	{
 		_Lines->SetBit(i);
 	}
-	_Op = std::make_shared<QueryOpTraceCollection>(_Lines);
+	_Op = std::make_shared<QueryOpTraceCollection>(_Source, _Lines);
 }
 
 TraceCollection* TraceCollection::TryGetCollection(const Local<Object> & obj)
@@ -189,6 +227,11 @@ void TraceCollection::SetChangeListener(const ChangeListener& listner)
 	// do not allow multiple listners
 	assert(!(_Listener && listner));
 	_Listener = listner;
+}
+
+const std::shared_ptr<CTraceSource>& TraceCollection::Source()
+{
+	return _Source;
 }
 
 size_t TraceCollection::ComputeCount()

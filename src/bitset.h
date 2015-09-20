@@ -44,11 +44,12 @@ public:
     void Init(DWORD nElems);
     void Fill(BOOL fSet);
     
-    DWORD GetSetBitCount() { return m_nSetBit; }
-    DWORD GetTotalBitCount() { return m_nTotalBit; }
+    DWORD GetSetBitCount() const { return m_nSetBit; }
+    DWORD GetTotalBitCount() const { return m_nTotalBit; }
 
-	void Or(CBitSet& src);
-    
+	void Or(const CBitSet& src);
+	void And(const CBitSet& src);
+
 	void SetBit(DWORD nBit)
 	{
 		DWORD n = nBit >> 5;

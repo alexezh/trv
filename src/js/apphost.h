@@ -21,6 +21,7 @@
 #pragma once
 
 #include "lineinfo.h"
+#include "file.h"
 
 struct CStringRef;
 class CBitSet;
@@ -30,6 +31,7 @@ class View;
 class History;
 class DotExpressions;
 class Shortcuts;
+class Tagger;
 
 class IAppHost
 {
@@ -39,6 +41,7 @@ public:
 	virtual void OnHistoryCreated(History*) = 0;
 	virtual void OnDotExpressionsCreated(DotExpressions*) = 0;
 	virtual void OnShortcutsCreated(Shortcuts*) = 0;
+	virtual void OnTaggerCreated(Tagger*) = 0;
 
 	virtual void LoadTrace(const char* pszName, int startPos, int endPos) = 0;
 
@@ -48,25 +51,27 @@ public:
 	virtual void ConsoleSetFocus() = 0;
 
 	// trace storage
-	virtual LineInfo& GetLine(size_t idx) = 0;
+	virtual std::shared_ptr<CTraceSource> GetFileTraceSource() = 0;
+
+	virtual const LineInfo& GetLine(size_t idx) = 0;
 	virtual size_t GetLineCount() = 0;
+
 	virtual size_t GetCurrentLine() = 0;
 	virtual void AddShortcut(uint8_t modifier, uint16_t key) = 0;
 
-	// host maintains global "active/non-active" counter for each line
-	// view logic is responsible for updating it
-	virtual void UpdateLineActive(DWORD line, int change) = 0;
-	virtual void UpdateLinesActive(const CBitSet & set, int change) = 0;
-
 	// set trace format
 	virtual bool SetTraceFormat(const char * psz) = 0;
-
 	virtual void RefreshView() = 0;
+	virtual void SetViewSource(const std::shared_ptr<CBitSet>& scope) = 0;
+
 	// console access
 	virtual void OutputLine(const char * psz) = 0;
 
 	// set height of panes in %
 	virtual void SetViewLayout(double cmdHeight, double outHeight) = 0;
+	virtual void SetColumns(const std::vector<std::string>& name) = 0;
+
+	virtual void ReportException(v8::Isolate* isolate, v8::TryCatch& try_catch) = 0;
 };
 
 inline IAppHost * GetCurrentHost()

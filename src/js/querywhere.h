@@ -38,7 +38,7 @@ private:
 		}
 
 		// evaluate expression on string
-		virtual bool NativeEval(LineInfo & line) = 0;
+		virtual bool NativeEval(const LineInfo & line) = 0;
 
 		// evaluate expression on object
 		virtual bool JsEval(v8::Handle<v8::Value> & line)
@@ -60,18 +60,18 @@ private:
 			_Bc.BuildBc(pszExpr);
 		}
 
-		bool IsNative()
+		bool IsNative() override
 		{
 			return true;
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line) override
+		bool NativeEval(const LineInfo & line) override
 		{
 			return _Bc.Search(line.Msg.psz, line.Msg.cch) != nullptr;
 		}
 
-		std::string MakeDescription()
+		std::string MakeDescription() override
 		{
 			return std::string("\"") + _Expr + "\"";
 		}
@@ -88,18 +88,18 @@ private:
 		{
 		}
 
-		bool IsNative()
+		bool IsNative() override
 		{
 			return true;
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line)
+		bool NativeEval(const LineInfo & line) override
 		{
 			return line.Tid == _Tid;
 		}
 
-		std::string MakeDescription()
+		std::string MakeDescription() override
 		{
 			char tidA[32];
 			return _itoa(_Tid, tidA, 10);
@@ -116,13 +116,13 @@ private:
 			_Func.Reset(v8::Isolate::GetCurrent(), func);
 		}
 
-		bool IsNative()
+		bool IsNative() override
 		{
 			return false;
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line) override
+		bool NativeEval(const LineInfo & line) override
 		{
 			assert(false);
 			return false;
@@ -137,7 +137,7 @@ private:
 			return v;
 		}
 
-		std::string MakeDescription()
+		std::string MakeDescription() override
 		{
 			return "js";
 		}
@@ -166,18 +166,18 @@ private:
 		{
 		}
 
-		bool IsNative()
+		bool IsNative() override
 		{
 			return _Left->IsNative() && _Right->IsNative();
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line)
+		bool NativeEval(const LineInfo & line) override
 		{
 			return _Left->NativeEval(line) || _Right->NativeEval(line);
 		}
 
-		std::string MakeDescription()
+		std::string MakeDescription() override
 		{
 			return _Left->MakeDescription() + " or " + _Right->MakeDescription();
 		}
@@ -191,18 +191,18 @@ private:
 		{
 		}
 
-		bool IsNative()
+		bool IsNative() override
 		{
 			return true;
 		}
 
 		// evaluate expression on string
-		bool NativeEval(LineInfo & line)
+		bool NativeEval(const LineInfo & line) override
 		{
 			return _Left->NativeEval(line) && _Right->NativeEval(line);
 		}
 
-		std::string MakeDescription()
+		std::string MakeDescription() override
 		{
 			return _Left->MakeDescription() + " and " + _Right->MakeDescription();
 		}
@@ -267,7 +267,7 @@ public:
 			return _Src->IsNative() && _Expr->IsNative();
 		}
 
-		LineInfo& NativeValue() override
+		const LineInfo& NativeValue() override
 		{
 			return _Src->NativeValue();
 		}
@@ -301,7 +301,7 @@ public:
 	};
 
 	QueryOpWhere(const std::shared_ptr<QueryOp>& src, ITERTYPE iterType, const std::shared_ptr<Expr>& expr)
-		: _Source(src)
+		: _Left(src)
 		, _Expr(expr)
 		, _IterType(iterType)
 	{
@@ -319,7 +319,7 @@ public:
 
 	std::unique_ptr<QueryIterator> CreateIterator()
 	{
-		auto it = _Source->CreateIterator();
+		auto it = _Left->CreateIterator();
 		return std::unique_ptr<QueryIterator>(new Iterator(std::move(it), _Expr));
 	}
 
@@ -328,7 +328,7 @@ public:
 	static std::shared_ptr<Expr> FromJs(v8::Handle<v8::Value> & val);
 
 protected:
-	std::shared_ptr<QueryOp> _Source;
+	std::shared_ptr<QueryOp> _Left;
 	std::shared_ptr<Expr> _Expr;
 	ITERTYPE _IterType;
 };

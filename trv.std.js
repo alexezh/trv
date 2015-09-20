@@ -7,31 +7,84 @@ function $p(p) { $.print(p); }
 var $f = null;
 
 // add filter 
-function vf(coll, color, title) 
+function af(coll, color, title) 
 {
-    $f = $.view.filter(coll, color, title); 
+    $f = $.tagger.addFilter(coll, color, title); 
 }
-function vfi(coll, color, title) { $.view.filterinteractive(coll, color, title); }
+function vfi(coll, color, title) { $.tagger.filterinteractive(coll, color, title); }
 
-function vr(id) { $.view.removefilter(id); }
+function rf(id) { $.tagger.removeFilter(id); }
+$.dotexpressions.add("rf", rf);
+
+// view.setSource sets a collection to be displayed in trace window
+// the collection is generated as intersection of collections from viewSources array
+// viewSources[0] contains collection produces by tagger. Other elements of array are free to use
+var viewSources = [];
+
+// intersects all line
+function updateViewSource() {
+    var viewSource = null;
+
+    for (var i = 0; i < viewSources.length; i++)
+    {
+        if (viewSources[i] != null)
+            viewSource = (viewSource == null) ? viewSources[i] : viewSource.intersect(viewSources[i]);
+    }
+
+    $.view.setSource(viewSource);
+}
 
 // show/hide unselected text
-function vt() { $.view.showfilters = !$.view.showfilters; }
-$.dotexpressions.add("f", vt);
+var limitTagged = false;
+var taggedColl = null;
+var taggedCollIdx = 0;
+function sf() 
+{ 
+    limitTagged = !limitTagged;
+    if(limitTagged)
+    {
+        if (taggedColl == null)
+            taggedColl = $.tagger.asCollection();
+
+        viewSources[taggedCollIdx] = taggedColl;
+    }
+    else
+    {
+        viewSources[taggedCollIdx] = null;
+    }
+
+    updateViewSource();
+}
+
+$.tagger.onChanged(function ()
+{
+    if(limitTagged)
+    {
+        taggedColl = $.tagger.asCollection();
+        viewColls[taggedCollIdx] = taggedColl;
+        updateViewSource();
+    }
+});
+
+$.dotexpressions.add("sf", sf);
+$.shortcuts.add("ctrl+h", sf);
 
 // print filters
-function pf() { $.view.printfilters(); }
+function pf() { $.tagger.printFilters(); }
 $.dotexpressions.add("pf", pf);
 
 
 function a(condition, color, title) 
 { 
-    vf($.trace.where(condition), color, title); 
+    af($.trace.where(condition), color, title); 
 }
 $.dotexpressions.add("a", a);
 
-function vd(id) { $.view.enablefilter(id, false); }
-function ve(id) { $.view.enablefilter(id, true); }
+function df(id) { $.tagger.enableFilter(id, false); }
+$.dotexpressions.add("df", df);
+
+function ef(id) { $.tagger.enableFilter(id, true); }
+$.dotexpressions.add("ef", ef);
 
 // move cursor to console and add .a in beginning
 function startEditFilter()
@@ -41,22 +94,11 @@ function startEditFilter()
 }
 $.shortcuts.add("ctrl+a", startEditFilter);
 
-// bind to keyboard here
-// $.keybinding.add("Ctrl+H", vt())
 
 // history
 var $h = $.history;
 function hp() { $.history.print(); }
 function he(id) { $.history.exec(id); }
-
-// Trace line: [2012-11-15 08:31:30] message here
-// $t.format = "\\[?year(\\d+)-?month(\\d+)-?day(\\d+) ?hour(\\d+):?minute(\\d+):?second(\\d+)\\] (.*)";
-
-// 06/22/2012-09:17:52.69610060 [14B0] 06/22/2012-09:17:52.69610060 [14B0]    File was created: 
-// $t.format = "?month(\\d+)/?day(\\d+)/?year(\\d+)-?hour(\\d+):?minute(\\d+):?second(\\d+).?nanosecond(\\x+) \\[?tid(\\x+)\\]\\s*(.*)";
-$t.format = "MSI \\(s\\) \\(?tid(\\d+):(.*)"
-
-$v.setviewlayout(30, 0.3);
 
 var Black = "Black";
 var DarkBlue = "DarkBlue";

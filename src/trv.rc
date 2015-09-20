@@ -74,15 +74,12 @@ END
 IDC_TRV ACCELERATORS
 BEGIN
     "M",            ID_BOOKMARK,            VIRTKEY, CONTROL, NOINVERT
-    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
-    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
     "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
     VK_F3,          ID_EDIT_FINDNEXT,       VIRTKEY, NOINVERT
     "G",            ID_GOTO,                VIRTKEY, CONTROL, NOINVERT
     "T",            ID_VIEW_TRACEWINDOW,    VIRTKEY, ALT, NOINVERT
     "O",            ID_VIEW_MESSAGEWINDOW,  VIRTKEY, ALT, NOINVERT
     "C",            ID_VIEW_CONSOLEWINDOW,  VIRTKEY, ALT, NOINVERT
-    "H",            ID_TOGGLEHIDE,          VIRTKEY, CONTROL, NOINVERT
     "/",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
     "?",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
 END

@@ -88,6 +88,9 @@ void Query::Init(v8::Isolate* iso)
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
 	tmpl->SetClassName(String::NewFromUtf8(iso, "Query"));
 	tmpl->Inherit(Queryable::GetTemplate(iso));
+
+	tmpl->PrototypeTemplate()->Set(String::NewFromUtf8(iso, "asCollection"), FunctionTemplate::New(iso, &jsAsCollection));
+
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 	_Template.Reset(iso, tmpl);
 }
@@ -107,7 +110,7 @@ Query::Query(const v8::Handle<v8::Object>& handle, const FunctionCallbackInfo<Va
 	}
 
 	leftOp = pLeft->Op();
-	_Source.Reset(Isolate::GetCurrent(), pLeft->Source());
+	_Source = pLeft->Source();
 
 	if (op == Queryable::WHERE)
 	{
@@ -136,6 +139,12 @@ void Query::jsNew(const FunctionCallbackInfo<Value> &args)
 		query = new Query(args.This(), args);
 		return args.This();
 	});
+}
+
+void Query::jsAsCollection(const v8::FunctionCallbackInfo<v8::Value> &args)
+{
+	auto * pThis = Unwrap(args.This());
+	args.GetReturnValue().Set(pThis->GetCollection());
 }
 
 size_t Query::ComputeCount()
@@ -168,6 +177,10 @@ std::string Query::MakeDescription()
 	return _Op->MakeDescription();
 }
 
+const std::shared_ptr<CTraceSource>& Query::Source()
+{
+	return _Source;
+}
 
 v8::Local<v8::Object> Query::GetCollection()
 {
@@ -182,6 +195,7 @@ v8::Local<v8::Object> Query::GetCollection()
 	DWORD dwStart = GetTickCount();
 	{
 		// populate set from query
+		// TODO: check if iterator is Js; inverse loop to Js
 		for (auto it = Op()->CreateIterator(); !it->IsEnd(); it->Next())
 		{
 			QueryIteratorHelper::SelectLinesFromIteratorValue(it.get(), *coll->GetLines());

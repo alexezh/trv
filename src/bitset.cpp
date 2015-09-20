@@ -78,16 +78,51 @@ void CBitSet::Fill(BOOL fSet)
     }
 }
 
-void CBitSet::Or(CBitSet& src)
+inline DWORD GetBitCount(DWORD v)
+{
+	// from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetNaive
+	v = v - ((v >> 1) & 0x55555555);                    // reuse input as temporary
+	v = (v & 0x33333333) + ((v >> 2) & 0x33333333);     // temp
+	DWORD c = ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24; // count
+	return c;
+}
+
+void CBitSet::Or(const CBitSet& src)
 {
 	DWORD srcFirst = src.m_nFirstBit >> 5;
-	DWORD srcLast = src.m_nLastBit >> 5;
+	DWORD srcLast = (src.m_nLastBit >> 5) + 1;
 
 	DWORD nBuf = std::min<DWORD>(m_nBuf, srcLast);
-	for(DWORD i = src.m_nFirstBit; i < nBuf; i++)
+	for(DWORD i = srcFirst; i < nBuf; i++)
 	{
+		// compute number of unique bits in src
+		DWORD v = src.m_pBuf[i] ^ (m_pBuf[i] & src.m_pBuf[i]);
+		DWORD c = GetBitCount(v);
+		m_nSetBit += c;
 		m_pBuf[i] |= src.m_pBuf[i];
 	}
+
+	m_nFirstBit = std::min<DWORD>(m_nFirstBit, src.m_nFirstBit);
+	m_nLastBit = std::max<DWORD>(m_nLastBit, src.m_nLastBit);
+}
+
+void CBitSet::And(const CBitSet& src)
+{
+	DWORD srcFirst = src.m_nFirstBit >> 5;
+	DWORD srcLast = (src.m_nLastBit >> 5) + 1;
+
+	DWORD nBuf = std::min<DWORD>(m_nBuf, srcLast);
+	for (DWORD i = srcFirst; i < nBuf; i++)
+	{
+		// compute number of unique bits in dest (will be erased)
+		DWORD v = m_pBuf[i] ^ (m_pBuf[i] & src.m_pBuf[i]);
+		DWORD c = GetBitCount(v);
+		m_nSetBit -= c;
+		m_pBuf[i] &= src.m_pBuf[i];
+	}
+
+	m_nFirstBit = std::min<DWORD>(m_nFirstBit, src.m_nFirstBit);
+	m_nLastBit = std::max<DWORD>(m_nLastBit, src.m_nLastBit);
 }
 
 CBitSet CBitSet::Clone()

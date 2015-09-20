@@ -26,10 +26,12 @@
 #include "jshost.h"
 #include "make_unique.h"
 #include "color.h"
-#include "js/view.h"
+#include "js/viewproxy.h"
 #include "js/history.h"
 #include "js/dotexpressions.h"
 #include "js/shortcuts.h"
+#include "js/tagger.h"
+#include "js/trace.h"
 #include "stringutils.h"
 #include <include/libplatform/libplatform.h>
 
@@ -37,10 +39,11 @@ using namespace v8;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void JsHost::Init(CTraceSource * pColl)
+void JsHost::Init(const std::shared_ptr<CTraceSource>& pColl)
 {
 	// TODO: add code to queue copy to another thread
-	_pTraceColl = pColl;
+	_pFileTraceSource = pColl;
+	// _pApp->PTraceView()->SetTraceSource(pColl);
 
 	_hSem = CreateSemaphore(NULL, 0, 0x7fff, NULL);
 	InitializeCriticalSection(&_cs);
@@ -71,6 +74,11 @@ void JsHost::OnShortcutsCreated(Js::Shortcuts* obj)
 {
 	LOG("@%p obj=%p", this, obj)
 	_pShortcuts = obj;
+}
+
+void JsHost::OnTaggerCreated(Js::Tagger* obj)
+{
+	_pTagger = obj;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -284,7 +292,7 @@ BYTE JsHost::GetLineColor(DWORD dwLine)
 		return 0;
 	}
 
-	return _pView->GetLineColor(dwLine);
+	return _pTagger->GetLineColor(dwLine);
 }
 
 void JsHost::AddShortcut(uint8_t modifier, uint16_t key)
@@ -397,6 +405,61 @@ void JsHost::SetViewLayout(double cmdHeight, double outHeight)
 	});
 }
 
+void JsHost::SetColumns(const std::vector<std::string>& names)
+{
+	std::vector<ColumnId> ids;
+
+	for (auto& name : names)
+	{
+		ColumnId id;
+
+		if (_stricmp(name.c_str(), "line") == 0)
+		{
+			id = ColumnId::LineNumber;
+		}
+		else if (_stricmp(name.c_str(), "tid") == 0)
+		{
+			id = ColumnId::ThreadId;
+		}
+		else if (_stricmp(name.c_str(), "time") == 0)
+		{
+			id = ColumnId::Time;
+		}
+		else if (_stricmp(name.c_str(), "message") == 0)
+		{
+			id = ColumnId::Message;
+		}
+		else if (_stricmp(name.c_str(), "user1") == 0)
+		{
+			id = ColumnId::User1;
+		}
+		else if (_stricmp(name.c_str(), "user2") == 0)
+		{
+			id = ColumnId::User2;
+		}
+		else if (_stricmp(name.c_str(), "user3") == 0)
+		{
+			id = ColumnId::User3;
+		}
+		else if (_stricmp(name.c_str(), "user4") == 0)
+		{
+			id = ColumnId::User4;
+		}
+		else
+		{
+			assert(false);
+			continue;
+		}
+
+		ids.push_back(id);
+	}
+
+	_pApp->PostWork([this, ids]()
+	{
+		_pApp->SetTraceColumns(ids);
+	});
+}
+
 void JsHost::LoadTrace(const char* pszName, int startPos, int endPos)
 {
 	std::string name(pszName);
@@ -406,25 +469,38 @@ void JsHost::LoadTrace(const char* pszName, int startPos, int endPos)
 	});
 }
 
-LineInfo& JsHost::GetLine(size_t idx)
+std::shared_ptr<CTraceSource> JsHost::GetFileTraceSource()
 {
-	if(!_pTraceColl)
+	return _pFileTraceSource;
+}
+
+void JsHost::SetViewSource(const std::shared_ptr<CBitSet>& lines)
+{
+	_pApp->PostWork([this, lines]()
+	{
+		_pApp->PTraceView()->SetViewSource(lines);
+	});
+}
+
+const LineInfo& JsHost::GetLine(size_t idx)
+{
+	if(!_pFileTraceSource)
 	{
 		static LineInfo line;
 		return line;
 	}
 
-	return _pTraceColl->GetLine(idx);
+	return _pFileTraceSource->GetLine(idx);
 }
 
 size_t JsHost::GetLineCount()
 {
-	if(!_pTraceColl)
+	if(!_pFileTraceSource)
 	{
 		return CColor::DEFAULT_TEXT;
 	}
 
-	return _pTraceColl->GetLineCount();
+	return _pFileTraceSource->GetLineCount();
 }
 
 size_t JsHost::GetCurrentLine()
@@ -434,37 +510,7 @@ size_t JsHost::GetCurrentLine()
 		return 0;
 	}
 
-	return _pApp->GetCurrentLine();
-}
-
-void JsHost::UpdateLineActive(DWORD line, int change)
-{
-	if (!_pTraceColl)
-	{
-		return;
-	}
-
-	_pTraceColl->UpdateLineActive(line, change);
-
-	_pApp->PostWork([this]()
-	{
-		_pApp->PTraceView()->OnFilterChange();
-	});
-}
-
-void JsHost::UpdateLinesActive(const CBitSet & set, int change)
-{
-	if(!_pTraceColl)
-	{
-		return;
-	}
-
-	_pTraceColl->UpdateLinesActive(set, change);
-
-	_pApp->PostWork([this]() 
-	{
-		_pApp->PTraceView()->OnFilterChange();
-	});
+	return _pApp->PTraceView()->GetFocusLine();
 }
 
 void JsHost::RefreshView()
@@ -478,14 +524,14 @@ void JsHost::RefreshView()
 bool JsHost::SetTraceFormat(const char * psz)
 {
 	// TODO: call can happen before file is loaded
-	if(!_pTraceColl->SetTraceFormat(psz))
+	if(!_pFileTraceSource->SetTraceFormat(psz))
 	{
 		return false;
 	}
 
-	_pApp->PostWork([this]() 
+	_pApp->PostWork([this]()
 	{
-		_pApp->PTraceView()->InitColumns();
+		_pApp->PTraceView()->Repaint();
 	});
 
 	return true;

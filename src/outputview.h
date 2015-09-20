@@ -23,7 +23,8 @@
 class CTraceApp;
 
 class COutputView
-        : public CWindowImpl<COutputView>
+	: public CWindowImpl<COutputView>
+	, public IClipboardHandler
 {
 public:
     COutputView(CTraceApp * pApp)
@@ -35,18 +36,23 @@ public:
 	void OutputLineA(LPCSTR pszLine, DWORD cch = 0);
 	void OutputLineW(LPCWSTR pszLine);
 
+	// IClipboardHandler
+	void OnCopy() override;
+
 private:
    
     LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
     LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnProtected(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
+	LRESULT OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 protected:
     
     BEGIN_MSG_MAP(COutputView)
         MESSAGE_HANDLER(WM_CREATE, OnCreate)
-        MESSAGE_HANDLER(WM_SIZE, OnSize)
-    END_MSG_MAP()
+		MESSAGE_HANDLER(WM_SIZE, OnSize)
+		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
+	END_MSG_MAP()
 
 private:
 	CTraceApp * m_pApp;

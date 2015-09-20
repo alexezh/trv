@@ -25,44 +25,23 @@
 #include "lineinfo.h"
 #include "testassert.h"
 
-// format string uses perl expression syntax for extracting fields
-// regexp implementation is simplified for our needs. 
-// The only supported functionality is 
-// Special sequences are
-//    () - group
-//    [] - set
-//    ?name() - named group
-//    \w - char
-//    \d - match digit
-//    \x - match hex digit
-//    \s - match white space
-//    . - match any char
-//    +
-//    *
-// Known group names
-//    year, month, date, hour, min, sec
-//    thread
-//    msg
-// Nested groups not supported
+// parses input line into fields
 class TraceLineParser
 {
 public:
 	enum class FieldId
 	{
 		None,
-		Year,
-		Month,
-		Day,
-		Hour,
-		Minute,
-		Second,
-		Nanosecond,
-		Thread,
+		Time,
+		ThreadId,
+		User1,
+		User2,
+		User3,
+		User4,
 		Msg
 	};
 
 	TraceLineParser()
-		: _TidFormat(NumberDec)
 	{
 	}
 
@@ -70,7 +49,7 @@ public:
 	{
 		cchLine = (cchLine == 0) ? strlen(pszLine) : cchLine;
 		CStringReaderA rdr(pszLine, cchLine);
-		return Match(rdr, _Root.get(), res);
+		return Parse(rdr, res);
 	}
 
 	const std::vector<FieldId>& GetFields()
@@ -79,147 +58,28 @@ public:
 	}
 
 	// throw invalid_argument exception
-	bool SetFormat(const char * pszFormat, size_t cch);
+	bool SetFormat(const char * pszFormat, size_t cch, const std::vector<char>& separators);
 
-	// test support
-	static bool Test();
-	static bool TestSetFormat(const char * pszFormat);
 private:
+	FieldId StringToFieldId(const std::string & str);
+	bool SetFormat(CStringReaderA& rdr, const std::vector<char>& separators);
+
 	enum NumberFormat
 	{
 		NumberDec,
 		NumberHex,
 	};
 
-	enum OpType
+	enum class ParseFormatState
 	{
-		OpMatch,
-		OpGroup,
-		// we can have another element Seq
-	};
-	
-	enum RepeatFlag
-	{
-		Single,
-		ZeroOrMore,
-		OneOrMore,
+		Separator,
+		Name,
 	};
 
-	struct Op 
-	{
-		OpType Type;
-	};
-	
-	struct GroupOp : public Op
-	{
-		GroupOp()
-		{
-			Type = OpGroup;
-			Gid = FieldId::None;
-		}
-		FieldId Gid;
-		std::vector<std::unique_ptr<Op> > Children;
-	};
-	
-	struct MatchOp : public Op
-	{
-		MatchOp()
-		{
-			Type = OpMatch;
-			Rep = Single;
-			Fill(false);
-		}
+	std::vector<FieldId> _Fields;
+	std::vector<char> _Separators;
 
-		void Fill(bool b)
-		{
-			for(size_t i = 0; i < sizeof(Set); i++)
-			{
-				Set[i] = b;
-			}
-		}
-
-		void FillRange(unsigned char start, unsigned char end, bool b)
-		{
-			if(end < start)
-			{
-				throw std::invalid_argument("incorrect [] sequence");
-				return;
-			}
-			for(size_t i = start; i <= end; i++)
-			{
-				Set[i] = b;
-			}
-		}
-
-		bool Match(CStringReaderA& rdr)
-		{
-			int cMatch = 0;
-			while(!rdr.IsEOL())
-			{
-				char c = rdr.PeekChar();
-				if(Set[c])
-				{
-					rdr.ReadChar();
-					cMatch++;
-
-					// always greedy
-					if(Rep == Single)
-					{
-						return true;
-					}
-
-					continue;
-				}
-				else
-				{
-					// if we had a match or we matching 0 or more
-					if(Rep == ZeroOrMore || cMatch > 0)
-					{
-						return true;
-					}
-					else
-					{
-						return false;
-					}
-				}
-			}
-			return true;
-		}
-
-		RepeatFlag Rep;
-		// chars which match this expr
-		bool Set[256];
-	};
-	typedef std::vector<std::unique_ptr<Op> > OpVector;
-	std::unique_ptr<GroupOp> _Root;
-	std::vector<FieldId> _Fields; 
-	NumberFormat _TidFormat;
-
-	class FormatParser
-	{
-	public:
-		FormatParser(CStringReaderA & rdr, OpVector & res)
-			: _Res(res)
-		{
-			_Rdr.Init(rdr);
-		}
-
-		bool Parse();
-	private:
-		bool ParseNamedGroup();
-		bool ParseSet(std::unique_ptr<TraceLineParser::MatchOp> & m);
-		bool ParseEscapedChar(std::unique_ptr<MatchOp> & m);
-		FieldId StringToFieldId(const std::string & str);
-		std::unique_ptr<GroupOp> ParseGroup();
-		std::unique_ptr<MatchOp> ParseMatch();
-		static bool IsEscapedSimple(char c);
-
-		CStringReaderA _Rdr;
-		OpVector& _Res;
-	};
-
-	bool Match(CStringReaderA & rdr, GroupOp * op, LineInfo& res); 
-	void ValidateFields(GroupOp * op); 
+	bool Parse(CStringReaderA & rdr, LineInfo& res); 
 	void SetLineInfoField(LineInfo& res, FieldId id, const char * pszStart, const char * pszEnd);
 };
 

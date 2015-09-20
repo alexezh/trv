@@ -37,7 +37,7 @@ class TraceCollection : public Queryable
 public:
 	static void Init(v8::Isolate* iso);
 	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso)
+	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
@@ -49,31 +49,43 @@ public:
 		return static_cast<TraceCollection*>(Queryable::Unwrap(handle));
 	}
 
-	const std::shared_ptr<CBitSet>& GetLines() { return _Lines; }
+	const std::shared_ptr<CBitSet>& GetLines()
+	{
+		return _Lines;
+	}
+	void SetLines(CBitSet&& lines)
+	{
+		_Lines = std::make_shared<CBitSet>(std::move(lines));
+	}
 
-	using ChangeListener = std::function<void(TraceCollection* pSender, CBitSet& old, CBitSet& cur)>;
+	using ChangeListener = std::function<void(TraceCollection* pSender, const std::shared_ptr<CBitSet>& old, const std::shared_ptr<CBitSet>& cur)>;
 	void SetChangeListener(const ChangeListener& listner);
 
+	void AddLines(const CBitSet& lines);
+	void AddLine(DWORD dwLine);
+	void RemoveLine(DWORD dwLine);
+
 	const std::shared_ptr<QueryOp>& Op() override { return _Op; }
-	v8::Local<v8::Object> Source() override { return Handle(); }
+	const std::shared_ptr<CTraceSource>& Source() override;
 
 protected:
-	size_t TraceCollection::ComputeCount() override;
+	size_t ComputeCount() override;
 
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static void jsAddLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static void jsRemoveLine(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsIntersect(const v8::FunctionCallbackInfo<v8::Value> &args);
 
-	TraceCollection(const v8::Handle<v8::Object>& handle, DWORD lineCount);
-	TraceCollection(const v8::Handle<v8::Object>& handle, DWORD start, DWORD end);
+	TraceCollection(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& src, DWORD lineCount);
+	TraceCollection(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& src, DWORD start, DWORD end);
 	static bool ValueToLineIndex(v8::Local<v8::Value>& v, DWORD& idx);
-
-	void AddLine(DWORD dwLine);
-	void RemoveLine(DWORD dwLine);
 
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
+	
+	std::shared_ptr<CTraceSource> _Source;
+
 	// for small sets it is better to use array
 	// for bigger sets - bitset. Ideally it would be nice to have compressed
 	// bitset where big ranges are collapsed

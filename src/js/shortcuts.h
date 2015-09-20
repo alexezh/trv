@@ -29,7 +29,7 @@ class Shortcuts : public BaseObject<Shortcuts>
 {
 public:
 	static void Init(v8::Isolate* iso);
-	static v8::Local<v8::FunctionTemplate> & GetTemplate(v8::Isolate* iso) 
+	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso) 
 	{ 
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}

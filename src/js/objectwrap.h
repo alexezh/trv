@@ -105,4 +105,9 @@ T * UnwrapThis(v8::Local<v8::Object> valThis)
 	return T::Unwrap(valThis);
 }
 
+inline v8::MaybeLocal<v8::Value> GetObjectField(v8::Local<v8::Object>& obj, const char* pszField)
+{
+	return obj->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszField));
+}
+
 } // Js
