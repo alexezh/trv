@@ -22,7 +22,6 @@
 #include "query.h"
 #include "querymap.h"
 #include "querywhere.h"
-#include "tid.h"
 
 namespace Js {
 
@@ -57,19 +56,34 @@ std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> &
 		auto maybeTid = GetObjectField(obj, "tid");
 		if (!maybeTid.IsEmpty())
 		{
-			auto tid = maybeTid.ToLocalChecked();
+			auto tid = maybeTid.ToLocalChecked();				
 			if (tid->IsInt32())
 			{
 				return std::make_shared<MatchTid>(tid->ToInteger()->Int32Value());
 			}
 		}
-/*
-		auto match = Js::MatchTid::TryGetMatchTid();
-		if (match != nullptr)
+
+		for (size_t i = 0; i < LineInfoDesc::MaxUser; i++)
 		{
-			return std::make_shared<MatchTid>(match->Tid());
+			std::string userName = "user";
+			char idxA[32];
+			_itoa(i+1, idxA, 10);
+			userName += idxA;
+			auto maybeUser = GetObjectField(obj, userName.c_str());
+
+			if (!maybeUser.IsEmpty())
+			{
+				auto user = maybeUser.ToLocalChecked();
+				if (user->IsUndefined())
+					continue;
+
+				if (user->IsString() || user->IsStringObject())
+				{
+					v8::String::Utf8Value str(user);
+					return std::make_shared<MatchUser>(*str, i);
+				}
+			}
 		}
-		*/
 	}
 	
 	throw V8RuntimeException("Unsupported parameter");

@@ -94,7 +94,7 @@ public:
 	void ConsoleSetConsole(const std::string& szText) override;
 	void ConsoleSetFocus() override;
 
-	bool SetTraceFormat(const char * psz) override;
+	bool SetTraceFormat(const char * pszFormat, const char* pszSep) override;
 	void RefreshView() override;
 	void SetViewSource(const std::shared_ptr<CBitSet>& scope) override;
 

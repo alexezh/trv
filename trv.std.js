@@ -6,14 +6,39 @@ function $p(p) { $.print(p); }
 // stores last filter created with vf call
 var $f = null;
 
-// add filter 
-function af(coll, color, title) 
-{
-    $f = $.tagger.addFilter(coll, color, title); 
+function asInt(val) {
+    if (typeof val == 'number') {
+        return val;
+    }
+    else if (typeof val == 'string') {
+        return parseInt(val);
+    }
+    else {
+        throw "invalid type";
+    }
 }
-function vfi(coll, color, title) { $.tagger.filterinteractive(coll, color, title); }
 
-function rf(id) { $.tagger.removeFilter(id); }
+// add filter provided collection, color and title 
+function af(coll, color, title) {
+    $f = $.tagger.addFilter(coll, color, title);
+    return $f;
+}
+
+// add filter by running query against trace
+function a(condition, color, title) {
+    af($.trace.where(condition), color, title);
+}
+$.dotexpressions.add("a", a);
+
+// enable / disable filter by id
+function df(id) { $.tagger.enableFilter(asInt(id), false); }
+$.dotexpressions.add("df", df);
+
+function ef(id) { $.tagger.enableFilter(asInt(id), true); }
+$.dotexpressions.add("ef", ef);
+
+// remove filter by id
+function rf(id) { $.tagger.removeFilter(asInt(id)); }
 $.dotexpressions.add("rf", rf);
 
 // view.setSource sets a collection to be displayed in trace window
@@ -72,19 +97,6 @@ $.shortcuts.add("ctrl+h", sf);
 // print filters
 function pf() { $.tagger.printFilters(); }
 $.dotexpressions.add("pf", pf);
-
-
-function a(condition, color, title) 
-{ 
-    af($.trace.where(condition), color, title); 
-}
-$.dotexpressions.add("a", a);
-
-function df(id) { $.tagger.enableFilter(id, false); }
-$.dotexpressions.add("df", df);
-
-function ef(id) { $.tagger.enableFilter(id, true); }
-$.dotexpressions.add("ef", ef);
 
 // move cursor to console and add .a in beginning
 function startEditFilter()

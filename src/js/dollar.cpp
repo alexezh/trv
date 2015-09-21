@@ -30,7 +30,6 @@
 #include "commandviewproxy.h"
 #include "tagger.h"
 #include "tracecollection.h"
-#include "subtracesource.h"
 #include "log.h"
 
 using namespace v8;

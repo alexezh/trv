@@ -44,8 +44,9 @@ inline void TryCatchCpp(const v8::FunctionCallbackInfo<v8::Value>& args, const s
 	}
 	catch (V8RuntimeException e)
 	{
-		LOG(" v8 exception");
-		GetCurrentHost()->OutputLine(e.what());
+		// LOG(" v8 exception");
+		// GetCurrentHost()->OutputLine(e.what());
+		args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what(), v8::NewStringType::kNormal).ToLocalChecked());
 	}
 }
 

@@ -32,10 +32,22 @@ struct LineInfoDesc
 	uint16_t Tid : 1;
 	uint16_t Time : 1;
 	uint16_t Msg : 1;
-	uint16_t User1 : 1;
-	uint16_t User2 : 1;
-	uint16_t User3 : 1;
-	uint16_t User4 : 1;
+	uint16_t User : 4;
+
+	bool GetUser(size_t idx) const
+	{
+		return (User & (1 << idx)) != 0;
+	}
+
+	void SetUser(size_t idx)
+	{
+		User |= (1 << idx);
+	}
+
+	enum
+	{
+		MaxUser = 4
+	};
 };
 
 struct LineInfo
@@ -59,9 +71,6 @@ struct LineInfo
 	// we can compress fields by referencing content in string
 	// since string is short (we can limit to 65K), we can package to 32bit
 	CStringRef Time;
-	CStringRef User1;
-	CStringRef User2;
-	CStringRef User3;
-	CStringRef User4;
+	CStringRef User[LineInfoDesc::MaxUser];
 	CStringRef Msg;
 };

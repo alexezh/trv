@@ -148,7 +148,7 @@ public:
 	}
 
 	const LineInfo& GetLine(DWORD nIndex) override;
-	bool SetTraceFormat(const char * psz) override;
+	bool SetTraceFormat(const char * pszFormat, const char* pszSep) override;
 
 	void SetScope(const std::shared_ptr<CBitSet>& scope) override
 	{

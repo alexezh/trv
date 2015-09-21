@@ -328,20 +328,20 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 					PopulateInfo(line.Time.psz, line.Time.cch, lpdi);
 				break;
 			case ColumnId::User1:
-				if(desc.User1)
-					PopulateInfo(line.User1.psz, line.User1.cch, lpdi);
+				if(desc.GetUser(0))
+					PopulateInfo(line.User[0].psz, line.User[0].cch, lpdi);
 				break;
 			case ColumnId::User2:
-				if (desc.User2)
-					PopulateInfo(line.User2.psz, line.User2.cch, lpdi);
+				if (desc.GetUser(1))
+					PopulateInfo(line.User[1].psz, line.User[1].cch, lpdi);
 				break;
 			case ColumnId::User3:
-				if (desc.User3)
-					PopulateInfo(line.User3.psz, line.User3.cch, lpdi);
+				if (desc.GetUser(2))
+					PopulateInfo(line.User[2].psz, line.User[2].cch, lpdi);
 				break;
 			case ColumnId::User4:
-				if (desc.User4)
-					PopulateInfo(line.User4.psz, line.User4.cch, lpdi);
+				if (desc.GetUser(3))
+					PopulateInfo(line.User[3].psz, line.User[3].cch, lpdi);
 				break;
 			case ColumnId::Message:
 				PopulateInfo(line.Msg.psz, line.Msg.cch, lpdi);

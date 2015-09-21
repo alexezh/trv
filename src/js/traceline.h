@@ -53,7 +53,15 @@ private:
 												const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void jsThreadGetter(v8::Local<v8::String> property, 
 												const v8::PropertyCallbackInfo<v8::Value>& info);
-	static void jsMsgGetter(v8::Local<v8::String> property, 
+	static void jsUser1Getter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsUser2Getter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsUser3Getter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsUser4Getter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsMsgGetter(v8::Local<v8::String> property,
 												const v8::PropertyCallbackInfo<v8::Value>& info);
 
 private:

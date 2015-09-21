@@ -31,13 +31,7 @@
     <ClCompile Include="src\js\output.cpp">
       <Filter>js</Filter>
     </ClCompile>
-    <ClCompile Include="src\js\tid.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
     <ClCompile Include="src\js\trace.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
-    <ClCompile Include="src\js\view.cpp">
       <Filter>js</Filter>
     </ClCompile>
     <ClCompile Include="src\js\init.cpp">
@@ -58,7 +52,21 @@
     <ClCompile Include="src\js\commandviewproxy.cpp">
       <Filter>js</Filter>
     </ClCompile>
-    <ClCompile Include="src\debugoutputsource.cpp" />
+    <ClCompile Include="src\js\tracecollection.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\traceline.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\filteritem.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\viewproxy.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
+    <ClCompile Include="src\js\tagger.cpp">
+      <Filter>js</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\About.h" />
@@ -119,13 +127,7 @@
     <ClInclude Include="src\js\querywhere.h">
       <Filter>js</Filter>
     </ClInclude>
-    <ClInclude Include="src\js\tid.h">
-      <Filter>js</Filter>
-    </ClInclude>
     <ClInclude Include="src\js\trace.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\view.h">
       <Filter>js</Filter>
     </ClInclude>
     <ClInclude Include="src\js\init.h">
@@ -149,7 +151,21 @@
     <ClInclude Include="src\js\commandviewproxy.h">
       <Filter>js</Filter>
     </ClInclude>
-    <ClInclude Include="src\debugoutputsource.h" />
+    <ClInclude Include="src\js\tracecollection.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\traceline.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\filteritem.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\viewproxy.h">
+      <Filter>js</Filter>
+    </ClInclude>
+    <ClInclude Include="src\js\tagger.h">
+      <Filter>js</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\trv.rc" />
@@ -160,13 +176,19 @@
     <Image Include="src\trv.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="help.js" />
-    <None Include="std.js" />
-    <None Include="test.js" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="js">
       <UniqueIdentifier>{ad10ad14-0f22-4cc1-ad42-787f76ecbe44}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".user.js">
+      <Filter>js</Filter>
+    </None>
+    <None Include="trv.std.js">
+      <Filter>js</Filter>
+    </None>
+    <None Include="trv.csi.js">
+      <Filter>js</Filter>
+    </None>
   </ItemGroup>
 </Project>

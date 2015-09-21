@@ -403,14 +403,23 @@ const LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 
 	return line;
 }
-bool CTextTraceSource::SetTraceFormat(const char * psz)
+bool CTextTraceSource::SetTraceFormat(const char * pszFormat, const char* pszSep)
 {
 	LockGuard guard(m_Lock);
 	LineInfoDesc::Reset(m_Desc);
 	m_Parser.reset(new TraceLineParser());
 	try
 	{
-		m_Parser->SetFormat(psz, 0, { '\t' });
+		std::vector<char> sep;
+		if (pszSep == nullptr)
+		{
+			sep.push_back('\t');
+		}
+		else
+		{
+			sep.assign(pszSep, pszSep + strlen(pszSep));
+		}
+		m_Parser->SetFormat(pszFormat, 0, sep);
 	}
 	catch(std::invalid_argument&)
 	{
@@ -430,19 +439,19 @@ bool CTextTraceSource::SetTraceFormat(const char * psz)
 		}
 		else if (*it == TraceLineParser::FieldId::User1)
 		{
-			m_Desc.User1 = true;
+			m_Desc.SetUser(0);
 		}
 		else if (*it == TraceLineParser::FieldId::User2)
 		{
-			m_Desc.User2 = true;
+			m_Desc.SetUser(1);
 		}
 		else if (*it == TraceLineParser::FieldId::User3)
 		{
-			m_Desc.User3 = true;
+			m_Desc.SetUser(2);
 		}
 		else if (*it == TraceLineParser::FieldId::User4)
 		{
-			m_Desc.User4 = true;
+			m_Desc.SetUser(3);
 		}
 	}
 

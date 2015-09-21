@@ -80,6 +80,39 @@ private:
 		CStrStr _Bc;
 	};
 
+	class MatchUser : public Expr
+	{
+	public:
+
+		MatchUser(const char * pszUser, size_t userIdx)
+		{
+			_User = pszUser;
+			_UserIdx = userIdx;
+		}
+
+		bool IsNative() override
+		{
+			return true;
+		}
+
+		// evaluate expression on string
+		bool NativeEval(const LineInfo & line) override
+		{
+			if (line.User[_UserIdx].psz == nullptr)
+				return false;
+
+			return strncmp(_User.c_str(), line.User[_UserIdx].psz, line.User[_UserIdx].cch) == 0;
+		}
+
+		std::string MakeDescription() override
+		{
+			return std::string("\"") + _User + "\"";
+		}
+	private:
+		std::string _User;
+		size_t _UserIdx;
+	};
+
 	class MatchTid : public Expr
 	{
 	public:

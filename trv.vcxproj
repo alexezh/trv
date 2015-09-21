@@ -38,7 +38,6 @@
     <ClCompile Include="src\js\querywhere.cpp" />
     <ClCompile Include="src\js\shortcuts.cpp" />
     <ClCompile Include="src\js\tagger.cpp" />
-    <ClCompile Include="src\js\tid.cpp" />
     <ClCompile Include="src\js\trace.cpp" />
     <ClCompile Include="src\js\tracecollection.cpp" />
     <ClCompile Include="src\js\traceline.cpp" />
@@ -53,7 +52,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\strstr.cpp" />
-    <ClCompile Include="src\subtracesource.cpp" />
     <ClCompile Include="src\textfile.cpp" />
     <ClCompile Include="src\traceapp.cpp" />
     <ClCompile Include="src\tracelineparser.cpp" />
@@ -89,7 +87,6 @@
     <ClInclude Include="src\js\querywhere.h" />
     <ClInclude Include="src\js\shortcuts.h" />
     <ClInclude Include="src\js\tagger.h" />
-    <ClInclude Include="src\js\tid.h" />
     <ClInclude Include="src\js\trace.h" />
     <ClInclude Include="src\js\tracecollection.h" />
     <ClInclude Include="src\js\traceline.h" />
@@ -105,7 +102,6 @@
     <ClInclude Include="src\stringref.h" />
     <ClInclude Include="src\stringutils.h" />
     <ClInclude Include="src\strstr.h" />
-    <ClInclude Include="src\subtracesource.h" />
     <ClInclude Include="src\testassert.h" />
     <ClInclude Include="src\textfile.h" />
     <ClInclude Include="src\traceapp.h" />
@@ -122,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".user.js" />
+    <None Include="trv.csi.js" />
     <None Include="trv.std.js" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

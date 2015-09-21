@@ -60,7 +60,7 @@ public:
 	virtual void AddShortcut(uint8_t modifier, uint16_t key) = 0;
 
 	// set trace format
-	virtual bool SetTraceFormat(const char * psz) = 0;
+	virtual bool SetTraceFormat(const char * pszFormat, const char* pszSep) = 0;
 	virtual void RefreshView() = 0;
 	virtual void SetViewSource(const std::shared_ptr<CBitSet>& scope) = 0;
 

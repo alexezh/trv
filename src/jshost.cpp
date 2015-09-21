@@ -521,10 +521,10 @@ void JsHost::RefreshView()
 	});
 }
 
-bool JsHost::SetTraceFormat(const char * psz)
+bool JsHost::SetTraceFormat(const char * pszFormat, const char* pszSep)
 {
 	// TODO: call can happen before file is loaded
-	if(!_pFileTraceSource->SetTraceFormat(psz))
+	if(!_pFileTraceSource->SetTraceFormat(pszFormat, pszSep))
 	{
 		return false;
 	}

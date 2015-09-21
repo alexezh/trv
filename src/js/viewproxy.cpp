@@ -60,7 +60,6 @@ void View::Init(Isolate* iso)
 
 	_Template.Reset(iso, tmpl);
 
-	SelectCursor::Init(iso);
 	FilterItemProxy::Init(iso);
 }
 

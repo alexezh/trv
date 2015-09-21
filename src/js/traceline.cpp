@@ -44,6 +44,10 @@ void TraceLine::Init(Isolate* iso)
 	auto tmpl_proto = tmpl->PrototypeTemplate();
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "time"), jsTimeGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "thread"), jsThreadGetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "user1"), jsUser1Getter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[1]"), jsUser2Getter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[2]"), jsUser3Getter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[3]"), jsUser4Getter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "msg"), jsMsgGetter);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
 
@@ -91,13 +95,55 @@ void TraceLine::jsTimeGetter(Local<String> property,
 											const PropertyCallbackInfo<v8::Value>& info)
 {
 }
-void TraceLine::jsThreadGetter(Local<String> property, 
-											const PropertyCallbackInfo<v8::Value>& info)
+
+void TraceLine::jsThreadGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
 {
 	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
 	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), pThis->_Line.Tid));
 }
-void TraceLine::jsMsgGetter(Local<String> property, 
+
+void TraceLine::jsUser1Getter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	if (pThis->_Line.User[0].psz != nullptr)
+	{
+		info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.User[0].psz, String::kNormalString, pThis->_Line.User[0].cch));
+	}
+}
+
+void TraceLine::jsUser2Getter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	if (pThis->_Line.User[1].psz != nullptr)
+	{
+		info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.User[1].psz, String::kNormalString, pThis->_Line.User[1].cch));
+	}
+}
+
+void TraceLine::jsUser3Getter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	if (pThis->_Line.User[2].psz != nullptr)
+	{
+		info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.User[2].psz, String::kNormalString, pThis->_Line.User[2].cch));
+	}
+}
+
+void TraceLine::jsUser4Getter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	if (pThis->_Line.User[3].psz != nullptr)
+	{
+		info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.User[3].psz, String::kNormalString, pThis->_Line.User[3].cch));
+	}
+}
+
+void TraceLine::jsMsgGetter(Local<String> property,
 											const PropertyCallbackInfo<v8::Value>& info)
 {
 	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());

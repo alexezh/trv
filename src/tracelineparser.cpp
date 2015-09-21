@@ -103,7 +103,7 @@ bool TraceLineParser::Parse(CStringReaderA & rdr, LineInfo & res)
 
 				if (idxField < _Fields.size())
 				{
-					SetLineInfoField(res, _Fields[idxField++], pszStart, rdr.P());
+					SetLineInfoField(res, _Fields[idxField++], pszStart, rdr.P() - 1);
 				}
 				else
 				{
@@ -178,20 +178,20 @@ void TraceLineParser::SetLineInfoField(LineInfo& res, FieldId id, const char * p
 		}
 		break;
 	case FieldId::User1:
-		res.User1.psz = pszStart;
-		res.User1.cch = pszEnd - pszStart;
+		res.User[0].psz = pszStart;
+		res.User[0].cch = pszEnd - pszStart;
 		break;
 	case FieldId::User2:
-		res.User2.psz = pszStart;
-		res.User2.cch = pszEnd - pszStart;
+		res.User[1].psz = pszStart;
+		res.User[1].cch = pszEnd - pszStart;
 		break;
 	case FieldId::User3:
-		res.User3.psz = pszStart;
-		res.User3.cch = pszEnd - pszStart;
+		res.User[2].psz = pszStart;
+		res.User[2].cch = pszEnd - pszStart;
 		break;
 	case FieldId::User4:
-		res.User4.psz = pszStart;
-		res.User4.cch = pszEnd - pszStart;
+		res.User[3].psz = pszStart;
+		res.User[3].cch = pszEnd - pszStart;
 		break;
 	case FieldId::Msg:
 		res.Msg.psz = pszStart;

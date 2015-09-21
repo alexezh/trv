@@ -76,15 +76,10 @@ private:
 	static void jsFromRange(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static void jsLineCountGetter(v8::Local<v8::String> property, 
 												const v8::PropertyCallbackInfo<v8::Value>& info);
-	static void jsFormatGetter(v8::Local<v8::String> property, 
-												const v8::PropertyCallbackInfo<v8::Value>& info);
-
-	static void jsFormatSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
-								const v8::PropertyCallbackInfo<void>& info);
+	static void jsSetFormat(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
-	std::string _Format;
 	// filter is either string expression or an object
 	std::shared_ptr<QueryOp> _Op;
 	std::shared_ptr<CTraceSource> _Source;

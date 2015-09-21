@@ -27,7 +27,6 @@
 #include "traceline.h"
 #include "viewproxy.h"
 #include "history.h"
-#include "tid.h"
 
 namespace Js {
 
@@ -39,7 +38,6 @@ void InitRuntimeTemplate(v8::Isolate* iso, v8::Handle<v8::ObjectTemplate> & targ
 	Query::Init(iso);
 	View::Init(iso);
 	History::Init(iso);
-	MatchTid::Init(iso);
 }
 
 bool InitRuntime(v8::Isolate* iso, v8::Handle<v8::Object> & target)
@@ -47,7 +45,6 @@ bool InitRuntime(v8::Isolate* iso, v8::Handle<v8::Object> & target)
 	Dollar::InitInstance(iso, target);
 	TraceCollection::InitInstance(iso, target);
 	TraceLine::InitInstance(iso, target);
-	MatchTid::InitInstance(iso, target);
 
 	if (!Dollar::ImportFile("trv.std.js"))
 		return false;

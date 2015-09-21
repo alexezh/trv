@@ -54,7 +54,7 @@ public:
 
 	virtual const LineInfoDesc& GetDesc() = 0;
     virtual const LineInfo& GetLine(DWORD nIndex) = 0;
-	virtual bool SetTraceFormat(const char * psz) = 0;
+	virtual bool SetTraceFormat(const char * pszFormat, const char* pszSep) = 0;
 
 	// scope defines a set of lines which should be included in queries
 	// when scope changes, marks might become invalid and should be recalculated
