@@ -110,7 +110,7 @@ v8::Local<v8::Value> Shortcuts::AddWorker(const v8::FunctionCallbackInfo<v8::Val
 	// parse key
 	auto szModifier = szKey.substr(0, idx);
 	auto szVKey = szKey.substr(idx+1);
-	if (szVKey.length() != 1)
+	if (!(szVKey.length() > 0 && szVKey.length() < 3))
 		ThrowKeyError(szKey);
 
 	uint8_t modifier = 0;
@@ -127,7 +127,7 @@ v8::Local<v8::Value> Shortcuts::AddWorker(const v8::FunctionCallbackInfo<v8::Val
 		ThrowKeyError(szKey);
 	}
 
-	auto code = GetVKey(szVKey[0]);
+	auto code = GetVKey(szVKey);
 	_Keys.emplace(GetKey(modifier, code), UniquePersistent<Function>(Isolate::GetCurrent(), args[1].As<Function>()));
 
 	GetCurrentHost()->AddShortcut(modifier, code);
@@ -135,9 +135,20 @@ v8::Local<v8::Value> Shortcuts::AddWorker(const v8::FunctionCallbackInfo<v8::Val
 	return v8::Local<v8::Value>();
 }
 
-uint16_t Shortcuts::GetVKey(char c)
+uint16_t Shortcuts::GetVKey(const std::string& key)
 {
-	return toupper(c);
+	if(key.length() == 1)
+		return toupper(key[0]);
+
+	if (key[0] == 'f' || key[0] == 'F')
+	{
+		int idx = atoi(&key[1]);
+		if(!(idx > 0 && idx <= 12))
+			ThrowKeyError(key);
+		return VK_F1 + idx - 1;
+	}
+
+	ThrowKeyError(key);
 }
 
 void Shortcuts::ThrowKeyError(const std::string& key)

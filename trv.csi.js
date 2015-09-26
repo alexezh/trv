@@ -1,7 +1,7 @@
 // This module contains CSI specific functions and can be used as an example for other content specific parsing
 
 // Set pare format. Values are tab separated. Map column 2 to time, 4 to thread id, 7 to user1
-$t.setFormat("|time||tid|||user1|", "\t");
+$t.setFormat("time||tid||user1|||", "\t");
 
 // Show columns which we care about
 $v.setColumns(["line", "tid", "time", "user1", "message"]);
@@ -43,7 +43,7 @@ $.shortcuts.add("ctrl+t", toggleThreadScope);
 // Filter by sub system
 
 var subColl = null;
-var subSystem = [ "Csi" ];
+var subSystem = [ [ "Csi Cache", "Csi Cache Recovery" ] ];
 var limitSub = false;
 var subCollIdx = 2;
 
@@ -82,3 +82,13 @@ function exlcudeLines(condition) {
     $.trace.setScope(scopeColl);
 }
 
+function setupRender()
+{
+    var timeExp = /\s+\S([:\.\d]+)/;
+    $.view.onRender("time", function (time) {
+        var res = timeExp.exec(time);
+        return res[0];
+    });
+}
+
+//setupRender();

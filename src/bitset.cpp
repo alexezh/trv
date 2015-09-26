@@ -125,6 +125,26 @@ void CBitSet::And(const CBitSet& src)
 	m_nLastBit = std::max<DWORD>(m_nLastBit, src.m_nLastBit);
 }
 
+DWORD CBitSet::FindNSetBit(DWORD idx)
+{
+	for (DWORD i = m_nFirstBit; i < m_nLastBit; i++)
+	{
+		if (GetBit(i))
+		{
+			if (idx == 0)
+			{
+				return i;
+			}
+			else
+			{
+				idx--;
+			}
+		}
+	}
+
+	return -1;
+}
+
 CBitSet CBitSet::Clone()
 {
 	CBitSet set;

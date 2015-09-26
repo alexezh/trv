@@ -80,7 +80,6 @@ protected:
 	LRESULT OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnFind(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
 
@@ -101,8 +100,6 @@ protected:
 		COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 1, OnNavConsole)
 		COMMAND_HANDLER(ID_VIEW_REFRESH, 1, OnRefresh)
 		COMMAND_HANDLER(ID_EDIT_COPY, 1, OnCopy)
-		COMMAND_HANDLER(ID_EDIT_FIND, 1, OnFind)
-		COMMAND_HANDLER(ID_EDIT_FINDNEXT, 1, OnFindNext)
 		COMMAND_HANDLER(IDM_ABOUT, 0, OnAbout)
 
 		COMMAND_HANDLER(ID_TOGGLEHIDE, 0, OnToggleHide)
@@ -111,8 +108,6 @@ protected:
 		COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 0, OnNavConsole)
 		COMMAND_HANDLER(ID_VIEW_REFRESH, 0, OnRefresh)
 		COMMAND_HANDLER(ID_EDIT_COPY, 0, OnCopy)
-		COMMAND_HANDLER(ID_EDIT_FIND, 0, OnFind)
-		COMMAND_HANDLER(ID_EDIT_FINDNEXT, 0, OnFindNext)
     END_MSG_MAP()
 
 public:

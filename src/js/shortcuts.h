@@ -51,7 +51,7 @@ private:
 		return (static_cast<int>(mod) << 16) | key;
 	}
 
-	static uint16_t GetVKey(char c);
+	uint16_t GetVKey(const std::string& key);
 
 	static v8::Persistent<v8::FunctionTemplate> _Template;
 	std::mutex _Lock;

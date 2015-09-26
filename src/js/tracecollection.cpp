@@ -25,9 +25,8 @@
 #include "querytracesource.h"
 #include "apphost.h"
 #include "bitset.h"
-#include "stringreader.h"
 #include "make_unique.h"
-#include "tracelineparser.h"
+#include "traceline.h"
 #include "error.h"
 #include "log.h"
 
@@ -49,6 +48,10 @@ void TraceCollection::Init(Isolate* iso)
 	tmpl_proto->Set(String::NewFromUtf8(iso, "addLine"), FunctionTemplate::New(iso, jsAddLine));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "removeLine"), FunctionTemplate::New(iso, jsRemoveLine));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "intersect"), FunctionTemplate::New(iso, jsIntersect));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "combine"), FunctionTemplate::New(iso, jsCombine));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "getLine"), FunctionTemplate::New(iso, jsGetLine));
+
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "count"), jsCountGetter);
 
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 	_Template.Reset(iso, tmpl);
@@ -113,13 +116,34 @@ void TraceCollection::jsRemoveLine(const v8::FunctionCallbackInfo<Value> &args)
 	pThis->RemoveLine(dwLine);
 }
 
+void TraceCollection::jsCountGetter(Local<String> property, const PropertyCallbackInfo<Value>& info)
+{
+	TraceCollection * pThis = UnwrapThis<TraceCollection>(info.This());
+	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), pThis->_Lines->GetSetBitCount()));
+}
+
+void TraceCollection::jsGetLine(const v8::FunctionCallbackInfo<v8::Value> &args)
+{	
+	if(args.Length() != 1 || !args[0]->IsInt32())
+		ThrowTypeError("Invalid parameter. Use coll.getLine(index)");
+
+	// we have index to selected bit; need to find actual line number
+	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+	auto idx = args[0]->Int32Value();
+	auto idxLine = pThis->_Lines->FindNSetBit(idx);
+	if (idxLine == -1)
+		return;
+
+	auto idxLineJs = v8::Integer::New(v8::Isolate::GetCurrent(), idxLine).As<Value>();
+	auto line = TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &idxLineJs);
+	args.GetReturnValue().Set(line);
+}
+
 void TraceCollection::jsIntersect(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
 	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
 	if(args.Length() != 1 || !args[0]->IsObject())
-	{
 		ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
-	}
 
 	auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
 	if(other == nullptr)
@@ -129,6 +153,30 @@ void TraceCollection::jsIntersect(const v8::FunctionCallbackInfo<v8::Value> &arg
 
 	auto res = pThis->_Lines->Clone();
 	res.And(*other->GetLines());
+
+	auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
+	auto coll = TraceCollection::Unwrap(collJs);
+	coll->SetLines(std::move(res));
+
+	args.GetReturnValue().Set(collJs);
+}
+
+void TraceCollection::jsCombine(const v8::FunctionCallbackInfo<v8::Value> &args)
+{
+	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+	if (args.Length() != 1 || !args[0]->IsObject())
+	{
+		ThrowTypeError("Invalid parameter. Use coll.combine(collection)");
+	}
+
+	auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
+	if (other == nullptr)
+	{
+		ThrowTypeError("Invalid parameter. Use coll.combine(collection)");
+	}
+
+	auto res = pThis->_Lines->Clone();
+	res.Or(*other->GetLines());
 
 	auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
 	auto coll = TraceCollection::Unwrap(collJs);

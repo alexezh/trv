@@ -106,6 +106,34 @@ function startEditFilter()
 }
 $.shortcuts.add("ctrl+a", startEditFilter);
 
+// find support
+var findColl = null;
+var findCollIdx = 0;
+function find(condition) {
+    findColl = $.trace.where(condition).asCollection();
+    if (findColl.count > 0) {
+        findCollIdx = 0; 
+        $.view.setFocusLine(findColl.getLine(findCollIdx).index);
+        findCollIdx++;
+    }
+    else {
+        findColl = null;
+    }
+}
+function findNext(condition) {
+    if (findCollIdx < findColl.count) {
+        $.view.setFocusLine(findColl.getLine(findCollIdx).index);
+        findCollIdx++;
+    }
+}
+function startEditFind() {
+    $.console.setFocus();
+    $.console.setText(".f ");
+}
+$.dotexpressions.add("f", find);
+$.dotexpressions.add("n", findNext);
+$.shortcuts.add("ctrl+f", startEditFind);
+$.shortcuts.add("ctrl+f3", findNext);
 
 // history
 var $h = $.history;

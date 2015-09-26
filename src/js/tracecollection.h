@@ -76,6 +76,9 @@ private:
 	static void jsAddLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static void jsRemoveLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static void jsIntersect(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsCombine(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsCountGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsGetLine(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 	TraceCollection(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& src, DWORD lineCount);
 	TraceCollection(const v8::Handle<v8::Object>& handle, const std::shared_ptr<CTraceSource>& src, DWORD start, DWORD end);

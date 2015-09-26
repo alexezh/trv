@@ -42,6 +42,7 @@ void TraceLine::Init(Isolate* iso)
 
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
 	auto tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "index"), jsIndexGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "time"), jsTimeGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "thread"), jsThreadGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "user1"), jsUser1Getter);
@@ -49,6 +50,7 @@ void TraceLine::Init(Isolate* iso)
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[2]"), jsUser3Getter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[3]"), jsUser4Getter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "msg"), jsMsgGetter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "content"), jsContentGetter);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
 
 	tmpl->SetClassName(String::NewFromUtf8(iso, "TraceLine"));
@@ -91,8 +93,15 @@ void TraceLine::jsPrint(const FunctionCallbackInfo<Value> &args)
 	GetCurrentHost()->OutputLine(ss.str().c_str());
 }
 
-void TraceLine::jsTimeGetter(Local<String> property, 
-											const PropertyCallbackInfo<v8::Value>& info)
+void TraceLine::jsIndexGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), pThis->_Line.Index));
+}
+
+void TraceLine::jsTimeGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
 {
 }
 
@@ -144,10 +153,17 @@ void TraceLine::jsUser4Getter(Local<String> property,
 }
 
 void TraceLine::jsMsgGetter(Local<String> property,
-											const PropertyCallbackInfo<v8::Value>& info)
+	const PropertyCallbackInfo<v8::Value>& info)
 {
 	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
 	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.Msg.psz, String::kNormalString, pThis->_Line.Msg.cch));
+}
+
+void TraceLine::jsContentGetter(Local<String> property,
+	const PropertyCallbackInfo<v8::Value>& info)
+{
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.Content.psz, String::kNormalString, pThis->_Line.Content.cch));
 }
 
 

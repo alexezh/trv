@@ -49,9 +49,11 @@ private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value> &args);
-	static void jsTimeGetter(v8::Local<v8::String> property, 
-												const v8::PropertyCallbackInfo<v8::Value>& info);
-	static void jsThreadGetter(v8::Local<v8::String> property, 
+	static void jsIndexGetter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsTimeGetter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsThreadGetter(v8::Local<v8::String> property,
 												const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void jsUser1Getter(v8::Local<v8::String> property,
 		const v8::PropertyCallbackInfo<v8::Value>& info);
@@ -62,7 +64,9 @@ private:
 	static void jsUser4Getter(v8::Local<v8::String> property,
 		const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void jsMsgGetter(v8::Local<v8::String> property,
-												const v8::PropertyCallbackInfo<v8::Value>& info);
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsContentGetter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
 
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;

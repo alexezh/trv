@@ -63,6 +63,7 @@ public:
 	virtual bool SetTraceFormat(const char * pszFormat, const char* pszSep) = 0;
 	virtual void RefreshView() = 0;
 	virtual void SetViewSource(const std::shared_ptr<CBitSet>& scope) = 0;
+	virtual void SetFocusLine(DWORD nLine) = 0;
 
 	// console access
 	virtual void OutputLine(const char * psz) = 0;

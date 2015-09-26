@@ -25,13 +25,13 @@
 class CBitSet
 {
 public:
-    CBitSet();
+	CBitSet();
 	CBitSet(CBitSet&& other)
 	{
 		Copy(std::move(other));
 	}
-    ~CBitSet();
-    
+	~CBitSet();
+
 	CBitSet& operator=(CBitSet&& other)
 	{
 		if (&other == this)
@@ -41,11 +41,17 @@ public:
 		return *this;
 	}
 
-    void Init(DWORD nElems);
-    void Fill(BOOL fSet);
-    
-    DWORD GetSetBitCount() const { return m_nSetBit; }
-    DWORD GetTotalBitCount() const { return m_nTotalBit; }
+	void Init(DWORD nElems);
+	void Fill(BOOL fSet);
+
+	DWORD GetSetBitCount() const
+	{
+		return m_nSetBit;
+	}
+	DWORD GetTotalBitCount() const
+	{
+		return m_nTotalBit;
+	}
 
 	void Or(const CBitSet& src);
 	void And(const CBitSet& src);
@@ -67,22 +73,24 @@ public:
 	}
 
 	bool GetBit(DWORD nBit) const
-    {
+	{
 		assert(nBit <= m_nTotalBit);
-        DWORD n = nBit >> 5;
-        return ((m_pBuf[n] >> (nBit & 0x1f)) & 1);
-    }
+		DWORD n = nBit >> 5;
+		return ((m_pBuf[n] >> (nBit & 0x1f)) & 1);
+	}
+
+	DWORD FindNSetBit(DWORD idx);
 
 	CBitSet Clone();
-    
-private:    
+
+private:
 	void Copy(CBitSet&& other);
 
 	// TODO: allocate with VirtualAllow but do not commit pages
-    DWORD * m_pBuf = nullptr;
-    DWORD m_nBuf = 0; // number of DWORDs in the mask
-    DWORD m_nSetBit = 0;
-    DWORD m_nTotalBit = 0;
+	DWORD * m_pBuf = nullptr;
+	DWORD m_nBuf = 0; // number of DWORDs in the mask
+	DWORD m_nSetBit = 0;
+	DWORD m_nTotalBit = 0;
 
 	// for optimization store first and last set bits
 	// when bit is reset, the value is not changed
@@ -90,7 +98,7 @@ private:
 	DWORD m_nLastBit = 0;
 };
 
-class CSparseBitSet 
+class CSparseBitSet
 {
 private:
 	CBitSet m_Set;

@@ -50,7 +50,7 @@ public:
 		QWORD nFileStop = 0;
 
 		BYTE * pbBuf = nullptr;
-		
+
 		// total size of buf
 		DWORD cbBuf = 0;
 
@@ -78,12 +78,12 @@ public:
 	};
 
 public:
-    CTextTraceFile();
-    ~CTextTraceFile();
-    
+	CTextTraceFile();
+	~CTextTraceFile();
+
 	// set a file name and direction of load
-    HRESULT Open(LPCWSTR pszFile, CTraceFileLoadCallback * pCallback, bool bReverse = false);
-    HRESULT Close();
+	HRESULT Open(LPCWSTR pszFile, CTraceFileLoadCallback * pCallback, bool bReverse = false);
+	HRESULT Close();
 
 	// load can be called multiple times passing different stop value
 	// dependent on reverse flag the position either indicates the end of beginning
@@ -91,17 +91,17 @@ public:
 
 	std::shared_ptr<CTraceSource> CreateSource() override;
 
-private:    
-    static void WINAPI LoadThreadInit(void * pCtx);
+private:
+	static void WINAPI LoadThreadInit(void * pCtx);
 
-    void LoadThread();
-    HRESULT AllocBlock(DWORD cbSize, LoadBlock ** ppBlock);
+	void LoadThread();
+	HRESULT AllocBlock(DWORD cbSize, LoadBlock ** ppBlock);
 
 	// for ascii file pnStop == nStop
-    HRESULT ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnDataEnd, DWORD * pnLineEnd);
+	HRESULT ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnDataEnd, DWORD * pnLineEnd);
 
 private:
-    CTraceFileLoadCallback * m_pCallback = nullptr;
+	CTraceFileLoadCallback * m_pCallback = nullptr;
 
 	bool m_bUnicode = false;
 
@@ -111,8 +111,8 @@ private:
 	LARGE_INTEGER m_FileSize;
 
 	// store start / stop position for reading
-    QWORD m_nStart = 0;
-    QWORD m_nStop = 0;
+	QWORD m_nStart = 0;
+	QWORD m_nStop = 0;
 	bool m_bReverse = false;
 
 	DWORD m_BlockSize = 1024 * 1024 * 1;
@@ -194,6 +194,6 @@ private:
 	DWORD m_nLastBlockStart = 0;
 
 	std::unique_ptr<TraceLineParser> m_Parser;
-	
+
 	CTextTraceFile * m_pFile = nullptr;
 };

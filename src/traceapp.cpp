@@ -26,7 +26,6 @@
 #include "commandview.h"
 #include "outputview.h"
 #include "jshost.h"
-#include "finddlg.h"
 #include "about.h"
 #include "file.h"
 #include "textfile.h"
@@ -280,14 +279,14 @@ LRESULT CTraceApp::OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 	LOG("@%p", this);
 	// refresh our collection
 	m_pFileColl->Refresh();
-	// m_pJsColl->Refresh();
+	m_pTraceView->LoadView();
 
 	// create js host
 	// m_pFile->CreateCollection(&m_pJsColl);
 	m_pJsHost = new JsHost(this);
 	m_pJsHost->Init(m_pFileColl);
 
-    return 0;
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -356,38 +355,6 @@ LRESULT CTraceApp::OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHand
 	CAboutDlg dlg;
 	dlg.DoModal();
 	return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//
-LRESULT CTraceApp::OnFind(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
-{
-    HRESULT hr = S_OK;
-    CFindDlg dlg;
-
-    if(dlg.DoModal() == IDCANCEL)
-    {
-        goto done;
-    }
-
-    m_szLastFind = dlg.m_Expr;
-    m_pTraceView->Find(m_szLastFind.c_str(), TRUE);
-    
-done:
-
-    bHandled = TRUE;
-    
-    return 0;
-}
-
-LRESULT CTraceApp::OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
-{
-    HRESULT hr = S_OK;
-    bHandled = TRUE;
-
-    m_pTraceView->Find(m_szLastFind.c_str(), FALSE);
-
-    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

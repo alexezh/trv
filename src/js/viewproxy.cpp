@@ -53,7 +53,7 @@ void View::Init(Isolate* iso)
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setViewLayout"), FunctionTemplate::New(iso, jsSetViewLayout));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setColumns"), FunctionTemplate::New(iso, jsSetColumns));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setSource"), FunctionTemplate::New(iso, jsSetSource));
-
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setFocusLine"), FunctionTemplate::New(iso, jsSetFocusLine));
 
 	tmpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(iso, "showFilters"), jsShowFiltersGetter, jsShowFiltersSetter);
 	tmpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(iso, "currentLine"), jsCurrentLineGetter);
@@ -133,6 +133,14 @@ void View::jsSetColumns(const FunctionCallbackInfo<Value>& args)
 	});
 }
 
+void View::jsSetFocusLine(const FunctionCallbackInfo<Value>& args)
+{
+	if(args.Length() != 1 || !args[0]->IsInt32())
+		ThrowSyntaxError("expected $v.setFocusLine(idx)\r\n");
+
+	GetCurrentHost()->SetFocusLine(args[0]->IntegerValue());
+}
+
 void View::jsShowFiltersGetter(Local<String> property, const PropertyCallbackInfo<v8::Value>& info)
 {
 	auto pThis = UnwrapThis<View>(info.This());
@@ -150,6 +158,11 @@ void View::jsCurrentLineGetter(v8::Local<v8::String> property, const v8::Propert
 {
 	auto pThis = UnwrapThis<View>(info.This());
 	info.GetReturnValue().Set(Integer::New(Isolate::GetCurrent(), GetCurrentHost()->GetCurrentLine()));
+}
+
+void View::jsGetSelected(const FunctionCallbackInfo<Value>& args)
+{
+
 }
 
 void View::RefreshView()

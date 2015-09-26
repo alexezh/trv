@@ -24,7 +24,6 @@
     <ClCompile Include="src\color.cpp" />
     <ClCompile Include="src\commandview.cpp" />
     <ClCompile Include="src\dock.cpp" />
-    <ClCompile Include="src\FindDlg.cpp" />
     <ClCompile Include="src\jshost.cpp" />
     <ClCompile Include="src\js\commandviewproxy.cpp" />
     <ClCompile Include="src\js\dollar.cpp" />
@@ -65,7 +64,6 @@
     <ClInclude Include="src\commandview.h" />
     <ClInclude Include="src\dock.h" />
     <ClInclude Include="src\file.h" />
-    <ClInclude Include="src\FindDlg.h" />
     <ClInclude Include="src\jshost.h" />
     <ClInclude Include="src\js\apphost.h" />
     <ClInclude Include="src\js\commandviewproxy.h" />

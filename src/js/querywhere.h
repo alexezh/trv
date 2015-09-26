@@ -86,7 +86,13 @@ private:
 
 		MatchUser(const char * pszUser, size_t userIdx)
 		{
-			_User = pszUser;
+			_User.push_back(pszUser);
+			_UserIdx = userIdx;
+		}
+
+		MatchUser(std::vector<std::string>&& val, size_t userIdx)
+		{
+			_User = std::move(val);
 			_UserIdx = userIdx;
 		}
 
@@ -101,15 +107,32 @@ private:
 			if (line.User[_UserIdx].psz == nullptr)
 				return false;
 
-			return strncmp(_User.c_str(), line.User[_UserIdx].psz, line.User[_UserIdx].cch) == 0;
+			for (auto& v : _User)
+			{
+				if (strncmp(v.c_str(), line.User[_UserIdx].psz, line.User[_UserIdx].cch) == 0)
+					return true;
+			}
+
+			return false;
 		}
 
 		std::string MakeDescription() override
 		{
-			return std::string("\"") + _User + "\"";
+			std::string desc("\"");
+			for (auto& v : _User)
+			{
+				if (desc.length() > 1)
+					desc += " || ";
+
+				desc += v;
+			}
+
+			desc += "\"";
+			return desc;
 		}
+
 	private:
-		std::string _User;
+		std::vector<std::string> _User;
 		size_t _UserIdx;
 	};
 

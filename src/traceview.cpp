@@ -38,15 +38,15 @@ static DWORD FindIndex(std::vector<DWORD> & coll, DWORD line)
 {
 	size_t mn = coll.size();
 
-    for(size_t n = 0; n < mn; n++)
-    {
-        if(coll[n] >= line)
-        {
-            return n;
-        }
-    }
+	for (size_t n = 0; n < mn; n++)
+	{
+		if (coll[n] >= line)
+		{
+			return n;
+		}
+	}
 
-    return (coll.size() > 0) ? 0 : coll.size() - 1;
+	return (coll.size() > 0) ? 0 : coll.size() - 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,8 +69,8 @@ LRESULT TraceListView::OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& 
 ///////////////////////////////////////////////////////////////////////////////
 //
 CTraceView::CTraceView()
-    : m_nFocusLine(0)
-    , m_fHide(FALSE)
+	: m_nFocusLine(0)
+	, m_fHide(FALSE)
 {
 }
 
@@ -80,113 +80,113 @@ CTraceView::~CTraceView()
 
 void CTraceView::Init(CTraceApp * pApp)
 {
-    m_pApp = pApp;
+	m_pApp = pApp;
 
-    m_pApp->PPersist()->RegisterHandler(this);
+	m_pApp->PPersist()->RegisterHandler(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 HRESULT CTraceView::SaveConfig(HKEY hKey)
 {
-    return S_OK;
+	return S_OK;
 }
 
 HRESULT CTraceView::LoadConfig(HKEY hKey)
 {
-    LONG lResult;
-    DWORD n;
-    DWORD cb = 0;
-    
-    ZeroMemory(&m_Config, sizeof(m_Config));
+	LONG lResult;
+	DWORD n;
+	DWORD cb = 0;
 
-    lResult = RegQueryValueEx(hKey, L"Config", NULL, NULL, NULL, &cb);
-    
-    if(lResult == ERROR_SUCCESS && cb == sizeof(m_Config))
-    {
-        lResult = RegQueryValueEx(hKey, L"Config", NULL, NULL, (BYTE*)&m_Config, &cb);
+	ZeroMemory(&m_Config, sizeof(m_Config));
 
-        if(lResult == ERROR_SUCCESS)
-        {
-            if(m_Config.m_Version == CTraceViewConfig::CFG_VER)
-            {
-                goto Cleanup;
-            }
-        }
-    }
+	lResult = RegQueryValueEx(hKey, L"Config", NULL, NULL, NULL, &cb);
 
-    // otherwise reinit the structure
-    m_Config.m_Version = CTraceViewConfig::CFG_VER;
+	if (lResult == ERROR_SUCCESS && cb == sizeof(m_Config))
+	{
+		lResult = RegQueryValueEx(hKey, L"Config", NULL, NULL, (BYTE*) &m_Config, &cb);
 
-    // set default column width. 
-	for(n = 0; n < (size_t)ColumnId::MaxColumn; n++)
-    {
-        m_Config.m_ColumnWidth[n] = 60;
-    }
+		if (lResult == ERROR_SUCCESS)
+		{
+			if (m_Config.m_Version == CTraceViewConfig::CFG_VER)
+			{
+				goto Cleanup;
+			}
+		}
+	}
 
-    // last column is bigger
-    m_Config.m_ColumnWidth[(size_t)ColumnId::Message] = 4096;
-        
-Cleanup:    
+	// otherwise reinit the structure
+	m_Config.m_Version = CTraceViewConfig::CFG_VER;
 
-    return S_OK;
+	// set default column width. 
+	for (n = 0; n < (size_t) ColumnId::MaxColumn; n++)
+	{
+		m_Config.m_ColumnWidth[n] = 60;
+	}
+
+	// last column is bigger
+	m_Config.m_ColumnWidth[(size_t) ColumnId::Message] = 4096;
+
+Cleanup:
+
+	return S_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    DWORD dwStyle;
-    HRESULT hr = S_OK;
-    RECT rect;
-    
-    dwStyle = WS_CHILD | 
-                WS_BORDER | 
-                WS_VISIBLE |
-                LVS_REPORT | 
-                LVS_SHOWSELALWAYS |
-                LVS_OWNERDATA |
-                LVS_NOSORTHEADER; //  | LVS_NOCOLUMNHEADER;
+	DWORD dwStyle;
+	HRESULT hr = S_OK;
+	RECT rect;
 
-    ZeroMemory(&rect, sizeof(rect));
-    
+	dwStyle = WS_CHILD |
+		WS_BORDER |
+		WS_VISIBLE |
+		LVS_REPORT |
+		LVS_SHOWSELALWAYS |
+		LVS_OWNERDATA |
+		LVS_NOSORTHEADER; //  | LVS_NOCOLUMNHEADER;
+
+	ZeroMemory(&rect, sizeof(rect));
+
 	CWindow listView;
-	if(listView.Create(WC_LISTVIEW, m_hWnd, &rect, NULL, dwStyle, 0, ID_TRACEVIEW) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
-	
+	if (listView.Create(WC_LISTVIEW, m_hWnd, &rect, NULL, dwStyle, 0, ID_TRACEVIEW) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
+
 	m_ListView.SubclassWindow(listView.m_hWnd);
 	m_ListView.SetOwner(this);
 
 	SetColumns({ ColumnId::Message });
 
-    //set the number of items in the list
-    ListView_SetExtendedListViewStyle(m_ListView.m_hWnd, LVS_EX_FULLROWSELECT);
-    ListView_SetItemCount(m_ListView.m_hWnd, 0);
+	//set the number of items in the list
+	ListView_SetExtendedListViewStyle(m_ListView.m_hWnd, LVS_EX_FULLROWSELECT);
+	ListView_SetItemCount(m_ListView.m_hWnd, 0);
 
 Cleanup:
 
-    return 0;
+	return 0;
 }
 
 LRESULT CTraceView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    RECT rect;
-    
-    rect.top = 0;
-    rect.left = 0;
-    rect.right = LOWORD(lParam);
-    rect.bottom = HIWORD(lParam);
+	RECT rect;
 
-    m_ListView.SetWindowPos(NULL, 
-                    rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, 
-                    SWP_NOZORDER | SWP_NOREDRAW);
+	rect.top = 0;
+	rect.left = 0;
+	rect.right = LOWORD(lParam);
+	rect.bottom = HIWORD(lParam);
 
-    bHandled = TRUE;
-    
-    return 0;
+	m_ListView.SetWindowPos(NULL,
+		rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+		SWP_NOZORDER | SWP_NOREDRAW);
+
+	bHandled = TRUE;
+
+	return 0;
 }
 
 LRESULT CTraceView::OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -225,13 +225,13 @@ void CTraceView::SetColumns(const std::vector<ColumnId>& ids)
 	m_Columns.clear();
 	auto lineInfoDesc = m_pSource->GetDesc();
 	int columnIdx = 0;
-	for(auto id : ids)
+	for (auto id : ids)
 	{
-		if(id == ColumnId::LineNumber)
+		if (id == ColumnId::LineNumber)
 		{
 			IFC(InsertColumn(columnIdx, m_Config.m_ColumnWidth[static_cast<uint32_t>(id)], L"Line"));
 		}
-		else if(id == ColumnId::ThreadId)
+		else if (id == ColumnId::ThreadId)
 		{
 			IFC(InsertColumn(columnIdx, m_Config.m_ColumnWidth[static_cast<uint32_t>(id)], L"Tid"));
 		}
@@ -255,7 +255,7 @@ void CTraceView::SetColumns(const std::vector<ColumnId>& ids)
 		{
 			IFC(InsertColumn(columnIdx, m_Config.m_ColumnWidth[static_cast<uint32_t>(id)], L"User4"));
 		}
-		else if(id == ColumnId::Message)
+		else if (id == ColumnId::Message)
 		{
 			IFC(InsertColumn(columnIdx, 2048, L"Message"));
 		}
@@ -264,7 +264,7 @@ void CTraceView::SetColumns(const std::vector<ColumnId>& ids)
 			continue;
 		}
 
-		m_Columns.push_back((ColumnId)id);
+		m_Columns.push_back((ColumnId) id);
 		columnIdx++;
 	}
 
@@ -274,61 +274,61 @@ Cleanup:
 
 DWORD CTraceView::GetFileLineNum(DWORD nItem)
 {
-    if(m_fHide)
-    {
-        return m_ActiveLines[nItem];
-    }
-    else
-    {
-        return nItem;
-    }
+	if (m_fHide)
+	{
+		return m_ActiveLines[nItem];
+	}
+	else
+	{
+		return nItem;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 void CTraceView::LoadView()
 {
-    UpdateView(0);
+	UpdateView(0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
-    HRESULT hr = S_OK;
-    LV_DISPINFO *lpdi = (LV_DISPINFO *)pnmh;
-    DWORD nLine;
+	HRESULT hr = S_OK;
+	LV_DISPINFO *lpdi = (LV_DISPINFO *) pnmh;
+	DWORD nLine;
 
-    nLine = GetFileLineNum(lpdi->item.iItem);
+	nLine = GetFileLineNum(lpdi->item.iItem);
 
-    if(lpdi->item.mask & LVIF_TEXT)
-    {
+	if (lpdi->item.mask & LVIF_TEXT)
+	{
 		const LineInfo& line = m_pSource->GetLine(nLine);
 		auto desc = m_pSource->GetDesc();
 		ColumnId id = m_Columns[lpdi->item.iSubItem];
-		switch(id)
+		switch (id)
 		{
 			case ColumnId::LineNumber:
-				{
-					char lineA[32];
-					_itoa(line.Index, lineA, 10);
-					PopulateInfo(lineA, strlen(lineA), lpdi);
-				}
-				break;
+			{
+				char lineA[32];
+				_itoa(line.Index, lineA, 10);
+				PopulateInfo(lineA, strlen(lineA), lpdi);
+			}
+			break;
 			case ColumnId::ThreadId:
-				if(desc.Tid)
+				if (desc.Tid)
 				{
 					char tidA[32];
 					_itoa(line.Tid, tidA, 10);
 					PopulateInfo(tidA, strlen(tidA), lpdi);
 				}
-			break;
+				break;
 			case ColumnId::Time:
-				if(desc.Time)
+				if (desc.Time)
 					PopulateInfo(line.Time.psz, line.Time.cch, lpdi);
 				break;
 			case ColumnId::User1:
-				if(desc.GetUser(0))
+				if (desc.GetUser(0))
 					PopulateInfo(line.User[0].psz, line.User[0].cch, lpdi);
 				break;
 			case ColumnId::User2:
@@ -345,36 +345,36 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 				break;
 			case ColumnId::Message:
 				PopulateInfo(line.Msg.psz, line.Msg.cch, lpdi);
-			break;
+				break;
 		}
-    }        
-    
-    return 0;
+	}
+
+	return 0;
 }
 
 void CTraceView::PopulateInfo(const char * psz, size_t cch, LV_DISPINFO *lpdi)
 {
-    LPCSTR pszSrc;
-    LPCSTR pszEnd;
-    LPWSTR pszDst = lpdi->item.pszText;
+	LPCSTR pszSrc;
+	LPCSTR pszEnd;
+	LPWSTR pszDst = lpdi->item.pszText;
 	int dstLeft = lpdi->item.cchTextMax;
-    WCHAR c;
+	WCHAR c;
 
-	if(cch > 0 && dstLeft > 1)
+	if (cch > 0 && dstLeft > 1)
 	{
 		pszSrc = psz;
-		pszEnd = ((DWORD)lpdi->item.cchTextMax > cch) ? psz + cch: psz + lpdi->item.cchTextMax - 1;
-		for(; pszSrc < pszEnd && dstLeft > 1; )
+		pszEnd = ((DWORD) lpdi->item.cchTextMax > cch) ? psz + cch : psz + lpdi->item.cchTextMax - 1;
+		for (; pszSrc < pszEnd && dstLeft > 1; )
 		{
-			c = (WCHAR)*pszSrc++;
-			if(c == '\r' || c == '\n')
+			c = (WCHAR) *pszSrc++;
+			if (c == '\r' || c == '\n')
 			{
 				break;
 			}
-                
+
 			*pszDst++ = c;
 			dstLeft--;
-		}        
+		}
 	}
 
 	*pszDst = '\0';
@@ -383,88 +383,88 @@ void CTraceView::PopulateInfo(const char * psz, size_t cch, LV_DISPINFO *lpdi)
 //
 LRESULT CTraceView::OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
-    LPNMLISTVIEW pnmv = (LPNMLISTVIEW)pnmh;
+	LPNMLISTVIEW pnmv = (LPNMLISTVIEW) pnmh;
 
-    if((pnmv->uNewState & LVIS_FOCUSED) != 0)
-    {
-        m_nFocusLine = GetFileLineNum(pnmv->iItem);
-    }
+	if ((pnmv->uNewState & LVIS_FOCUSED) != 0)
+	{
+		m_nFocusLine = GetFileLineNum(pnmv->iItem);
+	}
 
-    bHandled = TRUE;
-    
-    return 0;
+	bHandled = TRUE;
+
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceView::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
-    LRESULT lRet = 0;
-    LPNMLVCUSTOMDRAW pCD = (LPNMLVCUSTOMDRAW)pnmh;
+	LRESULT lRet = 0;
+	LPNMLVCUSTOMDRAW pCD = (LPNMLVCUSTOMDRAW) pnmh;
 
-    switch (pCD->nmcd.dwDrawStage)
-    { 
-        case CDDS_PREPAINT:
-            lRet = CDRF_NOTIFYITEMDRAW; // (CDRF_NOTIFYPOSTPAINT | CDRF_NOTIFYITEMDRAW);
-            break;
-          
-        case CDDS_ITEMPREPAINT:
-        {
-            DWORD nLine;
-            BYTE bColor;
-            
-            nLine = GetFileLineNum(pCD->nmcd.dwItemSpec);
-            
+	switch (pCD->nmcd.dwDrawStage)
+	{
+		case CDDS_PREPAINT:
+			lRet = CDRF_NOTIFYITEMDRAW; // (CDRF_NOTIFYPOSTPAINT | CDRF_NOTIFYITEMDRAW);
+			break;
+
+		case CDDS_ITEMPREPAINT:
+		{
+			DWORD nLine;
+			BYTE bColor;
+
+			nLine = GetFileLineNum(pCD->nmcd.dwItemSpec);
+
 			bColor = m_pApp->PJsHost()->GetLineColor(nLine);
 
-            pCD->clrText = CColor::Instance().GetForeColor(bColor);
-            pCD->clrTextBk = CColor::Instance().GetBackColor(bColor);
+			pCD->clrText = CColor::Instance().GetForeColor(bColor);
+			pCD->clrTextBk = CColor::Instance().GetBackColor(bColor);
 
-            (void)SelectObject(pCD->nmcd.hdc, GetStockObject(ANSI_FIXED_FONT));
+			(void) SelectObject(pCD->nmcd.hdc, GetStockObject(ANSI_FIXED_FONT));
 
-            lRet = CDRF_DODEFAULT; // (CDRF_NOTIFYPOSTPAINT | CDRF_NEWFONT);
-            break;
-        }
-        case CDDS_ITEMPOSTPAINT:
-        {
+			lRet = CDRF_DODEFAULT; // (CDRF_NOTIFYPOSTPAINT | CDRF_NEWFONT);
+			break;
+		}
+		case CDDS_ITEMPOSTPAINT:
+		{
 
-             lRet = CDRF_DODEFAULT;
-             break;
-          }
-       default:
-          break;
-    }
-    
-    bHandled = TRUE;
-    
-    return lRet;
+			lRet = CDRF_DODEFAULT;
+			break;
+		}
+		default:
+			break;
+	}
+
+	bHandled = TRUE;
+
+	return lRet;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceView::OnDblClk(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
-    OutputLineToConsole(m_nFocusLine);
-    
-    bHandled = TRUE;
-    
-    return 0;
+	OutputLineToConsole(m_nFocusLine);
+
+	bHandled = TRUE;
+
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceView::OnKeyDown(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
-    NMTVKEYDOWN *lpkd = (NMTVKEYDOWN *)pnmh;
+	NMTVKEYDOWN *lpkd = (NMTVKEYDOWN *) pnmh;
 
-    if(lpkd->wVKey == VK_RETURN)
-    {
-        OutputLineToConsole(m_nFocusLine);
-    }
+	if (lpkd->wVKey == VK_RETURN)
+	{
+		OutputLineToConsole(m_nFocusLine);
+	}
 
-    bHandled = TRUE;
+	bHandled = TRUE;
 
-    return 0;
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -478,11 +478,11 @@ LRESULT CTraceView::OnCacheHint(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 //
 void CTraceView::OnShowFiltered(BOOL fVal)
 {
-    int yFocusPos = GetFocusPosition();
-    
-    m_fHide = fVal;
+	int yFocusPos = GetFocusPosition();
 
-    UpdateView(yFocusPos);
+	m_fHide = fVal;
+
+	UpdateView(yFocusPos);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -500,17 +500,17 @@ void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 //
 void CTraceView::Repaint()
 {
-    // update view    
-    if(m_fHide)
-    {
-        ListView_RedrawItems(m_ListView.m_hWnd, 0, m_ActiveLines.size());
-    }
-    else
-    {
-        ListView_RedrawItems(m_ListView.m_hWnd, 0, m_pSource->GetLineCount());
-    }
+	// update view    
+	if (m_fHide)
+	{
+		ListView_RedrawItems(m_ListView.m_hWnd, 0, m_ActiveLines.size());
+	}
+	else
+	{
+		ListView_RedrawItems(m_ListView.m_hWnd, 0, m_pSource->GetLineCount());
+	}
 
-    m_ListView.Invalidate(TRUE);
+	m_ListView.Invalidate(TRUE);
 	UpdateView(0);
 }
 
@@ -547,345 +547,304 @@ void CTraceView::OutputLineToConsole(DWORD nLine)
 	char lineNumA[32];
 	lineA = _itoa(nLine, lineNumA, 10);
 	lineA += " ";
-	lineA.append(line.Msg.psz, line.Msg.cch);
+	lineA.append(line.Content.psz, line.Content.cch);
 	m_pApp->POutputView()->OutputLineA(lineA.c_str(), lineA.size());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void CTraceView::Find(LPCWSTR pszExpr, BOOL fStart)
+void CTraceView::SetFocusLine(DWORD nLine)
 {
-    HRESULT hr = S_OK;
-    DWORD nTotal;
-    DWORD n;
-    DWORD nLine;
-    CStringRef szText;
-    CStrStr StrFind;
-    
-    // build str finder
-	assert(false);
-    // StrFind.BuildBc(pszExpr);
-    
-    // get total element count    
-    if(m_fHide)
-    {
-        nTotal = m_ActiveLines.size();
-    }
-    else
-    {
-        nTotal = m_pSource->GetLineCount();
-    }
+	DeselectAll();
 
-    // get start element
-    n = 0;
-    
-    if(!fStart)
-    {
-        DWORD nSelTotal;
-        int iItem = -1;
-        
-        nSelTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
+	// translate line to index
+	DWORD n = 0;
+	if (m_ActiveLines.size() == 0)
+	{
+		n = nLine;
+	}
+	else
+	{
+		auto it = std::lower_bound(m_ActiveLines.begin(), m_ActiveLines.end(), nLine);
+		n = (it != m_ActiveLines.end()) ? *it : m_ActiveLines.back();
+	}
 
-        if(nSelTotal > 0)
-        {
-            iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
-
-            if(iItem != -1)
-            {
-                n = (DWORD)(iItem + 1);
-            }
-        }            
-    }
-
-    DeselectAll();
-    
-    for(; n < nTotal; n++)
-    {
-        nLine = GetFileLineNum(n);
-
-		szText = m_pSource->GetLine(nLine).Content;
-
-        if(StrFind.Search(szText.psz, szText.cch))
-        {
-            ListView_SetItemState(m_ListView.m_hWnd, n, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-            ListView_EnsureVisible(m_ListView.m_hWnd, n, FALSE);
-            break;
-        }
-    }    
+	ListView_SetItemState(m_ListView.m_hWnd, n, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+	ListView_EnsureVisible(m_ListView.m_hWnd, n, FALSE);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 HRESULT CTraceView::GetSelectedLines(HANDLE * phData)
 {
-    HRESULT hr = S_OK;
-    CStringRef szLine;
-    DWORD nTotal;
-    DWORD n;
-    int iItem = -1;
-    DWORD nFileLine;
+	HRESULT hr = S_OK;
+	CStringRef szLine;
+	DWORD nTotal;
+	DWORD n;
+	int iItem = -1;
+	DWORD nFileLine;
 
-    HANDLE hData = NULL;
-    char * pszData = NULL;
+	HANDLE hData = NULL;
+	char * pszData = NULL;
 
-    HANDLE hCopy = NULL;
-    char * pszCopy = NULL;
-    
-    DWORD cbCurSize = 0;
-    DWORD cbMaxSize = 0;
+	HANDLE hCopy = NULL;
+	char * pszCopy = NULL;
 
-    *phData = NULL;
-    
-    nTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
+	DWORD cbCurSize = 0;
+	DWORD cbMaxSize = 0;
 
-    for(n = 0; n<nTotal; n++)
-    {
-        iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
+	*phData = NULL;
 
-        if(iItem == -1)
-        {
-            break;
-        }
+	nTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
 
-        nFileLine = GetFileLineNum(iItem);
+	for (n = 0; n < nTotal; n++)
+	{
+		iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
+
+		if (iItem == -1)
+		{
+			break;
+		}
+
+		nFileLine = GetFileLineNum(iItem);
 
 		szLine = m_pSource->GetLine(nFileLine).Content;
 
-        if(cbCurSize + szLine.cch > cbMaxSize)
-        {
-            cbMaxSize = (cbCurSize + szLine.cch) * 2 + 1;
-            
-            hCopy = GlobalAlloc(GMEM_MOVEABLE, cbMaxSize + 1); 
-            if (hCopy == NULL) 
-            { 
-                hr = HRESULT_FROM_WIN32(GetLastError());
-                goto Cleanup;
-            } 
+		if (cbCurSize + szLine.cch > cbMaxSize)
+		{
+			cbMaxSize = (cbCurSize + szLine.cch) * 2 + 1;
 
-            pszCopy = (char*)GlobalLock(hCopy); 
+			hCopy = GlobalAlloc(GMEM_MOVEABLE, cbMaxSize + 1);
+			if (hCopy == NULL)
+			{
+				hr = HRESULT_FROM_WIN32(GetLastError());
+				goto Cleanup;
+			}
 
-            if(pszData != NULL)
-            {
-                CopyMemory(pszCopy, pszData, cbCurSize);
-            }
+			pszCopy = (char*) GlobalLock(hCopy);
 
-            GlobalUnlock(hData);
-            GlobalFree(hData);
+			if (pszData != NULL)
+			{
+				CopyMemory(pszCopy, pszData, cbCurSize);
+			}
 
-            hData = hCopy;
-            pszData = pszCopy;
-            hCopy = NULL;
-            pszCopy = NULL;
-        }
+			GlobalUnlock(hData);
+			GlobalFree(hData);
 
-        CopyMemory(pszData + cbCurSize, szLine.psz, szLine.cch); 
+			hData = hCopy;
+			pszData = pszCopy;
+			hCopy = NULL;
+			pszCopy = NULL;
+		}
 
-        cbCurSize += szLine.cch;
-    }
+		CopyMemory(pszData + cbCurSize, szLine.psz, szLine.cch);
 
-    if(pszData)
-    {
-        pszData[cbCurSize] = '\0';
+		cbCurSize += szLine.cch;
+	}
 
-        GlobalUnlock(hData);
-        
-        *phData = hData;
-        hData = NULL;
-        pszData = NULL;
-    }
-    
+	if (pszData)
+	{
+		pszData[cbCurSize] = '\0';
+
+		GlobalUnlock(hData);
+
+		*phData = hData;
+		hData = NULL;
+		pszData = NULL;
+	}
+
 Cleanup:
 
-    if(pszCopy)
-    {
-        GlobalUnlock(hCopy);
-    }
-    
-    if(pszData)
-    {
-        GlobalUnlock(hData);
-    }
+	if (pszCopy)
+	{
+		GlobalUnlock(hCopy);
+	}
 
-    if(hCopy)
-    {
-        GlobalFree(hCopy);
-    }
-    
-    if(hData)
-    {
-        GlobalFree(hData);
-    }
+	if (pszData)
+	{
+		GlobalUnlock(hData);
+	}
 
-    return hr;
+	if (hCopy)
+	{
+		GlobalFree(hCopy);
+	}
+
+	if (hData)
+	{
+		GlobalFree(hData);
+	}
+
+	return hr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 HRESULT CTraceView::GetSelectedLineNumbers(DWORD * pnStart, DWORD * pnFinish)
 {
-    HRESULT hr = S_OK;
-    DWORD nTotal;
-    DWORD n;
-    int iItem = -1;
+	HRESULT hr = S_OK;
+	DWORD nTotal;
+	DWORD n;
+	int iItem = -1;
 
-    nTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
+	nTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
 
-    if(nTotal == 0)
-    {
-        *pnStart = *pnFinish = 0;
-    }
-    else
-    {
-        iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
-        *pnStart = GetFileLineNum(iItem);
-    
-        for(n = 1; n<nTotal; n++)
-        {
-            iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
+	if (nTotal == 0)
+	{
+		*pnStart = *pnFinish = 0;
+	}
+	else
+	{
+		iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
+		*pnStart = GetFileLineNum(iItem);
 
-            if(iItem == -1)
-            {
-                break;
-            }
+		for (n = 1; n < nTotal; n++)
+		{
+			iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
 
-            *pnFinish = GetFileLineNum(iItem);
-        }
-    }    
-    
-//Cleanup:
+			if (iItem == -1)
+			{
+				break;
+			}
 
-    return hr;
+			*pnFinish = GetFileLineNum(iItem);
+		}
+	}
+
+	//Cleanup:
+
+	return hr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 int CTraceView::GetFocusPosition()
 {
-    DWORD nTop;
-    DWORD nFocus = 0;
-    RECT rcTop;
-    RECT rcFocus;
+	DWORD nTop;
+	DWORD nFocus = 0;
+	RECT rcTop;
+	RECT rcFocus;
 
-    ZeroMemory(&rcFocus, sizeof(rcFocus));
-    
-    //
-    // to keep focus item on the same place, record topindex and then restore topindex base on new position
-    //
-    nTop = ListView_GetTopIndex(m_ListView.m_hWnd);
+	ZeroMemory(&rcFocus, sizeof(rcFocus));
 
-    ListView_GetItemRect(m_ListView.m_hWnd, nTop, &rcTop, LVIR_BOUNDS);
+	//
+	// to keep focus item on the same place, record topindex and then restore topindex base on new position
+	//
+	nTop = ListView_GetTopIndex(m_ListView.m_hWnd);
 
-    //
-    // find closest item in the new 
-    //
-    if(m_nFocusLine != -1)
-    {
-        if(m_fHide)
-        {
-            nFocus = FindIndex(m_ActiveLines, m_nFocusLine);
-        }
-        else
-        {
-            nFocus = m_nFocusLine;
-        }
+	ListView_GetItemRect(m_ListView.m_hWnd, nTop, &rcTop, LVIR_BOUNDS);
 
-        ListView_GetItemRect(m_ListView.m_hWnd, nFocus, &rcFocus, LVIR_BOUNDS);
-    }
+	//
+	// find closest item in the new 
+	//
+	if (m_nFocusLine != -1)
+	{
+		if (m_fHide)
+		{
+			nFocus = FindIndex(m_ActiveLines, m_nFocusLine);
+		}
+		else
+		{
+			nFocus = m_nFocusLine;
+		}
 
-    return rcFocus.top - rcTop.top;
+		ListView_GetItemRect(m_ListView.m_hWnd, nFocus, &rcFocus, LVIR_BOUNDS);
+	}
+
+	return rcFocus.top - rcTop.top;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 void CTraceView::UpdateView(int yFocusPos)
 {
-    // update view    
-    if(m_fHide)
-    {
-        ListView_SetItemCount(m_ListView.m_hWnd, m_ActiveLines.size());
-    }
-    else
-    {
-        ListView_SetItemCount(m_ListView.m_hWnd, m_pSource->GetLineCount());
-    }
+	// update view    
+	if (m_fHide)
+	{
+		ListView_SetItemCount(m_ListView.m_hWnd, m_ActiveLines.size());
+	}
+	else
+	{
+		ListView_SetItemCount(m_ListView.m_hWnd, m_pSource->GetLineCount());
+	}
 
-    DeselectAll();
-    
-    // find closest item in the new 
-    if(m_nFocusLine != -1)
-    {
-        DWORD nTop;
-        DWORD nFocus;
-        RECT rcFocus;
-        RECT rcTop;
-        
-        if(m_fHide)
-        {
-            nFocus = FindIndex(m_ActiveLines, m_nFocusLine);
-        }
-        else
-        {
-            nFocus = m_nFocusLine;
-        }
+	DeselectAll();
 
-        ListView_SetItemState(m_ListView.m_hWnd, nFocus, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+	// find closest item in the new 
+	if (m_nFocusLine != -1)
+	{
+		DWORD nTop;
+		DWORD nFocus;
+		RECT rcFocus;
+		RECT rcTop;
 
-        // get absolute position of the top element
-        nTop = ListView_GetTopIndex(m_ListView.m_hWnd);
-        
-        ListView_GetItemRect(m_ListView.m_hWnd, nTop, &rcTop, LVIR_BOUNDS);
+		if (m_fHide)
+		{
+			nFocus = FindIndex(m_ActiveLines, m_nFocusLine);
+		}
+		else
+		{
+			nFocus = m_nFocusLine;
+		}
 
-        // get absolute position of item
-        ListView_GetItemRect(m_ListView.m_hWnd, nFocus, &rcFocus, LVIR_BOUNDS);
+		ListView_SetItemState(m_ListView.m_hWnd, nFocus, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 
-//        ListView_EnsureVisible(m_ListView.m_hWnd, nItem, FALSE);
-        ListView_Scroll(m_ListView.m_hWnd, 0, rcFocus.top - rcTop.top - yFocusPos);
-    }
+		// get absolute position of the top element
+		nTop = ListView_GetTopIndex(m_ListView.m_hWnd);
+
+		ListView_GetItemRect(m_ListView.m_hWnd, nTop, &rcTop, LVIR_BOUNDS);
+
+		// get absolute position of item
+		ListView_GetItemRect(m_ListView.m_hWnd, nFocus, &rcFocus, LVIR_BOUNDS);
+
+		//        ListView_EnsureVisible(m_ListView.m_hWnd, nItem, FALSE);
+		ListView_Scroll(m_ListView.m_hWnd, 0, rcFocus.top - rcTop.top - yFocusPos);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 HRESULT CTraceView::InsertColumn(DWORD nIndex, DWORD nWidth, LPCWSTR pszText)
 {
-    LVCOLUMN col;
-    HRESULT hr = S_OK;
-    ZeroMemory(&col, sizeof(col));
+	LVCOLUMN col;
+	HRESULT hr = S_OK;
+	ZeroMemory(&col, sizeof(col));
 	col.mask = LVCF_FMT | LVCF_TEXT | LVCF_WIDTH;
-    col.fmt = LVCFMT_LEFT;
-    col.pszText = (LPWSTR)pszText;
+	col.fmt = LVCFMT_LEFT;
+	col.pszText = (LPWSTR) pszText;
 	col.cx = nWidth;
 
-    if(ListView_InsertColumn(m_ListView.m_hWnd, nIndex, &col) == -1)
-    {
+	if (ListView_InsertColumn(m_ListView.m_hWnd, nIndex, &col) == -1)
+	{
 		ATLASSERT(false);
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
 Cleanup:
 
-    return hr;
+	return hr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 void CTraceView::DeselectAll()
 {
-    int iItem = -1;
-    DWORD nTotal;
-    DWORD n;
-    
-    nTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
+	int iItem = -1;
+	DWORD nTotal;
+	DWORD n;
 
-    for(n = 0; n<nTotal; n++)
-    {
-        iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
+	nTotal = ListView_GetSelectedCount(m_ListView.m_hWnd);
 
-        if(iItem == -1)
-        {
-            break;
-        }
+	for (n = 0; n < nTotal; n++)
+	{
+		iItem = ListView_GetNextItem(m_ListView.m_hWnd, iItem, LVIS_SELECTED);
 
-        ListView_SetItemState(m_ListView.m_hWnd, iItem, 0, LVIS_FOCUSED | LVIS_SELECTED);
-    }
+		if (iItem == -1)
+		{
+			break;
+		}
+
+		ListView_SetItemState(m_ListView.m_hWnd, iItem, 0, LVIS_FOCUSED | LVIS_SELECTED);
+	}
 }

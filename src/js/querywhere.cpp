@@ -51,6 +51,8 @@ std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> &
 	}
 	else if (val->IsObject())
 	{
+		std::vector<std::shared_ptr<Expr>> exprs;
+
 		// if expression is object, treat it as json
 		auto obj = val.As<v8::Object>();
 		auto maybeTid = GetObjectField(obj, "tid");
@@ -59,7 +61,7 @@ std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> &
 			auto tid = maybeTid.ToLocalChecked();				
 			if (tid->IsInt32())
 			{
-				return std::make_shared<MatchTid>(tid->ToInteger()->Int32Value());
+				exprs.push_back(std::make_shared<MatchTid>(tid->ToInteger()->Int32Value()));
 			}
 		}
 
@@ -80,10 +82,37 @@ std::shared_ptr<QueryOpWhere::Expr> QueryOpWhere::FromJs(v8::Handle<v8::Value> &
 				if (user->IsString() || user->IsStringObject())
 				{
 					v8::String::Utf8Value str(user);
-					return std::make_shared<MatchUser>(*str, i);
+					exprs.push_back(std::make_shared<MatchUser>(*str, i));
+				}
+				else if (user->IsArray())
+				{
+					std::vector<std::string> values;
+					auto userA = user.As<v8::Array>();
+					for (int i = 0; i < userA->Length(); i++)
+					{
+						if (!userA->Get(i)->IsString())
+							ThrowSyntaxError("input must be array of strings");
+
+						v8::String::Utf8Value str(userA->Get(i)->ToString());
+						values.push_back(std::string(*str, str.length()));
+					}
+
+					exprs.push_back(std::make_shared<MatchUser>(std::move(values), i));
+				}
+				else
+				{
+					ThrowSyntaxError("input must be string or array of strings");
 				}
 			}
 		}
+
+		if(exprs.size() > 1)
+			ThrowSyntaxError("multiple expression not yet supported");
+
+		if(exprs.size() == 0)
+			ThrowSyntaxError("unrecognized or empty expression");
+
+		return exprs[0];
 	}
 	
 	throw V8RuntimeException("Unsupported parameter");

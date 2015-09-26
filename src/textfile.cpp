@@ -36,81 +36,81 @@ CTextTraceFile::~CTextTraceFile()
 
 void WINAPI CTextTraceFile::LoadThreadInit(void * pCtx)
 {
-    CTextTraceFile * pFile = (CTextTraceFile*)pCtx;
-    pFile->LoadThread();
+	CTextTraceFile * pFile = (CTextTraceFile*) pCtx;
+	pFile->LoadThread();
 }
 
 HRESULT CTextTraceFile::Open(LPCWSTR pszFile, CTraceFileLoadCallback * pCallback, bool bReverse)
 {
-    HRESULT hr = S_OK;
+	HRESULT hr = S_OK;
 
 	LOG("@%p open $S", this, pszFile);
 	m_pCallback = pCallback;
 	m_bReverse = bReverse;
 
-    m_hFile = CreateFile(pszFile,
-                    GENERIC_READ,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    NULL,
-                    OPEN_EXISTING,
-                    FILE_FLAG_NO_BUFFERING,
-                    NULL);
+	m_hFile = CreateFile(pszFile,
+		GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_NO_BUFFERING,
+		NULL);
 
-    if(m_hFile == INVALID_HANDLE_VALUE)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	if (m_hFile == INVALID_HANDLE_VALUE)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
-	if(!GetFileSizeEx(m_hFile, &m_FileSize))
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	if (!GetFileSizeEx(m_hFile, &m_FileSize))
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
-   
+
 Cleanup:
 
-    return hr;
+	return hr;
 }
 
 HRESULT CTextTraceFile::Close()
 {
-    if(m_hFile != INVALID_HANDLE_VALUE)
-    {
-        CloseHandle(m_hFile);
-    }
-    return S_OK;
+	if (m_hFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(m_hFile);
+	}
+	return S_OK;
 }
 
 void CTextTraceFile::Load(QWORD nStop)
 {
-	if(m_bLoading)
+	if (m_bLoading)
 	{
 		return;
 	}
 
-	if(m_bReverse)
+	if (m_bReverse)
 	{
 		ATLASSERT(false);
 	}
 	else
 	{
-		if(nStop > m_FileSize.QuadPart)
+		if (nStop > m_FileSize.QuadPart)
 		{
-			nStop = (QWORD)m_FileSize.QuadPart;
+			nStop = (QWORD) m_FileSize.QuadPart;
 		}
 
-		if(m_nStop > nStop)
+		if (m_nStop > nStop)
 		{
 			return;
 		}
 	}
-    
+
 	m_nStop = nStop;
 	m_bLoading = true;
 
-    QueueUserWorkItem((LPTHREAD_START_ROUTINE)LoadThreadInit, this, 0);
+	QueueUserWorkItem((LPTHREAD_START_ROUTINE) LoadThreadInit, this, 0);
 }
 
 std::shared_ptr<CTraceSource> CTextTraceFile::CreateSource()
@@ -123,18 +123,18 @@ std::shared_ptr<CTraceSource> CTextTraceFile::CreateSource()
 //
 void CTextTraceFile::LoadThread()
 {
-    HRESULT hr = S_OK;
-    DWORD cbRead;
-    DWORD cbToRead;
-    LARGE_INTEGER liPos;
+	HRESULT hr = S_OK;
+	DWORD cbRead;
+	DWORD cbToRead;
+	LARGE_INTEGER liPos;
 
-    m_pCallback->OnLoadBegin();
-    
-    for(;; )
-    {
+	m_pCallback->OnLoadBegin();
+
+	for (;; )
+	{
 		LoadBlock * pNew = nullptr;
 
-		if(m_bReverse)
+		if (m_bReverse)
 		{
 			ATLASSERT(false);
 		}
@@ -142,11 +142,11 @@ void CTextTraceFile::LoadThread()
 		{
 			DWORD cbRollover = 0;
 
-			if(m_Blocks.size() > 0)
+			if (m_Blocks.size() > 0)
 			{
 				LoadBlock * pEnd = m_Blocks.back();
 
-				if(pEnd->nFileStop > m_nStop)
+				if (pEnd->nFileStop > m_nStop)
 				{
 					return;
 				}
@@ -159,7 +159,7 @@ void CTextTraceFile::LoadThread()
 				IFC(AllocBlock(cbRolloverRounded + m_BlockSize, &pNew));
 
 				pNew->cbFirstFullLineStart = cbRolloverRounded - cbRollover;
-				memcpy(pNew->pbBuf + pNew->cbFirstFullLineStart, pEnd->pbBuf+pEnd->cbLastFullLineEnd, cbRollover);
+				memcpy(pNew->pbBuf + pNew->cbFirstFullLineStart, pEnd->pbBuf + pEnd->cbLastFullLineEnd, cbRollover);
 
 				// at this point we can decommit unnecessary pages for unicode
 				// this will waste address space but keep memory usage low
@@ -182,51 +182,51 @@ void CTextTraceFile::LoadThread()
 			pNew->cbData = cbRollover;
 		}
 
-		liPos.QuadPart = (__int64)pNew->nFileStart;
+		liPos.QuadPart = (__int64) pNew->nFileStart;
 		SetFilePointerEx(m_hFile, liPos, NULL, FILE_BEGIN);
-    
-        cbToRead = m_BlockSize;
-        
-		if(m_bReverse)
+
+		cbToRead = m_BlockSize;
+
+		if (m_bReverse)
 		{
 			ATLASSERT(false);
 		}
 		else
 		{
 			// append data after rollover string
-			if(!ReadFile(m_hFile, pNew->pbBuf+pNew->cbWriteStart, cbToRead, &cbRead, NULL))
+			if (!ReadFile(m_hFile, pNew->pbBuf + pNew->cbWriteStart, cbToRead, &cbRead, NULL))
 			{
 				hr = HRESULT_FROM_WIN32(GetLastError());
 				goto Cleanup;
 			}
 		}
-        
-        pNew->cbData = cbRead + pNew->cbData;
 
-        // parse data
+		pNew->cbData = cbRead + pNew->cbData;
+
+		// parse data
 		DWORD cbNewData;
-		IFC(ParseBlock(pNew, 
-						pNew->cbFirstFullLineStart, 
-						pNew->cbData, 
-						&cbNewData,
-						&pNew->cbLastFullLineEnd));
+		IFC(ParseBlock(pNew,
+			pNew->cbFirstFullLineStart,
+			pNew->cbData,
+			&cbNewData,
+			&pNew->cbLastFullLineEnd));
 
 		// append block
 		pNew->LineParsed.Init(pNew->Lines.GetCount());
 		m_Blocks.push_back(pNew);
 		m_TotalLines += pNew->Lines.GetCount();
 
-        m_pCallback->OnLoadBlock();
+		m_pCallback->OnLoadBlock();
 
-		if(cbRead != m_BlockSize)
+		if (cbRead != m_BlockSize)
 		{
 			break;
 		}
-    }
-    
+	}
+
 Cleanup:
 
-    m_pCallback->OnLoadEnd(hr);
+	m_pCallback->OnLoadEnd(hr);
 }
 
 HRESULT CTextTraceFile::AllocBlock(DWORD cbSize, LoadBlock ** ppBlock)
@@ -234,16 +234,16 @@ HRESULT CTextTraceFile::AllocBlock(DWORD cbSize, LoadBlock ** ppBlock)
 	LoadBlock * b = new LoadBlock;
 
 	b->cbBuf = cbSize;
-    b->pbBuf = (BYTE*)VirtualAlloc(NULL, cbSize, MEM_COMMIT, PAGE_READWRITE);
+	b->pbBuf = (BYTE*) VirtualAlloc(NULL, cbSize, MEM_COMMIT, PAGE_READWRITE);
 
-    if(b->pbBuf == NULL)
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
+	if (b->pbBuf == NULL)
+	{
+		return HRESULT_FROM_WIN32(GetLastError());
+	}
 
 	*ppBlock = b;
-    
-    return S_OK;
+
+	return S_OK;
 }
 
 HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnStop, DWORD * pnLineEnd)
@@ -258,8 +258,8 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 	DWORD nVal = 0;
 
 	// test unicode file
-	pszCur = (char*)(pBlock->pbBuf + nStart);
-	pszEnd = (char*)(pBlock->pbBuf + nStop);
+	pszCur = (char*) (pBlock->pbBuf + nStart);
+	pszEnd = (char*) (pBlock->pbBuf + nStop);
 
 	if (pBlock->nFileStart == 0 && pBlock->cbData > 2)
 	{
@@ -284,7 +284,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 			c = *pszCurW;
 
 			crcn <<= 8;
-			crcn |= (char)c;
+			crcn |= (char) c;
 
 			if (crcn == 0x0d0a)
 			{
@@ -292,7 +292,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 				char* pszLine = pszCur;
 				for (wchar_t* p = pszLineW; p <= pszCurW; p++, pszCur++)
 				{
-					*pszCur = (char)*p;
+					*pszCur = (char) *p;
 				}
 
 				// pszCur points after pszCurW so we do not need +1
@@ -301,8 +301,8 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 			}
 		}
 
-		(*pnStop) = ((BYTE*)pszCur - pBlock->pbBuf);
-		(*pnLineEnd) = (pszLineW) ? ((BYTE*)pszLineW - pBlock->pbBuf) : ((BYTE*)pszEndW - pBlock->pbBuf);
+		(*pnStop) = ((BYTE*) pszCur - pBlock->pbBuf);
+		(*pnLineEnd) = (pszLineW) ? ((BYTE*) pszLineW - pBlock->pbBuf) : ((BYTE*) pszEndW - pBlock->pbBuf);
 	}
 	else
 	{
@@ -323,35 +323,35 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 		}
 
 		(*pnStop) = nStop;
-		(*pnLineEnd) = (pszLine) ? ((BYTE*)pszLine - pBlock->pbBuf) : ((BYTE*)pszEnd - pBlock->pbBuf);
+		(*pnLineEnd) = (pszLine) ? ((BYTE*) pszLine - pBlock->pbBuf) : ((BYTE*) pszEnd - pBlock->pbBuf);
 	}
 
-    
-//Cleanup:
 
-    return hr;
+	//Cleanup:
+
+	return hr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 bool CTextTraceSource::CacheIndex(DWORD nIndex)
 {
-	if(m_pLastBlock)
+	if (m_pLastBlock)
 	{
-		if(nIndex < m_nLastBlockStart || nIndex - m_nLastBlockStart >= m_pLastBlock->Lines.GetCount())
+		if (nIndex < m_nLastBlockStart || nIndex - m_nLastBlockStart >= m_pLastBlock->Lines.GetCount())
 		{
 			m_pLastBlock = nullptr;
 		}
 	}
 
-	if(m_pLastBlock == nullptr)
+	if (m_pLastBlock == nullptr)
 	{
 		DWORD nBlockStart = 0;
-		for(size_t i = 0; i < m_Blocks.size(); i++)
+		for (size_t i = 0; i < m_Blocks.size(); i++)
 		{
 			auto p = m_Blocks[i];
 
-			if(nIndex - nBlockStart < p->Lines.GetCount())
+			if (nIndex - nBlockStart < p->Lines.GetCount())
 			{
 				m_pLastBlock = p;
 				m_nLastBlockStart = nBlockStart;
@@ -364,7 +364,7 @@ bool CTextTraceSource::CacheIndex(DWORD nIndex)
 			}
 		}
 
-		if(m_pLastBlock == nullptr)
+		if (m_pLastBlock == nullptr)
 		{
 			ATLASSERT(false);
 			return false;
@@ -379,7 +379,7 @@ bool CTextTraceSource::CacheIndex(DWORD nIndex)
 const LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 {
 	LockGuard guard(m_Lock);
-	if(!CacheIndex(nIndex))
+	if (!CacheIndex(nIndex))
 	{
 		static LineInfo line;
 		return line;
@@ -387,10 +387,10 @@ const LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 
 	DWORD lineIdx = nIndex - m_nLastBlockStart;
 	LineInfo& line = m_pLastBlock->Lines.GetAt(lineIdx);
-	if(m_Parser && !m_pLastBlock->LineParsed.GetBit(lineIdx))
+	if (!m_pLastBlock->LineParsed.GetBit(lineIdx))
 	{
 		m_pLastBlock->LineParsed.SetBit(lineIdx);
-		if(!m_Parser->ParseLine(line.Content.psz, line.Content.cch, line))
+		if (m_Parser == nullptr || !m_Parser->ParseLine(line.Content.psz, line.Content.cch, line))
 		{
 			// just set msg as content
 			line.Msg = line.Content;
@@ -421,7 +421,7 @@ bool CTextTraceSource::SetTraceFormat(const char * pszFormat, const char* pszSep
 		}
 		m_Parser->SetFormat(pszFormat, 0, sep);
 	}
-	catch(std::invalid_argument&)
+	catch (std::invalid_argument&)
 	{
 		return false;
 	}
@@ -456,7 +456,7 @@ bool CTextTraceSource::SetTraceFormat(const char * pszFormat, const char* pszSep
 	}
 
 	// reset all parsed bits
-	for(auto it = m_Blocks.begin(); it != m_Blocks.end(); it++)
+	for (auto it = m_Blocks.begin(); it != m_Blocks.end(); it++)
 	{
 		(*it)->LineParsed.Fill(false);
 	}
@@ -473,7 +473,7 @@ HRESULT CTextTraceSource::Refresh()
 	m_pLastBlock = nullptr;
 
 	m_nTotal = 0;
-	for(auto it = m_Blocks.begin(); it != m_Blocks.end(); it++)
+	for (auto it = m_Blocks.begin(); it != m_Blocks.end(); it++)
 	{
 		m_nTotal += (*it)->Lines.GetCount();
 	}

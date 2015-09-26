@@ -482,6 +482,14 @@ void JsHost::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 	});
 }
 
+void JsHost::SetFocusLine(DWORD nLine)
+{
+	_pApp->PostWork([this, nLine]()
+	{
+		_pApp->PTraceView()->SetFocusLine(nLine);
+	});
+}
+
 const LineInfo& JsHost::GetLine(size_t idx)
 {
 	if(!_pFileTraceSource)

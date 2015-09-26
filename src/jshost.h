@@ -97,6 +97,7 @@ public:
 	bool SetTraceFormat(const char * pszFormat, const char* pszSep) override;
 	void RefreshView() override;
 	void SetViewSource(const std::shared_ptr<CBitSet>& scope) override;
+	void SetFocusLine(DWORD nLine) override;
 
 	// console access
 	void OutputLine(const char * psz) override;

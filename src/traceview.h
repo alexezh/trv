@@ -98,21 +98,21 @@ public:
     HRESULT LoadConfig(HKEY hKey);
     
 public:
-    void OnShowFiltered(BOOL fVal);
+	void OnShowFiltered(BOOL fVal);
 	void SetTraceSource(const std::shared_ptr<CTraceSource>& src);
 	void UpdateLinesActive(const std::shared_ptr<CBitSet> & set, int change);
 
-    // loads from file
-    void LoadView();
+	// loads from file
+	void LoadView();
 
-    // update screen
-    void Repaint();
+	// update screen
+	void Repaint();
 
 	// set lines to display in view
 	void SetViewSource(const std::shared_ptr<CBitSet>& lines);
 
     // finds line in the filtered file, positions cursor to the selected line
-    void Find(LPCWSTR pszExpr, BOOL fStart);
+    void SetFocusLine(DWORD nLine);
     
     // return selected lines in global memory 
     HRESULT GetSelectedLines(HANDLE * phData);

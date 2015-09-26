@@ -52,13 +52,13 @@ private:
 	static void jsShowFiltersSetter(Local<String> property, Local<Value> value,	const PropertyCallbackInfo<void>& info);
 
 	static void jsCurrentLineGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
+	static void jsGetSelected(const FunctionCallbackInfo<Value>& args);
 
 	static void jsSetViewLayout(const FunctionCallbackInfo<Value>& args);
 	static void jsSetColumns(const FunctionCallbackInfo<Value>& args);
+	static void jsSetFocusLine(const FunctionCallbackInfo<Value>& args);
 
-	void VerifySelectArgs(const FunctionCallbackInfo<Value>& args);
 	void ShowFiltersWorker(bool val);
-	Local<Value> RunQuery(const std::shared_ptr<FilterItem>& filter, Query* pQuery, bool iter);
 
 private:
 	static Persistent<FunctionTemplate> _Template;
