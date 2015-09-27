@@ -1,0 +1,8 @@
+syntax: glob
+x64/
+install/
+ipch/
+*.suo
+*.csproj.user
+*.opensdf
+*.sdf

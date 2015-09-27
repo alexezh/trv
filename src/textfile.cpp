@@ -164,6 +164,10 @@ void CTextTraceFile::LoadThread()
 				// cbLastFullLineEnd is in buffer
 				pNew->nFileStart = pEnd->nFileStop;
 				pNew->cbWriteStart = cbRolloverRounded;
+
+				// if we are in unicode mode, trim previous block
+				if (m_bUnicode)
+					TrimBlock(pEnd);
 			}
 			else
 			{
@@ -200,11 +204,10 @@ void CTextTraceFile::LoadThread()
 		pNew->cbData = cbRead + pNew->cbData;
 
 		// parse data
-		DWORD cbNewData;
 		IFC(ParseBlock(pNew,
 			pNew->cbFirstFullLineStart,
 			pNew->cbData,
-			&cbNewData,
+			&pNew->cbDataEnd,
 			&pNew->cbLastFullLineEnd));
 
 		{
@@ -242,6 +245,22 @@ HRESULT CTextTraceFile::AllocBlock(DWORD cbSize, LoadBlock ** ppBlock)
 	*ppBlock = b;
 
 	return S_OK;
+}
+
+void CTextTraceFile::TrimBlock(LoadBlock* pBlock)
+{
+	if (pBlock->isTrimmed)
+		return;
+
+	// unmap unnecessary space
+	DWORD cbUsedAligned = ((pBlock->cbDataEnd) / m_PageSize + 1) * m_PageSize;
+	if (cbUsedAligned < pBlock->cbBuf)
+	{
+		VirtualFree(pBlock->pbBuf + cbUsedAligned, pBlock->cbBuf - cbUsedAligned, MEM_DECOMMIT);
+		m_cbTotalAlloc -= (pBlock->cbBuf - cbUsedAligned);
+	}
+
+	pBlock->isTrimmed = true;
 }
 
 HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnStop, DWORD * pnLineEnd)

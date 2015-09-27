@@ -104,6 +104,7 @@ void TraceCollection::jsAddLine(const v8::FunctionCallbackInfo<Value> &args)
 
 		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
 		pThis->AddLine(dwLine);
+		return Local<Value>();
 	});
 }
 
@@ -119,6 +120,7 @@ void TraceCollection::jsRemoveLine(const v8::FunctionCallbackInfo<Value> &args)
 
 		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
 		pThis->RemoveLine(dwLine);
+		return Local<Value>();
 	});
 }
 

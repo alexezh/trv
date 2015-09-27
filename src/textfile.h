@@ -62,12 +62,16 @@ public:
 		// offset from beginning of data to the first line
 		DWORD cbFirstFullLineStart = 0;
 
+		// TODO: need better name
 		// offset to end of data
 		// for ascii is the same as line end
 		DWORD cbDataEnd = 0;
 
 		// offset from beginning of data to the end of last line
 		DWORD cbLastFullLineEnd = 0;
+
+		// true if buffer was trimmed
+		bool isTrimmed = false;
 	};
 
 public:
@@ -110,6 +114,7 @@ private:
 
 	void LoadThread();
 	HRESULT AllocBlock(DWORD cbSize, LoadBlock ** ppBlock);
+	void TrimBlock(LoadBlock* pBlock);
 
 	// for ascii file pnStop == nStop
 	HRESULT ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnDataEnd, DWORD * pnLineEnd);
