@@ -1,8 +1,8 @@
 syntax: glob
+*.suo
+*.sdf
+*.csproj.user
+*.opensdf
 x64/
 install/
 ipch/
-*.suo
-*.csproj.user
-*.opensdf
-*.sdf
