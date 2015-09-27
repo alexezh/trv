@@ -38,5 +38,8 @@ To reduce typing even further, we are going to bind "ctrl+a" shortcut to move fo
 
 trv.std.js defines a set of basic methods and key bindings. trv.csi.js builds on top of functionality provided by trv.std.js and provides additional support for a particular type of log files.  
 
+# Installation
+Unzip trv.zip to a directory of your choice. Optionally you can create .user.js file either in this directory or under AppData\Local\trv.js for storing custom functionality. See example.user.js as an example. 
+
 # Building
 To build trv.js you need VS2015. You also have to build V8 engine and set V8 environment variable to point to your copy of V8.
