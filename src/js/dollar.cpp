@@ -46,7 +46,7 @@ void Dollar::Init(Isolate* iso)
 	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "import"), FunctionTemplate::New(iso, jsImport));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
-	tmpl_proto->Set(String::NewFromUtf8(iso, "loadtrace"), FunctionTemplate::New(iso, jsLoadTrace));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "loadTrace"), FunctionTemplate::New(iso, jsLoadTrace));
 
 	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
 
@@ -209,27 +209,30 @@ bool Dollar::ImportWorker(const char * pszName, bool opt)
 
 void Dollar::jsLoadTrace(const v8::FunctionCallbackInfo<Value>& args)
 {
-	if(args.Length() < 1)
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
-		ThrowTypeError("expected $.loadtrace(name, start(Mb), stop(Mb))\r\n");
-	}
+		if (args.Length() < 1)
+		{
+			ThrowTypeError("expected $.loadTrace(name, start(Mb), stop(Mb), onComplete)\r\n");
+		}
 
-	v8::String::Utf8Value str(args[0]);
-	int posStart = 0, posEnd = -1;
+		v8::String::Utf8Value str(args[0]);
+		int posStart = 0, posEnd = -1;
 
-	if(args.Length() >= 2 && args[1]->IsInt32())
-	{
-		posStart = args[1]->Int32Value();
-	}
+		if (args.Length() >= 2 && args[1]->IsInt32())
+		{
+			posStart = args[1]->Int32Value();
+		}
 
-	if(args.Length() >= 3 && args[2]->IsInt32())
-	{
-		posEnd = args[2]->Int32Value();
-	}
+		if (args.Length() >= 3 && args[2]->IsInt32())
+		{
+			posEnd = args[2]->Int32Value();
+		}
 
-	GetCurrentHost()->LoadTrace(*str, posStart, posEnd);
+		GetCurrentHost()->LoadTrace(*str, posStart, posEnd);
 
-	args.GetReturnValue().SetUndefined();
+		return Local<Value>();
+	});
 }
 
 void Dollar::jsPrint(const v8::FunctionCallbackInfo<Value>& args)

@@ -27,36 +27,38 @@ class COutputView
 	, public IClipboardHandler
 {
 public:
-    COutputView(CTraceApp * pApp)
+	COutputView(CTraceApp * pApp)
 	{
 		m_pApp = pApp;
 	}
 
-   
+
+	void OutputTextA(LPCSTR pszLine, DWORD cch = 0);
 	void OutputLineA(LPCSTR pszLine, DWORD cch = 0);
+	void OutputTextW(LPCWSTR pszLine);
 	void OutputLineW(LPCWSTR pszLine);
 
 	// IClipboardHandler
 	void OnCopy() override;
 
 private:
-   
-    LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnProtected(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	LRESULT OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 protected:
-    
-    BEGIN_MSG_MAP(COutputView)
-        MESSAGE_HANDLER(WM_CREATE, OnCreate)
+
+	BEGIN_MSG_MAP(COutputView)
+		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_SIZE, OnSize)
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 	END_MSG_MAP()
 
 private:
 	CTraceApp * m_pApp;
-    CWindow m_Output;
+	CWindow m_Output;
 	std::vector<WCHAR> m_ConvertBuf;
 };
 

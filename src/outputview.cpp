@@ -27,50 +27,50 @@
 //
 LRESULT COutputView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    DWORD dwStyle;
-    HRESULT hr = S_OK;
-    RECT rect;
-    
-    dwStyle = WS_CHILD | 
-                WS_BORDER | 
-                WS_VISIBLE |
-				WS_VSCROLL |
-				ES_AUTOVSCROLL |
-				ES_MULTILINE |
-				ES_READONLY;
+	DWORD dwStyle;
+	HRESULT hr = S_OK;
+	RECT rect;
 
-    ZeroMemory(&rect, sizeof(rect));
-    
-    if(m_Output.Create(L"EDIT", m_hWnd, &rect, NULL, dwStyle, 0) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	dwStyle = WS_CHILD |
+		WS_BORDER |
+		WS_VISIBLE |
+		WS_VSCROLL |
+		ES_AUTOVSCROLL |
+		ES_MULTILINE |
+		ES_READONLY;
+
+	ZeroMemory(&rect, sizeof(rect));
+
+	if (m_Output.Create(L"EDIT", m_hWnd, &rect, NULL, dwStyle, 0) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
 	// m_Output.SendMessage(EM_SETEVENTMASK, 0, ENM_PROTECTED);
-	m_Output.SetFont((HFONT)GetStockObject(DEFAULT_GUI_FONT));
+	m_Output.SetFont((HFONT) GetStockObject(DEFAULT_GUI_FONT));
 
 Cleanup:
 
-    return 0;
+	return 0;
 }
 
 LRESULT COutputView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    RECT rect;
-    
-    rect.top = 0;
-    rect.left = 0;
-    rect.right = LOWORD(lParam);
-    rect.bottom = HIWORD(lParam);
+	RECT rect;
 
-    m_Output.SetWindowPos(NULL, 
-                    rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, 
-                    SWP_NOZORDER | SWP_NOREDRAW);
+	rect.top = 0;
+	rect.left = 0;
+	rect.right = LOWORD(lParam);
+	rect.bottom = HIWORD(lParam);
 
-    bHandled = TRUE;
-    
-    return 0;
+	m_Output.SetWindowPos(NULL,
+		rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+		SWP_NOZORDER | SWP_NOREDRAW);
+
+	bHandled = TRUE;
+
+	return 0;
 }
 
 void COutputView::OnCopy()
@@ -80,60 +80,94 @@ void COutputView::OnCopy()
 
 void COutputView::OutputLineA(LPCSTR pszLine, DWORD cch)
 {
-	if(cch == 0)
+	if (cch == 0)
 	{
 		cch = strlen(pszLine);
 	}
 
-	if(m_ConvertBuf.size() < cch + 1)
+	if (m_ConvertBuf.size() < cch + 1)
 	{
 		m_ConvertBuf.resize(cch + 1);
 	}
 
 	int cchWide = MultiByteToWideChar(CP_UTF8, 0, pszLine, cch, &m_ConvertBuf[0], m_ConvertBuf.size());
-    m_ConvertBuf[cchWide] = '\0';
+	m_ConvertBuf[cchWide] = '\0';
 
 	OutputLineW(&m_ConvertBuf[0]);
 }
 
+void COutputView::OutputTextA(LPCSTR pszLine, DWORD cch)
+{
+	if (cch == 0)
+	{
+		cch = strlen(pszLine);
+	}
+
+	if (m_ConvertBuf.size() < cch + 1)
+	{
+		m_ConvertBuf.resize(cch + 1);
+	}
+
+	int cchWide = MultiByteToWideChar(CP_UTF8, 0, pszLine, cch, &m_ConvertBuf[0], m_ConvertBuf.size());
+	m_ConvertBuf[cchWide] = '\0';
+
+	OutputTextW(&m_ConvertBuf[0]);
+}
+
 void COutputView::OutputLineW(LPCWSTR pszLine)
 {
-    int nLength, nStart;
-    LRESULT lRes;
-    int x,y;
-    RECT rcArea;
-    
-	nStart = nLength = m_Output.GetWindowTextLength(); 
-    m_Output.SendMessage(EM_SETSEL, (WPARAM)nLength, (LPARAM)nLength);
-    m_Output.SendMessage(EM_REPLACESEL, (WPARAM)FALSE, (LPARAM)pszLine);
+	int nLength, nStart;
+	LRESULT lRes;
+	int x, y;
+	RECT rcArea;
 
-    nLength = m_Output.GetWindowTextLength(); 
-    m_Output.SendMessage(EM_SETSEL, (WPARAM)nLength, (LPARAM)nLength);
-    m_Output.SendMessage(EM_REPLACESEL, (WPARAM)FALSE, (LPARAM)L"\r\n");
+	nStart = nLength = m_Output.GetWindowTextLength();
+	m_Output.SendMessage(EM_SETSEL, (WPARAM) nLength, (LPARAM) nLength);
+	m_Output.SendMessage(EM_REPLACESEL, (WPARAM) FALSE, (LPARAM) pszLine);
 
-#if 0
-	// protect the region
-	CHARFORMAT fmt;
-	fmt.cbSize = sizeof(CHARFORMAT);
-	fmt.dwMask = CFM_PROTECTED;
-	fmt.dwEffects = CFE_PROTECTED;
-
-    m_Output.SendMessage(EM_SETSEL, (WPARAM)nStart, (LPARAM)nLength);
-	m_Output.SendMessage(EM_SETCHARFORMAT, (WPARAM)SCF_SELECTION, (LPARAM)&fmt);
-#endif
+	nLength = m_Output.GetWindowTextLength();
+	m_Output.SendMessage(EM_SETSEL, (WPARAM) nLength, (LPARAM) nLength);
+	m_Output.SendMessage(EM_REPLACESEL, (WPARAM) FALSE, (LPARAM) L"\r\n");
 
 	// make sure that line is on screen
-	lRes = m_Output.SendMessage(EM_POSFROMCHAR, (WPARAM)nLength, 0);
+	lRes = m_Output.SendMessage(EM_POSFROMCHAR, (WPARAM) nLength, 0);
 
-    x = (int)LOWORD(lRes);
-    y = (int)HIWORD(lRes);
+	x = (int) LOWORD(lRes);
+	y = (int) HIWORD(lRes);
 
-    m_Output.GetClientRect(&rcArea);
-    if(y > rcArea.bottom)
-    {
-        // yScrollPos = GetScrollPos(SB_VERT);
-        m_Output.SetScrollPos(SB_VERT, y - rcArea.top, TRUE);
-    }
+	m_Output.GetClientRect(&rcArea);
+	if (y > rcArea.bottom)
+	{
+		// yScrollPos = GetScrollPos(SB_VERT);
+		m_Output.SetScrollPos(SB_VERT, y - rcArea.top, TRUE);
+	}
+}
+
+void COutputView::OutputTextW(LPCWSTR pszLine)
+{
+	int nLength, nStart;
+	LRESULT lRes;
+	int x, y;
+	RECT rcArea;
+
+	nStart = nLength = m_Output.GetWindowTextLength();
+	m_Output.SendMessage(EM_SETSEL, (WPARAM) nLength, (LPARAM) nLength);
+	m_Output.SendMessage(EM_REPLACESEL, (WPARAM) FALSE, (LPARAM) pszLine);
+
+	nLength = m_Output.GetWindowTextLength();
+
+	// make sure that line is on screen
+	lRes = m_Output.SendMessage(EM_POSFROMCHAR, (WPARAM) nLength, 0);
+
+	x = (int) LOWORD(lRes);
+	y = (int) HIWORD(lRes);
+
+	m_Output.GetClientRect(&rcArea);
+	if (y > rcArea.bottom)
+	{
+		// yScrollPos = GetScrollPos(SB_VERT);
+		m_Output.SetScrollPos(SB_VERT, y - rcArea.top, TRUE);
+	}
 }
 
 LRESULT COutputView::OnProtected(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)

@@ -30,7 +30,7 @@
 //
 class CTextTraceSource;
 
-class CTextTraceFile : public CTraceFile
+class CTextTraceFile : public CTraceSource
 {
 	friend class CTextTraceSource;
 
@@ -41,13 +41,12 @@ public:
 	struct LoadBlock
 	{
 		LoadBlock()
-			: Lines(1024 * 32)
 		{
 		}
 
 		// actual position in the file offset for this block
-		QWORD nFileStart = 0;
-		QWORD nFileStop = 0;
+		uint64_t nFileStart = 0;
+		uint64_t nFileStop = 0;
 
 		BYTE * pbBuf = nullptr;
 
@@ -69,12 +68,6 @@ public:
 
 		// offset from beginning of data to the end of last line
 		DWORD cbLastFullLineEnd = 0;
-
-		// lines which were parsed but not reported
-		CBlockArray<LineInfo> Lines;
-
-		// bit flag for each line indicating if line was parsed
-		CBitSet LineParsed;
 	};
 
 public:
@@ -87,9 +80,30 @@ public:
 
 	// load can be called multiple times passing different stop value
 	// dependent on reverse flag the position either indicates the end of beginning
-	void Load(QWORD nStop);
+	void Load(uint64_t nStop);
 
-	std::shared_ptr<CTraceSource> CreateSource() override;
+	// Returns the current line count. 
+	// The count can change as we add more data at the end or in the beginning
+	DWORD GetLineCount() override
+	{
+		return m_Lines.GetCount();
+	}
+
+	const LineInfoDesc& GetDesc() override
+	{
+		return m_Desc;
+	}
+
+	const LineInfo& GetLine(DWORD nIndex) override;
+	bool SetTraceFormat(const char * pszFormat, const char* pszSep) override;
+
+	// register update notification handlers
+	// called from Refresh()
+	void SetHandler(CTraceViewNotificationHandler * pHandler)
+	{
+		m_pHandler = pHandler;
+	}
+
 
 private:
 	static void WINAPI LoadThreadInit(void * pCtx);
@@ -101,6 +115,8 @@ private:
 	HRESULT ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop, DWORD * pnDataEnd, DWORD * pnLineEnd);
 
 private:
+	std::mutex m_Lock;
+	typedef std::lock_guard<std::mutex> LockGuard;
 	CTraceFileLoadCallback * m_pCallback = nullptr;
 
 	bool m_bUnicode = false;
@@ -111,89 +127,23 @@ private:
 	LARGE_INTEGER m_FileSize;
 
 	// store start / stop position for reading
-	QWORD m_nStart = 0;
-	QWORD m_nStop = 0;
+	uint64_t m_nStart = 0;
+	uint64_t m_nStop = 0;
 	bool m_bReverse = false;
+	uint64_t m_cbTotalAlloc = 0;
 
 	DWORD m_BlockSize = 1024 * 1024 * 1;
 	DWORD m_PageSize = 4096;
 
+	CBlockArray<LineInfo> m_Lines;
 	std::vector<LoadBlock*> m_Blocks;
-	DWORD m_TotalLines = 0;
+
+	CTraceViewNotificationHandler * m_pHandler = nullptr;
+	LineInfoDesc m_Desc;
+
+	std::unique_ptr<TraceLineParser> m_Parser;
+	CBitSet m_LineParsed;
 
 	HANDLE m_hFile = INVALID_HANDLE_VALUE;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-//
-class CTextTraceSource : public CTraceSource
-{
-public:
-	CTextTraceSource(CTextTraceFile * pFile)
-		: m_pFile(pFile)
-	{
-		LineInfoDesc::Reset(m_Desc);
-	}
-
-	// Returns the current line count. 
-	// The count can change as we add more data at the end or in the beginning
-	DWORD GetLineCount() override
-	{
-		return m_nTotal;
-	}
-
-	const LineInfoDesc& GetDesc() override
-	{
-		return m_Desc;
-	}
-
-	const LineInfo& GetLine(DWORD nIndex) override;
-	bool SetTraceFormat(const char * pszFormat, const char* pszSep) override;
-
-	void SetScope(const std::shared_ptr<CBitSet>& scope) override
-	{
-		m_Scope = scope;
-	}
-	const std::shared_ptr<CBitSet>& GetScope() override
-	{
-		return m_Scope;
-	}
-
-	// updates view with changes (if any)
-	HRESULT Refresh() override;
-
-	// register update notification handlers
-	// called from Refresh()
-	void SetHandler(CTraceViewNotificationHandler * pHandler)
-	{
-		m_pHandler = pHandler;
-	}
-
-private:
-	bool CacheIndex(DWORD nIndex);
-
-private:
-	std::mutex m_Lock;
-	typedef std::lock_guard<std::mutex> LockGuard;
-
-	CTraceViewNotificationHandler * m_pHandler = nullptr;
-
-	LineInfoDesc m_Desc;
-
-	std::shared_ptr<CBitSet> m_Scope;
-
-	// collection of lines across all blocks
-	std::vector<CTextTraceFile::LoadBlock*> m_Blocks;
-
-	DWORD m_nTotal = 0;
-
-	// cached last block info
-	CTextTraceFile::LoadBlock * m_pLastBlock = nullptr;
-	size_t m_nLastBlockIndex = -1;
-	// line number at which the last block starts
-	DWORD m_nLastBlockStart = 0;
-
-	std::unique_ptr<TraceLineParser> m_Parser;
-
-	CTextTraceFile * m_pFile = nullptr;
-};

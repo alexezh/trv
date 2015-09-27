@@ -94,26 +94,32 @@ void TraceCollection::jsNew(const v8::FunctionCallbackInfo<Value> &args)
 
 void TraceCollection::jsAddLine(const v8::FunctionCallbackInfo<Value> &args)
 {
-	DWORD dwLine;
-	if (!(ValueToLineIndex(args[0], dwLine)))
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
-		ThrowTypeError("Invalid parameter. Int or Line expected");
-	}
+		DWORD dwLine;
+		if (!(ValueToLineIndex(args[0], dwLine)))
+		{
+			ThrowTypeError("Invalid parameter. Int or Line expected");
+		}
 
-	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
-	pThis->AddLine(dwLine);
+		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+		pThis->AddLine(dwLine);
+	});
 }
 
 void TraceCollection::jsRemoveLine(const v8::FunctionCallbackInfo<Value> &args)
 {
-	DWORD dwLine;
-	if (!(ValueToLineIndex(args[0], dwLine)))
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
-		ThrowTypeError("Invalid parameter. Int or Line expected");
-	}
+		DWORD dwLine;
+		if (!(ValueToLineIndex(args[0], dwLine)))
+		{
+			ThrowTypeError("Invalid parameter. Int or Line expected");
+		}
 
-	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
-	pThis->RemoveLine(dwLine);
+		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+		pThis->RemoveLine(dwLine);
+	});
 }
 
 void TraceCollection::jsCountGetter(Local<String> property, const PropertyCallbackInfo<Value>& info)
@@ -124,65 +130,74 @@ void TraceCollection::jsCountGetter(Local<String> property, const PropertyCallba
 
 void TraceCollection::jsGetLine(const v8::FunctionCallbackInfo<v8::Value> &args)
 {	
-	if(args.Length() != 1 || !args[0]->IsInt32())
-		ThrowTypeError("Invalid parameter. Use coll.getLine(index)");
+	TryCatchCpp(args, [&args]() -> Local<Value>
+	{
+		if (args.Length() != 1 || !args[0]->IsInt32())
+			ThrowTypeError("Invalid parameter. Use coll.getLine(index)");
 
-	// we have index to selected bit; need to find actual line number
-	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
-	auto idx = args[0]->Int32Value();
-	auto idxLine = pThis->_Lines->FindNSetBit(idx);
-	if (idxLine == -1)
-		return;
+		// we have index to selected bit; need to find actual line number
+		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+		auto idx = args[0]->Int32Value();
+		auto idxLine = pThis->_Lines->FindNSetBit(idx);
+		if (idxLine == -1)
+			return Local<Value>();
 
-	auto idxLineJs = v8::Integer::New(v8::Isolate::GetCurrent(), idxLine).As<Value>();
-	auto line = TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &idxLineJs);
-	args.GetReturnValue().Set(line);
+		auto idxLineJs = v8::Integer::New(v8::Isolate::GetCurrent(), idxLine).As<Value>();
+		auto line = TraceLine::GetTemplate(v8::Isolate::GetCurrent())->GetFunction()->NewInstance(1, &idxLineJs);
+		return line;
+	});
 }
 
 void TraceCollection::jsIntersect(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
-	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
-	if(args.Length() != 1 || !args[0]->IsObject())
-		ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
-
-	auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
-	if(other == nullptr)
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
-		ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
-	}
+		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+		if (args.Length() != 1 || !args[0]->IsObject())
+			ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
 
-	auto res = pThis->_Lines->Clone();
-	res.And(*other->GetLines());
+		auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
+		if (other == nullptr)
+		{
+			ThrowTypeError("Invalid parameter. Use coll.intersect(collection)");
+		}
 
-	auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
-	auto coll = TraceCollection::Unwrap(collJs);
-	coll->SetLines(std::move(res));
+		auto res = pThis->_Lines->Clone();
+		res.And(*other->GetLines());
 
-	args.GetReturnValue().Set(collJs);
+		auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
+		auto coll = TraceCollection::Unwrap(collJs);
+		coll->SetLines(std::move(res));
+
+		return collJs;
+	});
 }
 
 void TraceCollection::jsCombine(const v8::FunctionCallbackInfo<v8::Value> &args)
 {
-	TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
-	if (args.Length() != 1 || !args[0]->IsObject())
+	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
-		ThrowTypeError("Invalid parameter. Use coll.combine(collection)");
-	}
+		TraceCollection * pThis = UnwrapThis<TraceCollection>(args.This());
+		if (args.Length() != 1 || !args[0]->IsObject())
+		{
+			ThrowTypeError("Invalid parameter. Use coll.combine(collection)");
+		}
 
-	auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
-	if (other == nullptr)
-	{
-		ThrowTypeError("Invalid parameter. Use coll.combine(collection)");
-	}
+		auto* other = TraceCollection::TryGetCollection(args[0].As<Object>());
+		if (other == nullptr)
+		{
+			ThrowTypeError("Invalid parameter. Use coll.combine(collection)");
+		}
 
-	auto res = pThis->_Lines->Clone();
-	res.Or(*other->GetLines());
+		auto res = pThis->_Lines->Clone();
+		res.Or(*other->GetLines());
 
-	auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
-	auto coll = TraceCollection::Unwrap(collJs);
-	coll->SetLines(std::move(res));
+		auto collJs(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance());
+		auto coll = TraceCollection::Unwrap(collJs);
+		coll->SetLines(std::move(res));
 
-	args.GetReturnValue().Set(collJs);
+		return collJs;
+	});
 }
 
 void TraceCollection::AddLines(const CBitSet& lines)
@@ -236,7 +251,7 @@ TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, const std
 	, _Source(src)
 	, _Lines(std::make_shared<CBitSet>())
 {
-	_Lines->Init(lineCount);
+	_Lines->Resize(lineCount);
 	_Op = std::make_shared<QueryOpTraceCollection>(_Source, _Lines);
 }
 
@@ -250,7 +265,7 @@ TraceCollection::TraceCollection(const v8::Handle<v8::Object>& handle, const std
 	}
 
 	// for now ignore start / end
-	_Lines->Init(end);
+	_Lines->Resize(end);
 	for(DWORD i = start; i <= end; i++)
 	{
 		_Lines->SetBit(i);

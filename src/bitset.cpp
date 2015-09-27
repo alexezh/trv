@@ -29,17 +29,12 @@ CBitSet::CBitSet()
 
 CBitSet::~CBitSet()
 {
-    if(m_pBuf)
-    {
-        delete m_pBuf;
-    }
 }
 
 
 void CBitSet::Copy(CBitSet&& other)
 {
-	m_pBuf = other.m_pBuf;
-	other.m_pBuf = nullptr;
+	m_Buf = std::move(other.m_Buf);
 
 	m_nBuf = other.m_nBuf;
 	m_nSetBit = other.m_nSetBit;
@@ -49,19 +44,13 @@ void CBitSet::Copy(CBitSet&& other)
 }
 
 
-void CBitSet::Init(DWORD nElems)
+void CBitSet::Resize(DWORD nElems)
 {
-    if(m_pBuf)
-    {
-        delete m_pBuf;
-        m_pBuf = NULL;
-    }
-    
     m_nTotalBit = nElems;
     m_nSetBit = 0;
     m_nBuf = (nElems >> 5) + 1;
-    m_pBuf = new DWORD[m_nBuf];
-    ZeroMemory(m_pBuf, m_nBuf*sizeof(DWORD));
+    m_Buf.resize(m_nBuf);
+    // ZeroMemory(m_Buf, m_nBuf*sizeof(DWORD));
 }
 
 void CBitSet::Fill(BOOL fSet)
@@ -69,12 +58,12 @@ void CBitSet::Fill(BOOL fSet)
     if(fSet)
     {
         m_nSetBit = m_nTotalBit;
-        FillMemory(m_pBuf, m_nBuf*sizeof(DWORD), 0xff);
+        FillMemory(m_Buf.data(), m_nBuf*sizeof(DWORD), 0xff);
     }
     else
     {
         m_nSetBit = 0;
-        FillMemory(m_pBuf, m_nBuf*sizeof(DWORD), 0);
+        FillMemory(m_Buf.data(), m_nBuf*sizeof(DWORD), 0);
     }
 }
 
@@ -89,6 +78,8 @@ inline DWORD GetBitCount(DWORD v)
 
 void CBitSet::Or(const CBitSet& src)
 {
+	// Or only affects bits which are common in src and dest sets
+	// so we can take small optimization
 	DWORD srcFirst = src.m_nFirstBit >> 5;
 	DWORD srcLast = (src.m_nLastBit >> 5) + 1;
 
@@ -96,10 +87,10 @@ void CBitSet::Or(const CBitSet& src)
 	for(DWORD i = srcFirst; i < nBuf; i++)
 	{
 		// compute number of unique bits in src
-		DWORD v = src.m_pBuf[i] ^ (m_pBuf[i] & src.m_pBuf[i]);
+		DWORD v = src.m_Buf[i] ^ (m_Buf[i] & src.m_Buf[i]);
 		DWORD c = GetBitCount(v);
 		m_nSetBit += c;
-		m_pBuf[i] |= src.m_pBuf[i];
+		m_Buf[i] |= src.m_Buf[i];
 	}
 
 	m_nFirstBit = std::min<DWORD>(m_nFirstBit, src.m_nFirstBit);
@@ -108,21 +99,17 @@ void CBitSet::Or(const CBitSet& src)
 
 void CBitSet::And(const CBitSet& src)
 {
-	DWORD srcFirst = src.m_nFirstBit >> 5;
-	DWORD srcLast = (src.m_nLastBit >> 5) + 1;
-
-	DWORD nBuf = std::min<DWORD>(m_nBuf, srcLast);
-	for (DWORD i = srcFirst; i < nBuf; i++)
+	for (DWORD i = 0; i < m_nBuf; i++)
 	{
 		// compute number of unique bits in dest (will be erased)
-		DWORD v = m_pBuf[i] ^ (m_pBuf[i] & src.m_pBuf[i]);
+		DWORD v = m_Buf[i] ^ (m_Buf[i] & src.m_Buf[i]);
 		DWORD c = GetBitCount(v);
 		m_nSetBit -= c;
-		m_pBuf[i] &= src.m_pBuf[i];
+		m_Buf[i] &= src.m_Buf[i];
 	}
 
-	m_nFirstBit = std::min<DWORD>(m_nFirstBit, src.m_nFirstBit);
-	m_nLastBit = std::max<DWORD>(m_nLastBit, src.m_nLastBit);
+	m_nFirstBit = std::max<DWORD>(m_nFirstBit, src.m_nFirstBit);
+	m_nLastBit = std::min<DWORD>(m_nLastBit, src.m_nLastBit);
 }
 
 DWORD CBitSet::FindNSetBit(DWORD idx)
@@ -148,8 +135,8 @@ DWORD CBitSet::FindNSetBit(DWORD idx)
 CBitSet CBitSet::Clone()
 {
 	CBitSet set;
-	set.m_pBuf = new DWORD[m_nBuf];
-	memcpy_s(set.m_pBuf, sizeof(DWORD)*m_nBuf, m_pBuf, sizeof(DWORD)*m_nBuf);
+	set.m_Buf.resize(m_nBuf);
+	memcpy_s(set.m_Buf.data(), sizeof(DWORD)*m_nBuf, m_Buf.data(), sizeof(DWORD)*m_nBuf);
 	set.m_nBuf = m_nBuf;
 	set.m_nSetBit = m_nSetBit;
 	set.m_nTotalBit = m_nTotalBit;

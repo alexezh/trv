@@ -41,49 +41,50 @@ enum class ColumnId;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 
-class CTraceApp 
-    : public CWindowImpl<CTraceApp>
-    , public CTraceFileLoadCallback
+class CTraceApp
+	: public CWindowImpl<CTraceApp>
+	, public CTraceFileLoadCallback
 {
 public:
-    CTraceApp();
-    ~CTraceApp();
+	CTraceApp();
+	~CTraceApp();
 
-    HRESULT Init(LPWSTR lpCmdLine);
+	HRESULT Init(LPWSTR lpCmdLine);
 
 public:
-    void OnLoadBegin();
-    void OnLoadEnd(HRESULT hr);
-    void OnLoadBlock();
-    
-    void LoadFile(const std::string& file, int startPos, int endPos);
-    void LoadFile(QWORD nStart, QWORD nEnd);
+	void OnLoadBegin();
+	void OnLoadEnd(HRESULT hr);
+	void OnLoadBlock();
+
+	void LoadFile(const std::string& file, int startPos, int endPos);
+	void LoadFile(QWORD nStart, QWORD nEnd);
 	void SetClipboardHandler(IClipboardHandler* pHandler)
 	{
 		m_pClipboardHandler = pHandler;
 	}
-protected:    
-    void RebuildDock();
-        
-    LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+protected:
+	void RebuildDock();
 
-    LRESULT OnLoadBlock(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-    LRESULT OnQueueWork(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-    LRESULT OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnLoadBegin(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnLoadBlock(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnQueueWork(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+	LRESULT OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
 	LRESULT OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
 	LRESULT OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
 	LRESULT OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnFindNext(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
 
-    
+
 	BEGIN_MSG_MAP(CTraceApp)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
@@ -92,6 +93,7 @@ protected:
 
 		MESSAGE_HANDLER(WM_LOAD_BLOCK, OnLoadBlock)
 		MESSAGE_HANDLER(WM_LOAD_END, OnLoadEnd)
+		MESSAGE_HANDLER(WM_LOAD_BEGIN, OnLoadBegin)
 		MESSAGE_HANDLER(WM_QUEUE_WORK, OnQueueWork)
 
 		COMMAND_HANDLER(ID_TOGGLEHIDE, 1, OnToggleHide)
@@ -108,20 +110,41 @@ protected:
 		COMMAND_HANDLER(ID_VIEW_CONSOLEWINDOW, 0, OnNavConsole)
 		COMMAND_HANDLER(ID_VIEW_REFRESH, 0, OnRefresh)
 		COMMAND_HANDLER(ID_EDIT_COPY, 0, OnCopy)
-    END_MSG_MAP()
+	END_MSG_MAP()
 
 public:
 
 	bool HandleJsAccelerators(MSG& msg);
-	
-	CPersistComponentContainer * PPersist() { return m_pPersist; }
-    CTextTraceFile * PFile() { return m_pFile; }
-	CTraceSource * PFileColl() { return m_pFileColl.get(); }
 
-    CTraceView * PTraceView() { return m_pTraceView; }
-    JsHost * PJsHost() { return m_pJsHost; }
-    COutputView * POutputView() { return m_pOutputView; }
-	CCommandView * PCommandView() { return m_pCommandView; }
+	CPersistComponentContainer * PPersist()
+	{
+		return m_pPersist;
+	}
+	CTextTraceFile * PFile()
+	{
+		return m_pFile.get();
+	}
+	CTraceSource * PFileColl()
+	{
+		return m_pFileColl.get();
+	}
+
+	CTraceView * PTraceView()
+	{
+		return m_pTraceView;
+	}
+	JsHost * PJsHost()
+	{
+		return m_pJsHost;
+	}
+	COutputView * POutputView()
+	{
+		return m_pOutputView;
+	}
+	CCommandView * PCommandView()
+	{
+		return m_pCommandView;
+	}
 
 	// post work to app thread
 	void PostWork(const std::function<void()> & func);
@@ -147,26 +170,26 @@ private:
 	size_t m_idxCmdColumn;
 	size_t m_idxOutputColumn;
 
-    // file to read
-    CTextTraceFile * m_pFile { nullptr };
+	// file to read
+	std::shared_ptr<CTextTraceFile> m_pFile;
 	std::shared_ptr<CTraceSource> m_pFileColl;
 
 	JsHost * m_pJsHost { nullptr };
 
-    // top level views;
-    CTraceView * m_pTraceView { nullptr };
-    CCommandView * m_pCommandView { nullptr };
-    COutputView * m_pOutputView { nullptr };
+	// top level views;
+	CTraceView * m_pTraceView { nullptr };
+	CCommandView * m_pCommandView { nullptr };
+	COutputView * m_pOutputView { nullptr };
 	IClipboardHandler * m_pClipboardHandler { nullptr };
-    
-    // controls persistance
-    CPersistComponentContainer * m_pPersist { nullptr };
-    
-    // maximum number of Mb to load
-    DWORD m_cbMaxLoadWindow;
-    
-    // last Find expression
-    std::wstring m_szLastFind;
+
+	// controls persistance
+	CPersistComponentContainer * m_pPersist { nullptr };
+
+	// maximum number of Mb to load
+	DWORD m_cbMaxLoadWindow;
+
+	// last Find expression
+	std::wstring m_szLastFind;
 
 	// map of BYTE + WORD
 	std::set<DWORD> m_Keys;

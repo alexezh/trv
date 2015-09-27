@@ -57,8 +57,9 @@ struct LineInfo
 		, Tid(0)
 	{
 	}
-	LineInfo(CStringRef && content)
+	LineInfo(CStringRef && content, DWORD index)
 		: Content(content)
+		, Index(index)
 	{
 	}
 

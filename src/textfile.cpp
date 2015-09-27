@@ -27,7 +27,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //
 CTextTraceFile::CTextTraceFile()
+	: m_Lines(1024*32)
 {
+	LineInfoDesc::Reset(m_Desc);
 }
 
 CTextTraceFile::~CTextTraceFile()
@@ -111,12 +113,6 @@ void CTextTraceFile::Load(QWORD nStop)
 	m_bLoading = true;
 
 	QueueUserWorkItem((LPTHREAD_START_ROUTINE) LoadThreadInit, this, 0);
-}
-
-std::shared_ptr<CTraceSource> CTextTraceFile::CreateSource()
-{
-	auto src = std::make_shared<CTextTraceSource>(this);
-	return std::dynamic_pointer_cast<CTraceSource>(src);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -211,10 +207,11 @@ void CTextTraceFile::LoadThread()
 			&cbNewData,
 			&pNew->cbLastFullLineEnd));
 
-		// append block
-		pNew->LineParsed.Init(pNew->Lines.GetCount());
-		m_Blocks.push_back(pNew);
-		m_TotalLines += pNew->Lines.GetCount();
+		{
+			LockGuard guard(m_Lock);
+			// append block
+			m_Blocks.push_back(pNew);
+		}
 
 		m_pCallback->OnLoadBlock();
 
@@ -225,7 +222,6 @@ void CTextTraceFile::LoadThread()
 	}
 
 Cleanup:
-
 	m_pCallback->OnLoadEnd(hr);
 }
 
@@ -240,6 +236,8 @@ HRESULT CTextTraceFile::AllocBlock(DWORD cbSize, LoadBlock ** ppBlock)
 	{
 		return HRESULT_FROM_WIN32(GetLastError());
 	}
+
+	m_cbTotalAlloc += cbSize;
 
 	*ppBlock = b;
 
@@ -256,6 +254,8 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 
 	BOOL fSkipSpace = FALSE;
 	DWORD nVal = 0;
+
+	LockGuard guard(m_Lock);
 
 	// test unicode file
 	pszCur = (char*) (pBlock->pbBuf + nStart);
@@ -296,7 +296,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 				}
 
 				// pszCur points after pszCurW so we do not need +1
-				pBlock->Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine)));
+				m_Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine), m_Lines.GetCount()));
 				pszLineW = pszCurW + 1;
 			}
 		}
@@ -317,7 +317,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 
 			if (crcn == 0x0d0a)
 			{
-				pBlock->Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine + 1)));
+				m_Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine + 1), m_Lines.GetCount()));
 				pszLine = pszCur + 1;
 			}
 		}
@@ -326,6 +326,8 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 		(*pnLineEnd) = (pszLine) ? ((BYTE*) pszLine - pBlock->pbBuf) : ((BYTE*) pszEnd - pBlock->pbBuf);
 	}
 
+	// we are parsing under lock; it is safe to adjust the size
+	m_LineParsed.Resize(m_Lines.GetCount());
 
 	//Cleanup:
 
@@ -334,62 +336,19 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-bool CTextTraceSource::CacheIndex(DWORD nIndex)
-{
-	if (m_pLastBlock)
-	{
-		if (nIndex < m_nLastBlockStart || nIndex - m_nLastBlockStart >= m_pLastBlock->Lines.GetCount())
-		{
-			m_pLastBlock = nullptr;
-		}
-	}
-
-	if (m_pLastBlock == nullptr)
-	{
-		DWORD nBlockStart = 0;
-		for (size_t i = 0; i < m_Blocks.size(); i++)
-		{
-			auto p = m_Blocks[i];
-
-			if (nIndex - nBlockStart < p->Lines.GetCount())
-			{
-				m_pLastBlock = p;
-				m_nLastBlockStart = nBlockStart;
-				m_nLastBlockIndex = i;
-				break;
-			}
-			else
-			{
-				nBlockStart += p->Lines.GetCount();
-			}
-		}
-
-		if (m_pLastBlock == nullptr)
-		{
-			ATLASSERT(false);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//
-const LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
+const LineInfo& CTextTraceFile::GetLine(DWORD nIndex)
 {
 	LockGuard guard(m_Lock);
-	if (!CacheIndex(nIndex))
+	if (nIndex >= m_Lines.GetCount())
 	{
 		static LineInfo line;
 		return line;
 	}
 
-	DWORD lineIdx = nIndex - m_nLastBlockStart;
-	LineInfo& line = m_pLastBlock->Lines.GetAt(lineIdx);
-	if (!m_pLastBlock->LineParsed.GetBit(lineIdx))
+	LineInfo& line = m_Lines.GetAt(nIndex);
+	if (!m_LineParsed.GetBit(nIndex))
 	{
-		m_pLastBlock->LineParsed.SetBit(lineIdx);
+		m_LineParsed.SetBit(nIndex);
 		if (m_Parser == nullptr || !m_Parser->ParseLine(line.Content.psz, line.Content.cch, line))
 		{
 			// just set msg as content
@@ -397,13 +356,10 @@ const LineInfo& CTextTraceSource::GetLine(DWORD nIndex)
 		}
 	}
 
-	// since the only way we can get line is here
-	// we can update index on line entry
-	line.Index = nIndex;
-
 	return line;
 }
-bool CTextTraceSource::SetTraceFormat(const char * pszFormat, const char* pszSep)
+
+bool CTextTraceFile::SetTraceFormat(const char * pszFormat, const char* pszSep)
 {
 	LockGuard guard(m_Lock);
 	LineInfoDesc::Reset(m_Desc);
@@ -456,27 +412,8 @@ bool CTextTraceSource::SetTraceFormat(const char * pszFormat, const char* pszSep
 	}
 
 	// reset all parsed bits
-	for (auto it = m_Blocks.begin(); it != m_Blocks.end(); it++)
-	{
-		(*it)->LineParsed.Fill(false);
-	}
+	m_LineParsed.Fill(false);
 
 	return true;
 }
 
-// updates view with changes (if any)
-HRESULT CTextTraceSource::Refresh()
-{
-	LockGuard guard(m_Lock);
-	// for now do not fire any events
-	m_Blocks = m_pFile->m_Blocks;
-	m_pLastBlock = nullptr;
-
-	m_nTotal = 0;
-	for (auto it = m_Blocks.begin(); it != m_Blocks.end(); it++)
-	{
-		m_nTotal += (*it)->Lines.GetCount();
-	}
-
-	return S_OK;
-}

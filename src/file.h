@@ -28,11 +28,11 @@ class CBitSet;
 class CTraceFileLoadCallback
 {
 public:
-    virtual void OnLoadBegin() = 0;
-    virtual void OnLoadEnd(HRESULT hr) = 0;
+	virtual void OnLoadBegin() = 0;
+	virtual void OnLoadEnd(HRESULT hr) = 0;
 
 	// reports that more data is available
-    virtual void OnLoadBlock() = 0;
+	virtual void OnLoadBlock() = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,31 +50,12 @@ class CTraceSource
 public:
 	// Returns the current line count. 
 	// The count can change as we add more data at the end or in the beginning
-    virtual DWORD GetLineCount() = 0;
+	virtual DWORD GetLineCount() = 0;
 
 	virtual const LineInfoDesc& GetDesc() = 0;
-    virtual const LineInfo& GetLine(DWORD nIndex) = 0;
+	virtual const LineInfo& GetLine(DWORD nIndex) = 0;
 	virtual bool SetTraceFormat(const char * pszFormat, const char* pszSep) = 0;
 
-	// scope defines a set of lines which should be included in queries
-	// when scope changes, marks might become invalid and should be recalculated
-	// scope does not affect line numbers
-	virtual void SetScope(const std::shared_ptr<CBitSet>& scope) = 0;
-	virtual const std::shared_ptr<CBitSet>& GetScope() = 0;
-
-	// updates view with changes (if any)
-	virtual HRESULT Refresh() = 0;
-
 	virtual void SetHandler(CTraceViewNotificationHandler * pHandler) = 0;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-//
-class CTraceFile
-{
-public:
-	virtual ~CTraceFile() {}
-
-	virtual std::shared_ptr<CTraceSource> CreateSource() = 0;
 };
 

@@ -41,7 +41,7 @@ public:
 		return *this;
 	}
 
-	void Init(DWORD nElems);
+	void Resize(DWORD nElems);
 	void Fill(BOOL fSet);
 
 	DWORD GetSetBitCount() const
@@ -59,7 +59,7 @@ public:
 	void SetBit(DWORD nBit)
 	{
 		DWORD n = nBit >> 5;
-		m_pBuf[n] |= (1 << (nBit & 0x1f));
+		m_Buf[n] |= (1 << (nBit & 0x1f));
 		m_nSetBit++;
 		m_nFirstBit = std::min<DWORD>(m_nFirstBit, nBit);
 		m_nLastBit = std::max<DWORD>(m_nLastBit, nBit);
@@ -68,15 +68,17 @@ public:
 	void ResetBit(DWORD nBit)
 	{
 		DWORD n = nBit >> 5;
-		m_pBuf[n] &= ~(1 << (nBit & 0x1f));
+		m_Buf[n] &= ~(1 << (nBit & 0x1f));
 		m_nSetBit--;
 	}
 
 	bool GetBit(DWORD nBit) const
 	{
-		assert(nBit <= m_nTotalBit);
+		if (nBit > m_nTotalBit)
+			return false;
+
 		DWORD n = nBit >> 5;
-		return ((m_pBuf[n] >> (nBit & 0x1f)) & 1);
+		return ((m_Buf[n] >> (nBit & 0x1f)) & 1);
 	}
 
 	DWORD FindNSetBit(DWORD idx);
@@ -87,7 +89,7 @@ private:
 	void Copy(CBitSet&& other);
 
 	// TODO: allocate with VirtualAllow but do not commit pages
-	DWORD * m_pBuf = nullptr;
+	std::vector<DWORD> m_Buf;
 	DWORD m_nBuf = 0; // number of DWORDs in the mask
 	DWORD m_nSetBit = 0;
 	DWORD m_nTotalBit = 0;

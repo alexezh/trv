@@ -48,38 +48,38 @@ CTraceApp * g_pApp;
 ///////////////////////////////////////////////////////////////////////////////
 //
 CTraceApp::CTraceApp()
-    : m_pTraceView(NULL)
-    , m_pCommandView(NULL)
-    , m_pOutputView(NULL)
-    , m_pJsHost(NULL)
+	: m_pTraceView(NULL)
+	, m_pCommandView(NULL)
+	, m_pOutputView(NULL)
+	, m_pJsHost(NULL)
 {
 }
 
 CTraceApp::~CTraceApp()
 {
-    delete m_pTraceView;
-    delete m_pCommandView;
-    delete m_pOutputView;
-    delete m_pPersist;
+	delete m_pTraceView;
+	delete m_pCommandView;
+	delete m_pOutputView;
+	delete m_pPersist;
 }
 
 HRESULT CTraceApp::Init(LPWSTR lpCmdLine)
 {
-    HRESULT hr = S_OK;
-    HMENU hMenu;
-    HICON hIcon;
-    std::wstring szTitle;
+	HRESULT hr = S_OK;
+	HMENU hMenu;
+	HICON hIcon;
+	std::wstring szTitle;
 
-    // first initialize persistance container
-    m_pPersist = new CPersistComponentContainer;
-    if(m_pPersist == NULL)
-    {
-        hr = E_OUTOFMEMORY;
-        goto Cleanup;
-    }
-    m_pPersist->Init();
+	// first initialize persistance container
+	m_pPersist = new CPersistComponentContainer;
+	if (m_pPersist == NULL)
+	{
+		hr = E_OUTOFMEMORY;
+		goto Cleanup;
+	}
+	m_pPersist->Init();
 
-    // save file name for later
+	// save file name for later
 	m_SourceType = SourceType::File;
 	if (wcslen(lpCmdLine) > 0)
 	{
@@ -97,55 +97,55 @@ HRESULT CTraceApp::Init(LPWSTR lpCmdLine)
 		m_File = lpCmdLine;
 	}
 
-    // create window
-    hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDC_TRV));
-    if(hMenu == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	// create window
+	hMenu = LoadMenu(g_hInst, MAKEINTRESOURCE(IDC_TRV));
+	if (hMenu == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
-    hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_TRV));
-    if(hIcon == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_TRV));
+	if (hIcon == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
-    // load up to 512Mb at once
-    m_cbMaxLoadWindow = 1024*1024*512;
-    
-    // set window name
-    szTitle = L"TraceView -";
-    szTitle += m_File;
+	// load up to 512Mb at once
+	m_cbMaxLoadWindow = 1024 * 1024 * 512;
 
-	if(Create(NULL, NULL, szTitle.c_str(), WS_OVERLAPPEDWINDOW, 0, hMenu, NULL) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	// set window name
+	szTitle = L"TraceView -";
+	szTitle += m_File;
 
-    SetIcon(hIcon);
-    SetIcon(hIcon, FALSE);
-    
+	if (Create(NULL, NULL, szTitle.c_str(), WS_OVERLAPPEDWINDOW, 0, hMenu, NULL) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
+
+	SetIcon(hIcon);
+	SetIcon(hIcon, FALSE);
+
 Cleanup:
 
-    return hr;
+	return hr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    HRESULT hr = S_OK;
-    RECT rect;
+	HRESULT hr = S_OK;
+	RECT rect;
 
-    GetClientRect(&rect);
- 
+	GetClientRect(&rect);
+
 	if (m_SourceType == SourceType::File)
 	{
 		// open trace file
-		m_pFile = new CTextTraceFile;
+		m_pFile = std::make_shared<CTextTraceFile>();
 		if (m_pFile == NULL)
 		{
 			hr = E_OUTOFMEMORY;
@@ -153,7 +153,7 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
 		}
 
 		// create collection
-		m_pFileColl = m_pFile->CreateSource();
+		m_pFileColl = m_pFile;
 	}
 	else
 	{
@@ -164,77 +164,82 @@ LRESULT CTraceApp::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHand
 	}
 
 	// create dock window
-    m_pDock = new Dock::HostWindow;
-    if(m_pDock->Create(m_hWnd, &rect) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	m_pDock = new Dock::HostWindow;
+	if (m_pDock->Create(m_hWnd, &rect) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
-    ZeroMemory(&rect, sizeof(rect));
+	ZeroMemory(&rect, sizeof(rect));
 
-    // create trace view
-    m_pTraceView = new CTraceView;
-    m_pTraceView->Init(this);
+	// create trace view
+	m_pTraceView = new CTraceView;
+	m_pTraceView->Init(this);
+
+	// create js host
+	// m_pFile->CreateCollection(&m_pJsColl);
+	m_pJsHost = new JsHost(this);
+	m_pJsHost->Init(m_pFileColl);
 
 	// display file collection initially
 	m_pTraceView->SetTraceSource(m_pFileColl);
-    
-    if(m_pTraceView->Create(m_pDock->m_hWnd, &rect) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
 
-    // create command view
-    m_pCommandView = new CCommandView(this);
-    if(m_pCommandView->Create(m_pDock->m_hWnd, &rect) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	if (m_pTraceView->Create(m_pDock->m_hWnd, &rect) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
+
+	// create command view
+	m_pCommandView = new CCommandView(this);
+	if (m_pCommandView->Create(m_pDock->m_hWnd, &rect) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
 	// create output view
-    m_pOutputView = new COutputView(this);
-    if(m_pOutputView->Create(m_pDock->m_hWnd, &rect) == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Cleanup;
-    }
+	m_pOutputView = new COutputView(this);
+	if (m_pOutputView->Create(m_pDock->m_hWnd, &rect) == NULL)
+	{
+		hr = HRESULT_FROM_WIN32(GetLastError());
+		goto Cleanup;
+	}
 
-    // add necessary panes to the dock
-    RebuildDock();
+	// add necessary panes to the dock
+	RebuildDock();
 
-    // set focus to listview
-    m_pTraceView->SetFocus();
+	// set focus to listview
+	m_pTraceView->SetFocus();
 
 	m_pOutputView->OutputLineA("Welcome to trv.js\r\nFor help type help() or go to http://github.com/alexezh/trv/wiki\r\n");
 
 	// start file load
-    LoadFile(0, -1);
+	LoadFile(0, -1);
 
 	// wait with host initialization until we have file
 
 Cleanup:
 
-    return 0;
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 void CTraceApp::OnLoadBegin()
 {
-	LOG("@%p");
+	PostMessage(WM_LOAD_BEGIN, 0, 0);
 }
 
 void CTraceApp::OnLoadEnd(HRESULT hr)
 {
-    PostMessage(WM_LOAD_END, 0, 0);
+	PostMessage(WM_LOAD_END, 0, 0);
 }
 
 void CTraceApp::OnLoadBlock()
 {
-    PostMessage(WM_LOAD_BLOCK, 0, 0);
+	PostMessage(WM_LOAD_BLOCK, 0, 0);
 }
 
 void CTraceApp::LoadFile(const std::string& file, int startPos, int endPos)
@@ -246,16 +251,16 @@ void CTraceApp::LoadFile(const std::string& file, int startPos, int endPos)
 
 void CTraceApp::LoadFile(QWORD nStart, QWORD nStop)
 {
-    HRESULT hr = S_OK;
+	HRESULT hr = S_OK;
 
-	if(m_File.length() == 0)
+	if (m_File.length() == 0)
 	{
 		return;
 	}
 
-    // open file
-    hr = m_pFile->Open(m_File.c_str(), this);
-	if(FAILED(hr))
+	// open file
+	hr = m_pFile->Open(m_File.c_str(), this);
+	if (FAILED(hr))
 	{
 		std::wstring s;
 		s = std::wstring(L"cannot open file ") + m_File + L"\r\n";
@@ -263,28 +268,29 @@ void CTraceApp::LoadFile(QWORD nStart, QWORD nStop)
 		return;
 	}
 
-    m_pFile->Load(m_cbMaxLoadWindow);
+	m_pFile->Load(m_cbMaxLoadWindow);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
+LRESULT CTraceApp::OnLoadBegin(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	m_pOutputView->OutputLineA("Loading file");
+	return 0;
+}
+
 LRESULT CTraceApp::OnLoadBlock(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	LOG("@%p", this);
+	m_pOutputView->OutputTextA(".");
 	return 0;
 }
 
 LRESULT CTraceApp::OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	LOG("@%p", this);
-	// refresh our collection
-	m_pFileColl->Refresh();
-	m_pTraceView->LoadView();
+	m_pOutputView->OutputLineA("\r\nLoad complete");
 
-	// create js host
-	// m_pFile->CreateCollection(&m_pJsColl);
-	m_pJsHost = new JsHost(this);
-	m_pJsHost->Init(m_pFileColl);
+	// refresh our collection
+	m_pTraceView->LoadView();
 
 	return 0;
 }
@@ -293,30 +299,30 @@ LRESULT CTraceApp::OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 //
 LRESULT CTraceApp::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    m_pPersist->SaveAll();
-    
-    PostQuitMessage(0);
-    return 0;
+	m_pPersist->SaveAll();
+
+	PostQuitMessage(0);
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceApp::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    m_pDock->SetWindowPos(NULL, 
-                    0, 0, LOWORD(lParam), HIWORD(lParam), 
-                    SWP_NOZORDER | SWP_NOREDRAW);
+	m_pDock->SetWindowPos(NULL,
+		0, 0, LOWORD(lParam), HIWORD(lParam),
+		SWP_NOZORDER | SWP_NOREDRAW);
 
-    return 0;
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceApp::OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-    m_pTraceView->SetFocus();
-    bHandled = TRUE;
-    return 0;
+	m_pTraceView->SetFocus();
+	bHandled = TRUE;
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -324,7 +330,7 @@ LRESULT CTraceApp::OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 void CTraceApp::PostWork(const std::function<void()> & func)
 {
 	auto item = make_unique<std::function<void()> >(func);
-	PostMessage(WM_QUEUE_WORK, 0, (LPARAM)item.release());
+	PostMessage(WM_QUEUE_WORK, 0, (LPARAM) item.release());
 }
 
 LRESULT CTraceApp::OnQueueWork(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -344,8 +350,8 @@ LRESULT CTraceApp::OnCopy(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandl
 	else
 		m_pTraceView->OnCopy();
 
-    bHandled = TRUE;
-    return 0;
+	bHandled = TRUE;
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -362,17 +368,15 @@ LRESULT CTraceApp::OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHand
 LRESULT CTraceApp::OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
 	// TODO: route through script?
-    m_pTraceView->OnShowFiltered(!m_pTraceView->IsShowFiltered());
+	m_pTraceView->OnShowFiltered(!m_pTraceView->IsShowFiltered());
 
-    bHandled = TRUE;
+	bHandled = TRUE;
 
-    return 0;
+	return 0;
 }
 
 LRESULT CTraceApp::OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
-	m_pFileColl->Refresh();
-
 	m_pTraceView->Repaint();
 
 	return 0;
@@ -382,33 +386,33 @@ LRESULT CTraceApp::OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHa
 //
 LRESULT CTraceApp::OnNavList(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
-    m_pTraceView->SetFocus();
-    
-    bHandled = TRUE;
+	m_pTraceView->SetFocus();
 
-    return 0;
+	bHandled = TRUE;
+
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceApp::OnNavOutput(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
-    m_pOutputView->SetFocus();
-    
-    bHandled = TRUE;
+	m_pOutputView->SetFocus();
 
-    return 0;
+	bHandled = TRUE;
+
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //
 LRESULT CTraceApp::OnNavConsole(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
-    m_pCommandView->SetFocus();
-    
-    bHandled = TRUE;
+	m_pCommandView->SetFocus();
 
-    return 0;
+	bHandled = TRUE;
+
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -443,7 +447,7 @@ void CTraceApp::RebuildDock()
 	m_pDockRoot->AddColumn(Dock::Table::SizePixel, 3, nullptr);
 	m_idxCmdColumn = m_pDockRoot->AddColumn(Dock::Table::SizePixel, 20, new Dock::Window(m_pCommandView));
 
-    m_pDock->UpdateDock();
+	m_pDock->UpdateDock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -478,49 +482,49 @@ bool CTraceApp::HandleJsAccelerators(MSG& msg)
 //
 HRESULT InitTraceApp(LPWSTR lpCmdLine, int nCmdShow)
 {
-    HRESULT hr = S_OK;
+	HRESULT hr = S_OK;
 
-    g_pApp = new CTraceApp;
-    if(g_pApp == NULL)
-    {
-        hr = E_OUTOFMEMORY;
-        goto Cleanup;
-    }
+	g_pApp = new CTraceApp;
+	if (g_pApp == NULL)
+	{
+		hr = E_OUTOFMEMORY;
+		goto Cleanup;
+	}
 
-    IFC(g_pApp->Init(lpCmdLine));
+	IFC(g_pApp->Init(lpCmdLine));
 
-    /* Make the window visible; update its client area; and return "success" */
-    g_pApp->ShowWindow(nCmdShow);
-    g_pApp->UpdateWindow();
+	/* Make the window visible; update its client area; and return "success" */
+	g_pApp->ShowWindow(nCmdShow);
+	g_pApp->UpdateWindow();
 
 Cleanup:
 
-    return hr;
+	return hr;
 }
 
-int PASCAL wWinMain(  HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPWSTR lpCmdLine,
-                     int nCmdShow)
+int PASCAL wWinMain(HINSTANCE hInstance,
+	HINSTANCE hPrevInstance,
+	LPWSTR lpCmdLine,
+	int nCmdShow)
 {
-    HRESULT hr = S_OK;
-    MSG  msg;
-    HACCEL hAccelTable;
+	HRESULT hr = S_OK;
+	MSG  msg;
+	HACCEL hAccelTable;
 
-    g_hInst = hInstance;
+	g_hInst = hInstance;
 
-    //required to use the common controls
-	(void)LoadLibrary(TEXT("msftedit.dll"));
-    InitCommonControls();
+	//required to use the common controls
+	(void) LoadLibrary(TEXT("msftedit.dll"));
+	InitCommonControls();
 
-    hAccelTable = LoadAccelerators(hInstance, (LPCTSTR)IDC_TRV);
+	hAccelTable = LoadAccelerators(hInstance, (LPCTSTR) IDC_TRV);
 
-    /* Perform initializations that apply to a specific instance */
-    IFC(InitTraceApp(lpCmdLine, nCmdShow));
+	/* Perform initializations that apply to a specific instance */
+	IFC(InitTraceApp(lpCmdLine, nCmdShow));
 
-    /* Acquire and dispatch messages until a WM_QUIT uMessage is received. */
-    while(GetMessage( &msg, NULL, 0, 0))
-    {
+	/* Acquire and dispatch messages until a WM_QUIT uMessage is received. */
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
 		if (TranslateAccelerator(g_pApp->m_hWnd, hAccelTable, &msg))
 		{
 			continue;
@@ -531,15 +535,15 @@ int PASCAL wWinMain(  HINSTANCE hInstance,
 			continue;
 		}
 
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
 
-    return (int)msg.wParam;
+	return (int) msg.wParam;
 
 Cleanup:
 
-    return FALSE;
+	return FALSE;
 }
 
 
