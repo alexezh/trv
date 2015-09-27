@@ -30,6 +30,10 @@ CTextTraceFile::CTextTraceFile()
 	: m_Lines(1024*32)
 {
 	LineInfoDesc::Reset(m_Desc);
+
+	SYSTEM_INFO si;
+	GetSystemInfo(&si);
+	m_PageSize = si.dwPageSize;
 }
 
 CTextTraceFile::~CTextTraceFile()
