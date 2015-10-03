@@ -21,52 +21,63 @@
 #pragma once
 
 ///////////////////////////////////////////////////////////////////////////////
-// array optimized a little bit for append from end
-// manages array or arrays of elements
+// block array with sparse support
 template <class T, size_t itemsPerBlock>
-class CBlockArray
+class CSparseBlockArray
 {
 private:
 	struct BLOCK
 	{
 		size_t nItems = 0;
-		T v[itemsPerBlock];
+		T Items[itemsPerBlock];
+
+		void Set(size_t idx, const T& val)
+		{
+			Items[idx] = val;
+			nItems++;
+		}
+		void Reset(size_t idx)
+		{
+			Items[idx] = T();
+			nItems--;
+		}
 	};
 
 public:
-	CBlockArray()
+	CSparseBlockArray()
 	{
 	}
 
 	void Clear()
 	{
-		DWORD nBlocks = m_nItems / itemsPerBlock ;
-		DWORD n;
-
 		m_pBlocks.erase();
 		m_nBlocksUsed = m_nBlocksTotal = 0;
+		m_nSize = 0;
 		m_nItems = 0;
 	}
 
 	void Add(const T & Elem)
 	{
-		if (m_nItems == (m_Blocks.size() * m_nItemsPerBlock))
+		if (m_nSize == (m_Blocks.size() * itemsPerBlock))
 		{
 			// allocate new block
 			std::unique_ptr<BLOCK> pNewBlock(new BLOCK);
 			m_Blocks.push_back(std::move(pNewBlock));
 		}
 
-		auto& pBlock = m_Blocks[m_nItems / itemsPerBlock];
+		auto& pBlock = GetBlock(m_nSize);
 
-		pBlock->v[m_nItems % m_nItemsPerBlock] = Elem;
-		pBlock->nItems++;
+		pBlock->Set(m_nSize % itemsPerBlock, Elem);
 		m_nItems++;
+		m_nSize++;
 	}
 	 
-	void Erase(size_t index)
+	// resets item to default value
+	void Reset(size_t index)
 	{
-
+		auto& pBlock = GetBlocks(index);
+		pBlock->Reset(index % itemsPerBlock);
+		m_nItems--;
 	}
 
 	T & GetAt(size_t nIndex)
@@ -76,9 +87,9 @@ public:
 			throw std::invalid_argument("invalid line index");
 		}
 
-		auto& pBlock = m_Blocks[nIndex / itemsPerBlock];
+		auto& pBlock = GetBlock(nIndex);
 
-		return pBlock->v[nIndex % itemsPerBlock];
+		return pBlock->Items[nIndex % itemsPerBlock];
 	}
 
 	DWORD GetCount()
@@ -86,6 +97,13 @@ public:
 		return m_nItems;
 	}
 private:
+	std::unique_ptr<BLOCK>& GetBlock(size_t idx)
+	{
+		return m_Blocks[idx / itemsPerBlock];
+	}
+
+	// total size of array
+	size_t m_nSize { 0 };
 	size_t m_nItems { 0 };
 	std::vector<std::unique_ptr<BLOCK>> m_Blocks;
 };
