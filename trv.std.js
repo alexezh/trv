@@ -1,7 +1,13 @@
 // shortcuts for parts of $ object
 var $t = $.trace;
 var $v = $.view;
+var commandHelp = [];
+function addCommandHelp(cmd, descStr) {
+    commandHelp.push({ id : cmd, desc : descStr });
+}
+
 function $p(p) { $.print(p); }
+addCommandHelp("p(text)", "print <text> to output window");
 
 // stores last filter created with vf call
 var $f = null;
@@ -29,17 +35,21 @@ function a(condition, color, title) {
     af($.trace.where(condition), color, title);
 }
 $.dotexpressions.add("a", a);
+addCommandHelp("a(condition, color)", "highlight lines which match <condition> with <color>");
 
 // enable / disable filter by id
 function df(id) { $.tagger.enableFilter(asInt(id), false); }
 $.dotexpressions.add("df", df);
+addCommandHelp("df(id)", "disable filter with <id>");
 
 function ef(id) { $.tagger.enableFilter(asInt(id), true); }
 $.dotexpressions.add("ef", ef);
+addCommandHelp("ef(id)", "enable filter with <id>");
 
 // remove filter by id
 function rf(id) { $.tagger.removeFilter(asInt(id)); }
 $.dotexpressions.add("rf", rf);
+addCommandHelp("rf(id)", "remove filter with <id>");
 
 // view.setSource sets a collection to be displayed in trace window
 // the collection is generated as intersection of collections from viewSources array
@@ -92,11 +102,13 @@ $.tagger.onChanged(function ()
 });
 
 $.dotexpressions.add("sf", sf);
+addCommandHelp("sf()", "switch between displaying all lines and lines which match filters");
 $.shortcuts.add("ctrl+h", sf);
 
 // print filters
 function pf() { $.tagger.printFilters(); }
 $.dotexpressions.add("pf", pf);
+addCommandHelp("pf()", "print current filters");
 
 // move cursor to console and add .a in beginning
 function startEditFilter()
@@ -134,11 +146,31 @@ $.dotexpressions.add("f", find);
 $.dotexpressions.add("n", findNext);
 $.shortcuts.add("ctrl+f", startEditFind);
 $.shortcuts.add("ctrl+f3", findNext);
+addCommandHelp("f()", "fine first line which matches <condition>");
+addCommandHelp("n()", "fine next line which matches <condition>");
 
 // history
 var $h = $.history;
 function hp() { $.history.print(); }
 function he(id) { $.history.exec(id); }
+addCommandHelp("hp()", "print command history");
+addCommandHelp("he(id)", "execute command <id> from history");
+
+// load/reload scripts
+var lastScript = null;
+function load(file) {
+    lastScript = file;
+    $.import(file);
+}
+
+function reload() {
+    if (lastScript != null)
+        $.import(lastScript);
+}
+addCommandHelp("load(file)", "load script from <file>");
+addCommandHelp("reload()", "reload last script");
+
+$.dotexpressions.add("r", reload);
 
 var Black = "Black";
 var DarkBlue = "DarkBlue";

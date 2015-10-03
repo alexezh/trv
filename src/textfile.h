@@ -140,7 +140,7 @@ private:
 	DWORD m_BlockSize = 1024 * 1024 * 1;
 	DWORD m_PageSize = 4096;
 
-	CBlockArray<LineInfo> m_Lines;
+	CBlockArray<LineInfo, 1024*32> m_Lines;
 	std::vector<LoadBlock*> m_Blocks;
 
 	CTraceViewNotificationHandler * m_pHandler = nullptr;

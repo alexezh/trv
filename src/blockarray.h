@@ -23,77 +23,70 @@
 ///////////////////////////////////////////////////////////////////////////////
 // array optimized a little bit for append from end
 // manages array or arrays of elements
-template <class T>
+template <class T, size_t itemsPerBlock>
 class CBlockArray
 {
 private:
-    struct BLOCK
-    {
-        T v[1];
-    };
-    
+	struct BLOCK
+	{
+		size_t nItems = 0;
+		T v[itemsPerBlock];
+	};
+
 public:
-    CBlockArray(DWORD nItemsPerBlock)
-        : m_nItems(0)
-        , m_nItemsPerBlock(nItemsPerBlock)
-    {;
-    }
+	CBlockArray()
+	{
+	}
 
-    void Clear()
-    {
-        DWORD nBlocks = m_nItems / m_nItemsPerBlock;
-        DWORD n;
-        
-        for(n = 0; n < nBlocks; n++)
-        {
-            delete m_pBlocks[n];
-        }
+	void Clear()
+	{
+		DWORD nBlocks = m_nItems / itemsPerBlock ;
+		DWORD n;
 
-        delete m_pBlocks;
-        m_nBlocksUsed = m_nBlocksTotal = 0;
-        m_nItems = 0;
-    }
-    
-    HRESULT Add(const T & Elem)
-    {
-        if(m_nItems == (m_Blocks.size() * m_nItemsPerBlock))
-        {
-            // allocate new block
-            BLOCK * pNewBlock = new BLOCK[m_nItemsPerBlock];
+		m_pBlocks.erase();
+		m_nBlocksUsed = m_nBlocksTotal = 0;
+		m_nItems = 0;
+	}
 
-            if(pNewBlock == NULL)
-            {
-                return E_OUTOFMEMORY;
-            }
+	void Add(const T & Elem)
+	{
+		if (m_nItems == (m_Blocks.size() * m_nItemsPerBlock))
+		{
+			// allocate new block
+			std::unique_ptr<BLOCK> pNewBlock(new BLOCK);
+			m_Blocks.push_back(std::move(pNewBlock));
+		}
 
-            m_Blocks.push_back(pNewBlock);
-        }
+		auto& pBlock = m_Blocks[m_nItems / itemsPerBlock];
 
-        BLOCK * pBlock = m_Blocks[m_nItems / m_nItemsPerBlock];
+		pBlock->v[m_nItems % m_nItemsPerBlock] = Elem;
+		pBlock->nItems++;
+		m_nItems++;
+	}
+	 
+	void Erase(size_t index)
+	{
 
-        pBlock->v[m_nItems % m_nItemsPerBlock] = Elem;
-        m_nItems++;
-        
-        return S_OK;
-    }
-    
-    T & GetAt(DWORD nIndex)
-    {
-        if(nIndex >= m_nItems)
-        {
+	}
+
+	T & GetAt(size_t nIndex)
+	{
+		if (nIndex >= m_nItems)
+		{
 			throw std::invalid_argument("invalid line index");
-        }
+		}
 
-        BLOCK * pBlock = m_Blocks[nIndex / m_nItemsPerBlock];
-        
-        return pBlock->v[nIndex % m_nItemsPerBlock];
-    }
-    
-    DWORD GetCount() { return m_nItems; }
+		auto& pBlock = m_Blocks[nIndex / itemsPerBlock];
+
+		return pBlock->v[nIndex % itemsPerBlock];
+	}
+
+	DWORD GetCount()
+	{
+		return m_nItems;
+	}
 private:
-
-    DWORD m_nItemsPerBlock;
-    DWORD m_nItems;
-    std::vector<BLOCK*> m_Blocks;
+	size_t m_nItems { 0 };
+	std::vector<std::unique_ptr<BLOCK>> m_Blocks;
 };
 

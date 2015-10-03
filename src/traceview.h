@@ -30,8 +30,8 @@ class CTraceSource;
 // 
 enum class ColumnId
 {
-    LineNumber,
-    Time,
+	LineNumber,
+	Time,
 	ThreadId,
 	Message,
 	User1,
@@ -47,14 +47,14 @@ enum class ColumnId
 class CTraceViewConfig
 {
 public:
-    enum
-    {
-        CFG_VER = 0x6,
-    };
+	enum
+	{
+		CFG_VER = 0x6,
+	};
 
-    int m_Version;
+	int m_Version;
 
-    // column sizes. 32 columns max
+	// column sizes. 32 columns max
 	int m_ColumnWidth[ColumnId::MaxColumn];
 };
 #pragma pack(pop)
@@ -82,21 +82,21 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-class CTraceView 
-		: public CWindowImpl<CTraceView>
-		, public CPersistHandler
-		, public IClipboardHandler
+class CTraceView
+	: public CWindowImpl<CTraceView>
+	, public CPersistHandler
+	, public IClipboardHandler
 {
 public:
-    CTraceView();
-    ~CTraceView();
-    
-    void Init(CTraceApp * pApp);
+	CTraceView();
+	~CTraceView();
 
-    // CPersistHandler
-    HRESULT SaveConfig(HKEY hKey);
-    HRESULT LoadConfig(HKEY hKey);
-    
+	void Init(CTraceApp * pApp);
+
+	// CPersistHandler
+	HRESULT SaveConfig(HKEY hKey);
+	HRESULT LoadConfig(HKEY hKey);
+
 public:
 	void OnShowFiltered(BOOL fVal);
 	void SetTraceSource(const std::shared_ptr<CTraceSource>& src);
@@ -111,30 +111,36 @@ public:
 	// set lines to display in view
 	void SetViewSource(const std::shared_ptr<CBitSet>& lines);
 
-    // finds line in the filtered file, positions cursor to the selected line
-    void SetFocusLine(DWORD nLine);
-    
-    // return selected lines in global memory 
-    HRESULT GetSelectedLines(HANDLE * phData);
+	// finds line in the filtered file, positions cursor to the selected line
+	void SetFocusLine(DWORD nLine);
 
-    // returns selected line indexes
-    HRESULT GetSelectedLineNumbers(DWORD * pnStart, DWORD * pnFinish);
+	// return selected lines in global memory 
+	HRESULT GetSelectedLines(HANDLE * phData);
+
+	// returns selected line indexes
+	HRESULT GetSelectedLineNumbers(DWORD * pnStart, DWORD * pnFinish);
 
 	void SetColumns(const std::vector<ColumnId>& ids);
-	
-    HWND SetFocus() throw()
-    {
-        return m_ListView.SetFocus();
-    }
+
+	HWND SetFocus() throw()
+	{
+		return m_ListView.SetFocus();
+	}
 
 	// IClipboardHandler
 	void OnCopy() override;
 
-    DWORD GetFocusLine() { return m_nFocusLine; }
-    BOOL IsShowFiltered() { return m_fHide; }
-    
+	DWORD GetFocusLine()
+	{
+		return m_nFocusLine;
+	}
+	BOOL IsShowFiltered()
+	{
+		return m_fHide;
+	}
+
 private:
-    
+
 	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
@@ -146,24 +152,24 @@ private:
 	LRESULT OnCacheHint(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	LRESULT OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-    // display dialog for a single line
-    void OutputLineToConsole(DWORD nLine);
+	// display dialog for a single line
+	void OutputLineToConsole(DWORD nLine);
 
-    DWORD GetFileLineNum(DWORD nItem);
-    
-    HRESULT InsertColumn(DWORD idx, DWORD nWidth, LPCWSTR pszText);
+	DWORD GetFileLineNum(DWORD nItem);
+
+	HRESULT InsertColumn(DWORD idx, DWORD nWidth, LPCWSTR pszText);
 	void PopulateInfo(const char* psz, size_t cch, LV_DISPINFO* lpdi);
 
-    // deselects all items
-    void DeselectAll();
+	// deselects all items
+	void DeselectAll();
 
-    void UpdateView(int yFocusPos);
+	void UpdateView(int yFocusPos);
 
-    int GetFocusPosition();
+	int GetFocusPosition();
 
 protected:
-    
-    BEGIN_MSG_MAP(CTraceView)
+
+	BEGIN_MSG_MAP(CTraceView)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_SIZE, OnSize)
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
@@ -172,7 +178,8 @@ protected:
 		NOTIFY_HANDLER(ID_TRACEVIEW, NM_CUSTOMDRAW, OnCustomDraw)
 		NOTIFY_HANDLER(ID_TRACEVIEW, NM_DBLCLK, OnDblClk)
 		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_KEYDOWN, OnKeyDown)
-    END_MSG_MAP()
+		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_ODCACHEHINT, OnCacheHint)
+	END_MSG_MAP()
 
 private:
 	TraceListView m_ListView;
@@ -181,7 +188,7 @@ private:
 
 	CTraceViewConfig m_Config;
 
-    // for now we read the whole file
+	// for now we read the whole file
 	std::shared_ptr<CTraceSource> m_pSource;
 
 	// map from filtered lines to source lines
@@ -189,7 +196,7 @@ private:
 
 	// current selected line
 	DWORD m_nFocusLine;
-   
+
 	BOOL m_fHide;
 
 	// list of active columns

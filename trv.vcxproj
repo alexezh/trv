@@ -55,6 +55,7 @@
     <ClCompile Include="src\traceapp.cpp" />
     <ClCompile Include="src\tracelineparser.cpp" />
     <ClCompile Include="src\traceview.cpp" />
+    <ClCompile Include="src\viewlinecache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\About.h" />
@@ -105,6 +106,7 @@
     <ClInclude Include="src\traceapp.h" />
     <ClInclude Include="src\tracelineparser.h" />
     <ClInclude Include="src\traceview.h" />
+    <ClInclude Include="src\viewlinecache.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="src\small.ico" />
@@ -117,6 +119,7 @@
   <ItemGroup>
     <None Include=".user.js" />
     <None Include="trv.csi.js" />
+    <None Include="trv.help.js" />
     <None Include="trv.std.js" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

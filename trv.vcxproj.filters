@@ -6,7 +6,6 @@
     <ClCompile Include="src\color.cpp" />
     <ClCompile Include="src\commandview.cpp" />
     <ClCompile Include="src\dock.cpp" />
-    <ClCompile Include="src\FindDlg.cpp" />
     <ClCompile Include="src\log.cpp" />
     <ClCompile Include="src\outputview.cpp" />
     <ClCompile Include="src\persist.cpp" />
@@ -67,6 +66,7 @@
     <ClCompile Include="src\js\tagger.cpp">
       <Filter>js</Filter>
     </ClCompile>
+    <ClCompile Include="src\viewlinecache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\About.h" />
@@ -76,7 +76,6 @@
     <ClInclude Include="src\commandview.h" />
     <ClInclude Include="src\dock.h" />
     <ClInclude Include="src\file.h" />
-    <ClInclude Include="src\FindDlg.h" />
     <ClInclude Include="src\js\error.h" />
     <ClInclude Include="src\lineinfo.h" />
     <ClInclude Include="src\log.h" />
@@ -166,6 +165,7 @@
     <ClInclude Include="src\js\tagger.h">
       <Filter>js</Filter>
     </ClInclude>
+    <ClInclude Include="src\viewlinecache.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\trv.rc" />
@@ -188,6 +188,9 @@
       <Filter>js</Filter>
     </None>
     <None Include="trv.csi.js">
+      <Filter>js</Filter>
+    </None>
+    <None Include="trv.help.js">
       <Filter>js</Filter>
     </None>
   </ItemGroup>

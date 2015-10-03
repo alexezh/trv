@@ -13,9 +13,6 @@
 #define IDC_TRV                         109
 #define ID_TRACEVIEW                    110
 #define ID_FILTER                       111
-#define IDD_MSGVIEWDLG                  113
-#define IDD_FINDDLG                     116
-#define IDD_PROGRESSDLG                 117
 #define IDD_CONSOLEDLG                  118
 #define IDR_MAINFRAME                   128
 #define IDD_DIALOG1                     131

@@ -471,6 +471,7 @@ LRESULT CTraceView::OnKeyDown(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 //
 LRESULT CTraceView::OnCacheHint(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
+	NMLVCACHEHINT* pCachehint = (NMLVCACHEHINT*) pnmh;
 	return 0;
 }
 
