@@ -57,7 +57,7 @@ private:
 	static void jsSetFocusLine(const FunctionCallbackInfo<Value>& args);
 	static void jsOnRender(const FunctionCallbackInfo<Value>& args);
 
-	void HandleLineRequest(DWORD idx);
+	std::unique_ptr<ViewLine> HandleLineRequest(v8::Isolate* iso, DWORD idx);
 
 private:
 	static Persistent<FunctionTemplate> _Template;

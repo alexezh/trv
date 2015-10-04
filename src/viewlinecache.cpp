@@ -50,7 +50,7 @@ std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
 	return std::make_pair(true, *line);
 }
 
-void ViewLineCache::RegisterLiveAvailableListener(const LiveAvailableHandler& handler)
+void ViewLineCache::RegisterLineAvailableListener(const LiveAvailableHandler& handler)
 {
 	m_OnLineAvailable = handler;
 }

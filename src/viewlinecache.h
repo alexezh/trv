@@ -20,11 +20,10 @@ public:
 	}
 	ViewLine(ViewLine&& other)
 		: m_LineIndex(other.m_LineIndex)
-		, m_Time(other.m_Time)
+		, m_Time(std::move(other.m_Time))
 		, m_ThreadId(other.m_ThreadId)
-		, m_Msg(other.m_Msg)
-		, m_User(other.m_User)
-		, m_Data(std::move(other.m_Data))
+		, m_Msg(std::move(other.m_Msg))
+		, m_User(std::move(other.m_User))
 	{
 	}
 
@@ -34,47 +33,60 @@ public:
 			return *this;
 
 		m_LineIndex = other.m_LineIndex;
-		m_Time = other.m_Time;
+		m_Time = std::move(other.m_Time);
 		m_ThreadId = other.m_ThreadId;
-		m_Msg = other.m_Msg;
-		m_User = other.m_User;
-		m_Data = std::move(other.m_Data);
+		m_Msg = std::move(other.m_Msg);
+		m_User = std::move(other.m_User);
 			
 		return *this;
 	}
-	void SetLineIndex(DWORD line);
+	void SetLineIndex(DWORD line)
+	{
+		m_LineIndex = line;
+	}
 	DWORD GetLineIndex() const
 	{
 		return m_LineIndex;
 	}
-	void SetTime(v8::Utf8Value& val);
-	CStringRef GetTime() const
+	void SetTime(std::string&& val)
+	{
+		m_Time = std::move(val);
+	}
+	const std::string& GetTime() const
 	{
 		return m_Time;
 	}
-	void SetMsg(v8::Utf8Value& val);
-	CStringRef GetMsg() const
+	void SetMsg(std::string&& val)
+	{
+		m_Msg = std::move(val);
+	}
+	const std::string& GetMsg() const
 	{
 		return m_Msg;
 	}
-	void SetThreadId(v8::Utf8Value& val);
-	CStringRef GetThreadId() const
+	void SetThreadId(DWORD val)
+	{
+		m_ThreadId = val;
+	}
+	DWORD GetThreadId() const
 	{
 		return m_ThreadId;
 	}
-	void SetUser1(v8::Utf8Value& val);
-	CStringRef GetUser(size_t idx) const
+	void SetUser(size_t idx, std::string&& val)
+	{
+		m_User[idx] = std::move(val);
+	}
+	const std::string& GetUser(size_t idx) const
 	{
 		return m_User[idx];
 	}
 
 private:
 	DWORD m_LineIndex;
-	CStringRef m_Time;
-	CStringRef m_ThreadId;
-	CStringRef m_Msg;
-	std::array<CStringRef, 4> m_User;
-	std::vector<char> m_Data;
+	DWORD m_ThreadId;
+	std::string m_Time;
+	std::string m_Msg;
+	std::array<std::string, 4> m_User;
 };
 
 class ViewLineCache

@@ -66,9 +66,9 @@ void View::jsNew(const FunctionCallbackInfo<Value> &args)
 
 	args.GetReturnValue().Set(args.This());
 
-	view->m_LineCache->RegisterOnLineAvailable([view](DWORD idx)
+	GetCurrentHost()->RegisterRequestLineHandler([view](Isolate* iso, DWORD idx)
 	{
-		view->HandleLineRequest(idx);
+		view->HandleLineRequest(iso, idx);
 	});
 }
 
@@ -151,33 +151,31 @@ void View::jsOnRender(const FunctionCallbackInfo<Value>& args)
 	pThis->m_OnRender.Reset(Isolate::GetCurrent(), args[0].As<Function>());
 }
 
-void View::HandleLineRequest(DWORD idx)
+std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 {
+	std::unique_ptr<ViewLine> viewLine(new ViewLine());
 	if (m_OnRender.IsEmpty())
 	{
 		// simply copy TraceLine to ViewLine
 	}
 	else
 	{
-		Local<Function> onRender(Isolate::GetCurrent(), m_OnRender);
-		auto idxJs(Integer::New(Isolate::GetCurrent(), idx));
-		auto viewLine = onRender->Call(v8::Isolate::GetCurrent()->GetCurrentContext(), 1, &idxJs);
+		auto& line = GetCurrentHost()->GetLine(idx);
+		viewLine->SetLineIndex(line.Index);
+		viewLine->SetThreadId(line.Tid);
 
-		return obj->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszField));
+		auto onRender = Local<Function>::New(iso, m_OnRender);
+		auto idxJs(Integer::New(Isolate::GetCurrent(), idx).As<Value>());
+		auto viewLineJs = onRender->Call(iso->GetCurrentContext(), 1, &idxJs).As<Object>();
 
-		auto maybeUser = GetObjectField(obj, userName.c_str());
 
-		if (!maybeUser.IsEmpty())
+		viewLine->SetTime(GetPropertyString(iso, viewLineJs, "time"));
+		viewLine->SetMsg(GetPropertyString(iso, viewLineJs, "msg"));
+		viewLine->SetUser(0, GetPropertyString(iso, viewLineJs, "user1"));
+		viewLine->SetUser(1, GetPropertyString(iso, viewLineJs, "user2"));
+		viewLine->SetUser(2, GetPropertyString(iso, viewLineJs, "user3"));
+		viewLine->SetUser(3, GetPropertyString(iso, viewLineJs, "user4"));
 
-		for (int i = 0; i < userA->Length(); i++)
-		{
-			if (!userA->Get(i)->IsString())
-				ThrowSyntaxError("input must be array of strings");
-
-			v8::String::Utf8Value str(userA->Get(i)->ToString());
-			values.push_back(std::string(*str, str.length()));
-		}
- 
 	}
 }
 

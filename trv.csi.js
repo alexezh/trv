@@ -92,7 +92,7 @@ function setupRender()
         // var resTime = timeExp.exec(line.time);
         // simply copy data from input line
         // field name match column names
-        return { line: traceLine.line, tid: traceLine.tid, user1: traceLine.user1, msg: traceLine.msg };
+        return { tid: traceLine.tid, user1: traceLine.user1, msg: traceLine.msg };
     });
 }
 

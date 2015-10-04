@@ -110,4 +110,23 @@ inline v8::MaybeLocal<v8::Value> GetObjectField(v8::Local<v8::Object>& obj, cons
 	return obj->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszField));
 }
 
+inline std::string GetPropertyString(v8::Isolate* iso, v8::Local<v8::Object>& obj, const char* pszField)
+{
+	auto maybeVal = obj->Get(iso->GetCurrentContext(), v8::String::NewFromUtf8(iso, pszField));
+	if (maybeVal.IsEmpty())
+		return std::string();
+
+	v8::String::Utf8Value str(maybeVal.ToLocalChecked()->ToString());
+	return std::string(*str, str.length());
+}
+
+inline int32_t GetPropertyInt32(v8::Isolate* iso, v8::Local<v8::Object>& obj, const char* pszField)
+{
+	auto maybeVal = obj->Get(iso->GetCurrentContext(), v8::String::NewFromUtf8(iso, pszField));
+	if (maybeVal.IsEmpty())
+		return 0;
+
+	return maybeVal.ToLocalChecked()->Int32Value();
+}
+
 } // Js
