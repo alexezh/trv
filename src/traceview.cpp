@@ -72,7 +72,6 @@ CTraceView::CTraceView()
 	: m_nFocusLine(0)
 	, m_fHide(FALSE)
 {
-	m_LineCache = std::make_shared<ViewLineCache>();
 }
 
 CTraceView::~CTraceView()
@@ -167,6 +166,7 @@ LRESULT CTraceView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 	ListView_SetExtendedListViewStyle(m_ListView.m_hWnd, LVS_EX_FULLROWSELECT);
 	ListView_SetItemCount(m_ListView.m_hWnd, 0);
 
+	m_LineCache = std::make_shared<ViewLineCache>(m_pApp, m_pApp->PJsHost());
 	m_LineCache->RegisterLineAvailableListener([this](DWORD idx)
 	{
 		// translate file line indexes to view indexes

@@ -66,9 +66,9 @@ void View::jsNew(const FunctionCallbackInfo<Value> &args)
 
 	args.GetReturnValue().Set(args.This());
 
-	GetCurrentHost()->RegisterRequestLineHandler([view](Isolate* iso, DWORD idx)
+	GetCurrentHost()->RegisterRequestLineHandler([view](Isolate* iso, DWORD idx) -> std::unique_ptr<ViewLine>
 	{
-		view->HandleLineRequest(iso, idx);
+		return view->HandleLineRequest(iso, idx);
 	});
 }
 
@@ -166,7 +166,7 @@ std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 
 		auto onRender = Local<Function>::New(iso, m_OnRender);
 		auto idxJs(Integer::New(Isolate::GetCurrent(), idx).As<Value>());
-		auto viewLineJs = onRender->Call(iso->GetCurrentContext(), 1, &idxJs).As<Object>();
+		auto viewLineJs = onRender->Call(iso->GetCurrentContext()->Global(), 1, &idxJs).As<Object>();
 
 
 		viewLine->SetTime(GetPropertyString(iso, viewLineJs, "time"));
@@ -176,6 +176,7 @@ std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 		viewLine->SetUser(2, GetPropertyString(iso, viewLineJs, "user3"));
 		viewLine->SetUser(3, GetPropertyString(iso, viewLineJs, "user4"));
 
+		return viewLine;
 	}
 }
 

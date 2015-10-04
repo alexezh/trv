@@ -2,6 +2,7 @@
 
 #include <array>
 #include "blockarray.h"
+#include "dispatchqueue.h"
 
 namespace v8 {
 class Utf8Value;
@@ -18,12 +19,22 @@ public:
 	{
 
 	}
+
 	ViewLine(ViewLine&& other)
 		: m_LineIndex(other.m_LineIndex)
 		, m_Time(std::move(other.m_Time))
 		, m_ThreadId(other.m_ThreadId)
 		, m_Msg(std::move(other.m_Msg))
 		, m_User(std::move(other.m_User))
+	{
+	}
+
+	ViewLine(const ViewLine& other)
+		: m_LineIndex(other.m_LineIndex)
+		, m_Time(other.m_Time)
+		, m_ThreadId(other.m_ThreadId)
+		, m_Msg(other.m_Msg)
+		, m_User(other.m_User)
 	{
 	}
 
@@ -40,6 +51,7 @@ public:
 			
 		return *this;
 	}
+
 	void SetLineIndex(DWORD line)
 	{
 		m_LineIndex = line;
@@ -95,7 +107,7 @@ public:
 	using LiveAvailableHandler = std::function<void(DWORD idx)>;
 	using LineRequestedHandler = std::function<void(DWORD idx)>;
 
-	ViewLineCache(Js::IAppHost* host);
+	ViewLineCache(IDispatchQueue* uiQueue, Js::IAppHost* host);
 
 	std::pair<bool, const ViewLine&> GetLine(DWORD idx);
 
@@ -117,6 +129,7 @@ public:
 		return idx;
 	}
 	void SetLine(DWORD idx, ViewLine&& line);
+	void SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line);
 
 	void StartGeneration();
 
@@ -127,8 +140,8 @@ private:
 
 	std::vector<DWORD> m_RequestedLines;
 	Js::IAppHost* m_Host;
+	IDispatchQueue* m_UiQueue;
 
 	CSparseBlockArray<std::unique_ptr<ViewLine>, 1024 * 32> m_Cache;
 	LiveAvailableHandler m_OnLineAvailable;
-	LineRequestedHandler m_OnLineRequested;
 };

@@ -25,14 +25,27 @@
 #include "viewlinecache.h"
 #include "js/apphost.h"
 
-ViewLineCache::ViewLineCache(Js::IAppHost* host)
+ViewLineCache::ViewLineCache(IDispatchQueue* uiQueue, Js::IAppHost* host)
 {
+	m_UiQueue = uiQueue;
 	m_Host = host;
 }
 
 void ViewLineCache::SetLine(DWORD idx, ViewLine&& line)
 {
-	m_Cache.Set(idx, std::unique_ptr<ViewLine>(new ViewLine(std::move(line))));
+	SetLine(idx, std::unique_ptr<ViewLine>(new ViewLine(std::move(line))));
+}
+
+void ViewLineCache::SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line)
+{
+	m_Cache.Set(idx, std::move(line));
+	m_UiQueue->Post([this, idx]()
+	{
+		if (!m_OnLineAvailable)
+			return;
+
+		m_OnLineAvailable(idx);
+	});
 }
 
 std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
