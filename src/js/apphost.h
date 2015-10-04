@@ -25,6 +25,9 @@
 
 struct CStringRef;
 class CBitSet;
+class ViewLineCache;
+class ViewLine;
+
 namespace Js {
 
 class View;
@@ -64,6 +67,9 @@ public:
 	virtual void RefreshView() = 0;
 	virtual void SetViewSource(const std::shared_ptr<CBitSet>& scope) = 0;
 	virtual void SetFocusLine(DWORD nLine) = 0;
+
+	virtual void RequestViewLine() = 0;
+	virtual void RegisterRequestLineHandler(const std::function<std::unique_ptr<ViewLine>(v8::Isolate*, DWORD idx)>&) = 0;
 
 	// console access
 	virtual void OutputLine(const char * psz) = 0;

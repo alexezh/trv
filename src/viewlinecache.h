@@ -7,6 +7,10 @@ namespace v8 {
 class Utf8Value;
 }
 
+namespace Js {
+class IAppHost;
+}
+
 class ViewLine
 {
 public:
@@ -76,27 +80,43 @@ private:
 class ViewLineCache
 {
 public:
-	using ChangeHandler = std::function<void(DWORD idxStart, DWORD idxEnd)>;
+	using LiveAvailableHandler = std::function<void(DWORD idx)>;
+	using LineRequestedHandler = std::function<void(DWORD idx)>;
+
+	ViewLineCache(Js::IAppHost* host);
+
+	std::pair<bool, const ViewLine&> GetLine(DWORD idx);
+
+	bool HaveLineRequests()
+	{
+		std::lock_guard<std::mutex> guard(m_Lock);
+		return m_RequestedLines.size() != 0;
+	}
+
+	static const DWORD NoLine = static_cast<DWORD>(-1);
+	DWORD GetNextRequestedLine()
+	{
+		std::lock_guard<std::mutex> guard(m_Lock);
+		if (m_RequestedLines.size() == 0)
+			return NoLine;
+
+		DWORD idx = m_RequestedLines.back();
+		m_RequestedLines.pop_back();
+		return idx;
+	}
+	void SetLine(DWORD idx, ViewLine&& line);
 
 	void StartGeneration();
 
-	// Set can be called on any thread
-	// Clear and Get should be called on a single thread or at least
-	// code should not access ViewLine after ClearRange call
-	void SetLine(DWORD idx, ViewLine&& line);
-	void ClearRange(DWORD idxStart, DWORD idxEnd);
-	const ViewLine& GetLine(DWORD idx);
-
-	void RegisterChangeListener(const ChangeHandler& handler);
+	void RegisterLineAvailableListener(const LiveAvailableHandler& handler);
 
 private:
 	std::mutex m_Lock;
 
-	// 
-	size_t m_IdxGenStart;
-	size_t m_IdxGenEnd;
+	std::vector<DWORD> m_RequestedLines;
+	Js::IAppHost* m_Host;
 
-	//	std::lock_guard<std::mutex> guard(Lock);
 	CSparseBlockArray<std::unique_ptr<ViewLine>, 1024 * 32> m_Cache;
-	ChangeHandler m_OnCachedChanged;
+	LiveAvailableHandler m_OnLineAvailable;
+	LineRequestedHandler m_OnLineRequested;
 };

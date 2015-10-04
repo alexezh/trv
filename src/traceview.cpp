@@ -167,7 +167,7 @@ LRESULT CTraceView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 	ListView_SetExtendedListViewStyle(m_ListView.m_hWnd, LVS_EX_FULLROWSELECT);
 	ListView_SetItemCount(m_ListView.m_hWnd, 0);
 
-	m_LineCache->RegisterChangeListener([this](DWORD idxStart, DWORD idxEnd)
+	m_LineCache->RegisterLineAvailableListener([this](DWORD idx)
 	{
 		// translate file line indexes to view indexes
 		if (m_ActiveLines.size() > 0)
@@ -177,9 +177,8 @@ LRESULT CTraceView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 		}
 		else
 		{
-			for (DWORD i = idxStart; i < idxEnd; i++)
-				ListView_Update(m_ListView.m_hWnd, i);
-
+			// view index is the same as line index
+			ListView_Update(m_ListView.m_hWnd, idx);
 		}
 	});
 

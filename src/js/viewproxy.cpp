@@ -65,6 +65,11 @@ void View::jsNew(const FunctionCallbackInfo<Value> &args)
 	GetCurrentHost()->OnViewCreated(view);
 
 	args.GetReturnValue().Set(args.This());
+
+	view->m_LineCache->RegisterOnLineAvailable([view](DWORD idx)
+	{
+		view->HandleLineRequest(idx);
+	});
 }
 
 void View::jsSetSource(const FunctionCallbackInfo<Value>& args)
@@ -144,6 +149,36 @@ void View::jsOnRender(const FunctionCallbackInfo<Value>& args)
 
 	auto pThis = UnwrapThis<View>(args.This());
 	pThis->m_OnRender.Reset(Isolate::GetCurrent(), args[0].As<Function>());
+}
+
+void View::HandleLineRequest(DWORD idx)
+{
+	if (m_OnRender.IsEmpty())
+	{
+		// simply copy TraceLine to ViewLine
+	}
+	else
+	{
+		Local<Function> onRender(Isolate::GetCurrent(), m_OnRender);
+		auto idxJs(Integer::New(Isolate::GetCurrent(), idx));
+		auto viewLine = onRender->Call(v8::Isolate::GetCurrent()->GetCurrentContext(), 1, &idxJs);
+
+		return obj->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), pszField));
+
+		auto maybeUser = GetObjectField(obj, userName.c_str());
+
+		if (!maybeUser.IsEmpty())
+
+		for (int i = 0; i < userA->Length(); i++)
+		{
+			if (!userA->Get(i)->IsString())
+				ThrowSyntaxError("input must be array of strings");
+
+			v8::String::Utf8Value str(userA->Get(i)->ToString());
+			values.push_back(std::string(*str, str.length()));
+		}
+ 
+	}
 }
 
 void View::jsCurrentLineGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

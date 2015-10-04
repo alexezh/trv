@@ -128,6 +128,11 @@ public:
 		return m_ListView.SetFocus();
 	}
 
+	const std::shared_ptr<ViewLineCache>& GetLineCache()
+	{
+		return m_LineCache;
+	}
+
 	// IClipboardHandler
 	void OnCopy() override;
 

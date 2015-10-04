@@ -327,7 +327,7 @@ LRESULT CTraceApp::OnSetFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void CTraceApp::PostWork(const std::function<void()> & func)
+void CTraceApp::Post(const std::function<void()> & func)
 {
 	auto item = make_unique<std::function<void()> >(func);
 	PostMessage(WM_QUEUE_WORK, 0, (LPARAM) item.release());

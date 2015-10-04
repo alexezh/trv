@@ -151,7 +151,7 @@ void JsHost::ScriptThread()
 	for(;;)
 	{
 		WaitForSingleObject(_hSem, INFINITE);
-		std::unique_ptr<std::function<void(Isolate*)> > item;
+		std::function<void(Isolate*)> item;
 
 		{
 			AutoCS lock(_cs);
@@ -159,7 +159,7 @@ void JsHost::ScriptThread()
 			_InputQueue.pop();
 		}
 
-		(*item)(isolate);
+		item(isolate);
 
 		for(;;)
 		{
@@ -237,7 +237,7 @@ void JsHost::ReportException(Isolate* isolate, TryCatch& trycatch)
 	OutputLine(ss.str().c_str());
 }
 
-void JsHost::QueueInput(std::unique_ptr<std::function<void(Isolate* iso)> > && item)
+void JsHost::QueueInput(std::function<void(Isolate* iso)> && item)
 {
 	{
 		AutoCS lock(_cs);
@@ -256,23 +256,19 @@ void JsHost::ProcessInputLine(const char * pszLine)
 		return;
 	}
 
-	auto call = make_unique<std::function<void(Isolate* iso)>>([this, line](Isolate* iso) 
+	QueueInput([this, line](Isolate* iso)
 	{
 		ExecuteString(iso, line);
 	});
-
-	QueueInput(std::move(call));
 }
 
 void JsHost::ProcessAccelerator(uint8_t modifier, uint16_t key)
 {
-	auto call = make_unique<std::function<void(Isolate* iso)>>([this, modifier, key](Isolate* iso)
+	QueueInput([this, modifier, key](Isolate* iso)
 	{
 		if (_pShortcuts)
 			_pShortcuts->Execute(iso, modifier, key);
 	});
-
-	QueueInput(std::move(call));
 }
 
 size_t JsHost::GetHistoryCount()
@@ -297,7 +293,7 @@ BYTE JsHost::GetLineColor(DWORD dwLine)
 
 void JsHost::AddShortcut(uint8_t modifier, uint16_t key)
 {
-	_pApp->PostWork([this, modifier, key]()
+	_pApp->Post([this, modifier, key]()
 	{
 		_pApp->AddShortcut(modifier, key);
 	});
@@ -305,7 +301,7 @@ void JsHost::AddShortcut(uint8_t modifier, uint16_t key)
 
 void JsHost::ConsoleSetConsole(const std::string& szText)
 {
-	_pApp->PostWork([this, szText]()
+	_pApp->Post([this, szText]()
 	{
 		_pApp->PCommandView()->SetText(szText);
 	});
@@ -313,7 +309,7 @@ void JsHost::ConsoleSetConsole(const std::string& szText)
 
 void JsHost::ConsoleSetFocus()
 {
-	_pApp->PostWork([this]()
+	_pApp->Post([this]()
 	{
 		_pApp->PCommandView()->SetFocus();
 	});
@@ -391,7 +387,7 @@ void JsHost::OutputLine(const char * psz)
 	// output view expects call on app thread 
 	std::string sz(psz);
 
-	_pApp->PostWork([this, sz]() 
+	_pApp->Post([this, sz]() 
 	{
 		_pApp->POutputView()->OutputLineA(sz.c_str());
 	});
@@ -399,7 +395,7 @@ void JsHost::OutputLine(const char * psz)
 
 void JsHost::SetViewLayout(double cmdHeight, double outHeight)
 {
-	_pApp->PostWork([this, cmdHeight, outHeight]() 
+	_pApp->Post([this, cmdHeight, outHeight]() 
 	{
 		_pApp->SetDockLayout(cmdHeight, outHeight);
 	});
@@ -454,7 +450,7 @@ void JsHost::SetColumns(const std::vector<std::string>& names)
 		ids.push_back(id);
 	}
 
-	_pApp->PostWork([this, ids]()
+	_pApp->Post([this, ids]()
 	{
 		_pApp->SetTraceColumns(ids);
 	});
@@ -463,7 +459,7 @@ void JsHost::SetColumns(const std::vector<std::string>& names)
 void JsHost::LoadTrace(const char* pszName, int startPos, int endPos)
 {
 	std::string name(pszName);
-	_pApp->PostWork([this, name, startPos, endPos]() 
+	_pApp->Post([this, name, startPos, endPos]() 
 	{
 		_pApp->LoadFile(name, startPos, endPos);
 	});
@@ -476,7 +472,7 @@ std::shared_ptr<CTraceSource> JsHost::GetFileTraceSource()
 
 void JsHost::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 {
-	_pApp->PostWork([this, lines]()
+	_pApp->Post([this, lines]()
 	{
 		_pApp->PTraceView()->SetViewSource(lines);
 	});
@@ -484,7 +480,7 @@ void JsHost::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 
 void JsHost::SetFocusLine(DWORD nLine)
 {
-	_pApp->PostWork([this, nLine]()
+	_pApp->Post([this, nLine]()
 	{
 		_pApp->PTraceView()->SetFocusLine(nLine);
 	});
@@ -523,10 +519,31 @@ size_t JsHost::GetCurrentLine()
 
 void JsHost::RefreshView()
 {
-	_pApp->PostWork([this]() 
+	_pApp->Post([this]() 
 	{
 		_pApp->PTraceView()->Repaint();
 	});
+}
+
+void JsHost::RequestViewLine()
+{
+	QueueInput([this](Isolate* iso)
+	{
+		if (!m_RequestLineHandler)
+			return;
+
+		DWORD idx = _pApp->PTraceView()->GetLineCache()->GetNextRequestedLine();
+		if (idx == ViewLineCache::NoLine)
+			return;
+
+		auto line = m_RequestLineHandler(iso, idx);
+		_pApp->PTraceView()->GetLineCache()->SetLine(idx, std::move(line));
+	});
+}
+
+void JsHost::RegisterRequestLineHandler(const std::function<std::unique_ptr<ViewLine>(v8::Isolate*, DWORD idx)>& handler)
+{
+	m_RequestLineHandler = handler;
 }
 
 bool JsHost::SetTraceFormat(const char * pszFormat, const char* pszSep)
@@ -537,7 +554,7 @@ bool JsHost::SetTraceFormat(const char * pszFormat, const char* pszSep)
 		return false;
 	}
 
-	_pApp->PostWork([this]()
+	_pApp->Post([this]()
 	{
 		_pApp->PTraceView()->Repaint();
 	});

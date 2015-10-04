@@ -98,6 +98,8 @@ public:
 	void RefreshView() override;
 	void SetViewSource(const std::shared_ptr<CBitSet>& scope) override;
 	void SetFocusLine(DWORD nLine) override;
+	void RequestViewLine() override;
+	void RegisterRequestLineHandler(const std::function<std::unique_ptr<ViewLine>(v8::Isolate*, DWORD idx)>&) override;
 
 	// console access
 	void OutputLine(const char * psz) override;
@@ -108,7 +110,7 @@ public:
 
 private:
 	std::string GetKnownPath(REFKNOWNFOLDERID id);
-	void QueueInput(std::unique_ptr<std::function<void(v8::Isolate*)> > && item);
+	void QueueInput(std::function<void(v8::Isolate*)> && item);
 	void ExecuteString(v8::Isolate* isolate, const std::string & line);
 	void ExecuteStringAsDotExpression(v8::Isolate* iso, const std::string & line);
 	void ExecuteStringAsScript(v8::Isolate* iso, const std::string & line);
@@ -121,7 +123,7 @@ private:
 
 	HANDLE _hSem;
 	CRITICAL_SECTION _cs;
-	std::queue<std::unique_ptr<std::function<void(v8::Isolate*)> > > _InputQueue;
+	std::queue<std::function<void(v8::Isolate*)> > _InputQueue;
 
 	std::shared_ptr<CTraceSource> _pFileTraceSource;
 
@@ -133,6 +135,7 @@ private:
 	v8::UniquePersistent<v8::ObjectTemplate> _Global;
 	v8::UniquePersistent<v8::Context> _Context;
 
+	std::function<std::unique_ptr<ViewLine>(v8::Isolate*, DWORD idx)> m_RequestLineHandler;
 	std::string m_AppDataPath;
 };
 

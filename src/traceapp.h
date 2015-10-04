@@ -25,6 +25,8 @@
 #include "dock.h"
 #include "file.h"
 #include "clipboard.h"
+#include "dispatchqueue.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 // external classes
 class CTraceApp;
@@ -44,6 +46,7 @@ enum class ColumnId;
 class CTraceApp
 	: public CWindowImpl<CTraceApp>
 	, public CTraceFileLoadCallback
+	, public IDispatchQueue
 {
 public:
 	CTraceApp();
@@ -147,7 +150,8 @@ public:
 	}
 
 	// post work to app thread
-	void PostWork(const std::function<void()> & func);
+	void Post(const std::function<void()> & func) override;
+
 	void SetDockLayout(double cmdHeight, double outHeight);
 	void SetTraceColumns(const std::vector<ColumnId>& columns);
 

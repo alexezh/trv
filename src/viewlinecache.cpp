@@ -23,30 +23,35 @@
 #include <strsafe.h>
 #include "traceapp.h"
 #include "viewlinecache.h"
+#include "js/apphost.h"
+
+ViewLineCache::ViewLineCache(Js::IAppHost* host)
+{
+	m_Host = host;
+}
 
 void ViewLineCache::SetLine(DWORD idx, ViewLine&& line)
 {
 	m_Cache.Set(idx, std::unique_ptr<ViewLine>(new ViewLine(std::move(line))));
 }
 
-void ViewLineCache::ClearRange(DWORD idxStart, DWORD idxEnd)
-{
-
-}
-
-const ViewLine& ViewLineCache::GetLine(DWORD idx)
+std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
 {
 	auto& line = m_Cache.GetAt(idx);
 	if (line == nullptr)
 	{
+		m_RequestedLines.push_back(idx);
+		m_Host->RequestViewLine();
+
 		static ViewLine emptyLine;
-		return emptyLine;
+		return std::make_pair(false, emptyLine);
 	}
 
-	return *line;
+	return std::make_pair(true, *line);
 }
 
-void ViewLineCache::RegisterChangeListener(const ChangeHandler& handler)
+void ViewLineCache::RegisterLiveAvailableListener(const LiveAvailableHandler& handler)
 {
-	m_OnCachedChanged = handler;
+	m_OnLineAvailable = handler;
 }
+
