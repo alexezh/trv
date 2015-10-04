@@ -46,9 +46,9 @@ void TraceLine::Init(Isolate* iso)
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "time"), jsTimeGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "thread"), jsThreadGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "user1"), jsUser1Getter);
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[1]"), jsUser2Getter);
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[2]"), jsUser3Getter);
-	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "User[3]"), jsUser4Getter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "user2"), jsUser2Getter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "user3"), jsUser3Getter);
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "user4"), jsUser4Getter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "msg"), jsMsgGetter);
 	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "content"), jsContentGetter);
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));

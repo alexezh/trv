@@ -72,6 +72,7 @@ CTraceView::CTraceView()
 	: m_nFocusLine(0)
 	, m_fHide(FALSE)
 {
+	m_LineCache = std::make_shared<ViewLineCache>();
 }
 
 CTraceView::~CTraceView()
@@ -165,6 +166,22 @@ LRESULT CTraceView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 	//set the number of items in the list
 	ListView_SetExtendedListViewStyle(m_ListView.m_hWnd, LVS_EX_FULLROWSELECT);
 	ListView_SetItemCount(m_ListView.m_hWnd, 0);
+
+	m_LineCache->RegisterChangeListener([this](DWORD idxStart, DWORD idxEnd)
+	{
+		// translate file line indexes to view indexes
+		if (m_ActiveLines.size() > 0)
+		{
+			// for (DWORD i = idxStart; i < idxEnd; i++)
+			assert(false);
+		}
+		else
+		{
+			for (DWORD i = idxStart; i < idxEnd; i++)
+				ListView_Update(m_ListView.m_hWnd, i);
+
+		}
+	});
 
 Cleanup:
 
@@ -304,6 +321,7 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 	if (lpdi->item.mask & LVIF_TEXT)
 	{
 		const LineInfo& line = m_pSource->GetLine(nLine);
+
 		auto desc = m_pSource->GetDesc();
 		ColumnId id = m_Columns[lpdi->item.iSubItem];
 		switch (id)

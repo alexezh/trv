@@ -24,3 +24,29 @@
 #include "traceapp.h"
 #include "viewlinecache.h"
 
+void ViewLineCache::SetLine(DWORD idx, ViewLine&& line)
+{
+	m_Cache.Set(idx, std::unique_ptr<ViewLine>(new ViewLine(std::move(line))));
+}
+
+void ViewLineCache::ClearRange(DWORD idxStart, DWORD idxEnd)
+{
+
+}
+
+const ViewLine& ViewLineCache::GetLine(DWORD idx)
+{
+	auto& line = m_Cache.GetAt(idx);
+	if (line == nullptr)
+	{
+		static ViewLine emptyLine;
+		return emptyLine;
+	}
+
+	return *line;
+}
+
+void ViewLineCache::RegisterChangeListener(const ChangeHandler& handler)
+{
+	m_OnCachedChanged = handler;
+}

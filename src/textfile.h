@@ -90,7 +90,7 @@ public:
 	// The count can change as we add more data at the end or in the beginning
 	DWORD GetLineCount() override
 	{
-		return m_Lines.GetCount();
+		return m_Lines.GetSize();
 	}
 
 	const LineInfoDesc& GetDesc() override

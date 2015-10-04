@@ -23,6 +23,7 @@
 #include "resource.h"
 #include "persist.h"
 #include "clipboard.h"
+#include "viewlinecache.h"
 
 class CTraceSource;
 
@@ -193,6 +194,8 @@ private:
 
 	// map from filtered lines to source lines
 	std::vector<DWORD> m_ActiveLines;
+
+	std::shared_ptr<ViewLineCache> m_LineCache;
 
 	// current selected line
 	DWORD m_nFocusLine;

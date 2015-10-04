@@ -20,48 +20,46 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
-#include "bitset.h"
+#include "strstr.h"
+#include "stringref.h"
+#include "lineinfo.h"
 #include "objectwrap.h"
-#include "js/query.h"
 #include "viewlinecache.h"
 
-using namespace v8;
+class CBitSet;
 
 namespace Js {
 
-// TODO: rename to TraceViewProxy
-class View;
-class FilterItem;
-
-class View : public BaseObject<View>
+class RenderLine : public BaseObject<RenderLine> 
 {
 public:
-	static void Init(Isolate* iso);
-	static Local<FunctionTemplate> GetTemplate(Isolate* iso) 
-	{ 
-		return Local<FunctionTemplate>::New(iso, _Template);
+	static void Init(v8::Isolate* iso);
+	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
+	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
+	{
+		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);
 	}
 
-	void RefreshView();
-private:
-	View(const Local<Object>& handle);
-
-	static void jsNew(const FunctionCallbackInfo<Value> &args);
-	static void jsSetSource(const FunctionCallbackInfo<Value>& args);
-
-	static void jsCurrentLineGetter(Local<String> property, const PropertyCallbackInfo<Value>& info);
-	static void jsGetSelected(const FunctionCallbackInfo<Value>& args);
-
-	static void jsSetViewLayout(const FunctionCallbackInfo<Value>& args);
-	static void jsSetColumns(const FunctionCallbackInfo<Value>& args);
-	static void jsSetFocusLine(const FunctionCallbackInfo<Value>& args);
-	static void jsOnRender(const FunctionCallbackInfo<Value>& args);
+	const LineInfo& Line() { return _Line; }
 
 private:
-	static Persistent<FunctionTemplate> _Template;
-	v8::UniquePersistent<Function> m_OnRender;
-	std::shared_ptr<ViewLineCache> m_LineCache;
+	RenderLine(const v8::Handle<v8::Object>& handle, int lineNum);
+
+	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
+
+	static void jsGetUser(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsIndexGetter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsTimeGetter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsThreadGetter(v8::Local<v8::String> property,
+												const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void jsMsgGetter(v8::Local<v8::String> property,
+		const v8::PropertyCallbackInfo<v8::Value>& info);
+
+private:
+	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
+	ViewLine _Line;
 };
 
 } // Js
-

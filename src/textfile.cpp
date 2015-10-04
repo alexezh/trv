@@ -318,7 +318,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 				}
 
 				// pszCur points after pszCurW so we do not need +1
-				m_Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine), m_Lines.GetCount()));
+				m_Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine), m_Lines.GetSize()));
 				pszLineW = pszCurW + 1;
 			}
 		}
@@ -339,7 +339,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 
 			if (crcn == 0x0d0a)
 			{
-				m_Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine + 1), m_Lines.GetCount()));
+				m_Lines.Add(LineInfo(CStringRef(pszLine, pszCur - pszLine + 1), m_Lines.GetSize()));
 				pszLine = pszCur + 1;
 			}
 		}
@@ -349,7 +349,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 	}
 
 	// we are parsing under lock; it is safe to adjust the size
-	m_LineParsed.Resize(m_Lines.GetCount());
+	m_LineParsed.Resize(m_Lines.GetSize());
 
 	//Cleanup:
 
@@ -361,7 +361,7 @@ HRESULT CTextTraceFile::ParseBlock(LoadBlock * pBlock, DWORD nStart, DWORD nStop
 const LineInfo& CTextTraceFile::GetLine(DWORD nIndex)
 {
 	LockGuard guard(m_Lock);
-	if (nIndex >= m_Lines.GetCount())
+	if (nIndex >= m_Lines.GetSize())
 	{
 		static LineInfo line;
 		return line;

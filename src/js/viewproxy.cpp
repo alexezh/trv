@@ -38,7 +38,6 @@ Persistent<FunctionTemplate> View::_Template;
 ///////////////////////////////////////////////////////////////////////////////
 //
 View::View(const v8::Handle<v8::Object>& handle)
-	: _ShowFilters(true)
 {
 	Wrap(handle);
 }
@@ -54,9 +53,6 @@ void View::Init(Isolate* iso)
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setColumns"), FunctionTemplate::New(iso, jsSetColumns));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setSource"), FunctionTemplate::New(iso, jsSetSource));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setFocusLine"), FunctionTemplate::New(iso, jsSetFocusLine));
-
-	tmpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(iso, "showFilters"), jsShowFiltersGetter, jsShowFiltersSetter);
-	tmpl->InstanceTemplate()->SetAccessor(String::NewFromUtf8(iso, "currentLine"), jsCurrentLineGetter);
 
 	_Template.Reset(iso, tmpl);
 
@@ -141,17 +137,13 @@ void View::jsSetFocusLine(const FunctionCallbackInfo<Value>& args)
 	GetCurrentHost()->SetFocusLine(args[0]->IntegerValue());
 }
 
-void View::jsShowFiltersGetter(Local<String> property, const PropertyCallbackInfo<v8::Value>& info)
+void View::jsOnRender(const FunctionCallbackInfo<Value>& args)
 {
-	auto pThis = UnwrapThis<View>(info.This());
-	info.GetReturnValue().Set(Boolean::New(Isolate::GetCurrent(), pThis->_ShowFilters));
-}
+	if (args.Length() != 1 || !(args[0]->IsFunction() || args[0]->IsNull()))
+		ThrowSyntaxError("expected $v.onRender(function)");
 
-void View::jsShowFiltersSetter(Local<String> property, Local<Value> value,
-							const PropertyCallbackInfo<void>& info)
-{
-	auto pThis = UnwrapThis<View>(info.This());
-	pThis->ShowFiltersWorker(value->BooleanValue());
+	auto pThis = UnwrapThis<View>(args.This());
+	pThis->m_OnRender.Reset(Isolate::GetCurrent(), args[0].As<Function>());
 }
 
 void View::jsCurrentLineGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -167,13 +159,6 @@ void View::jsGetSelected(const FunctionCallbackInfo<Value>& args)
 
 void View::RefreshView()
 {
-	GetCurrentHost()->RefreshView();
-}
-
-void View::ShowFiltersWorker(bool val)
-{
-	LOG("@%p show=%d", this, (int)val);
-	_ShowFilters = val;
 	GetCurrentHost()->RefreshView();
 }
 

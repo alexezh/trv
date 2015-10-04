@@ -82,11 +82,16 @@ function exlcudeLines(condition) {
     $.trace.setScope(scopeColl);
 }
 
+function renderLine(idx, tid, time, sub, message) {
+    this.idx = idx;
+}
 function setupRender()
 {
     var timeExp = /\s+\S([:\.\d]+)/;
-    $.view.onRender("time", function (time) {
-        var res = timeExp.exec(time);
+    $.view.onRender(function (line) {
+        var resTime = timeExp.exec(line.time);
+        return 
+        line.time;
         return res[0];
     });
 }

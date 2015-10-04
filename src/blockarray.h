@@ -26,14 +26,16 @@ template <class T, size_t itemsPerBlock>
 class CSparseBlockArray
 {
 private:
+	// TODO. add bitmask and track removed items
 	struct BLOCK
 	{
 		size_t nItems = 0;
 		T Items[itemsPerBlock];
 
-		void Set(size_t idx, const T& val)
+		template <class U>
+		void Set(size_t idx, U&& val)
 		{
-			Items[idx] = val;
+			Items[idx] = std::forward<U>(val);
 			nItems++;
 		}
 		void Reset(size_t idx)
@@ -56,7 +58,8 @@ public:
 		m_nItems = 0;
 	}
 
-	void Add(const T & Elem)
+	template <class U>
+	void Add(U && Elem)
 	{
 		if (m_nSize == (m_Blocks.size() * itemsPerBlock))
 		{
@@ -67,11 +70,23 @@ public:
 
 		auto& pBlock = GetBlock(m_nSize);
 
-		pBlock->Set(m_nSize % itemsPerBlock, Elem);
+		pBlock->Set(m_nSize % itemsPerBlock, std::forward<U>(Elem));
 		m_nItems++;
 		m_nSize++;
 	}
 	 
+	template <class U>
+	void Set(size_t idx, U && Elem)
+	{
+		if (idx >= m_nSize)
+			throw std::range_error("incorrect range");
+
+		auto& pBlock = GetBlock(idx);
+
+		pBlock->Set(m_nSize % itemsPerBlock, std::forward<U>(Elem));
+		m_nItems++;
+	}
+
 	// resets item to default value
 	void Reset(size_t index)
 	{
@@ -92,7 +107,24 @@ public:
 		return pBlock->Items[nIndex % itemsPerBlock];
 	}
 
-	DWORD GetCount()
+	void Resize(size_t newSize)
+	{
+		size_t newBlocks = newSize / itemsPerBlock + 1;
+		size_t oldBlocks = m_Blocks.size();
+
+		m_Blocks.resize(blocks);
+		for (size_t i = oldBlocks; i < newBlocks; i++)
+		{
+			m_Blocks[i].reset(new BLOCK());
+		}
+	}
+
+	DWORD GetSize()
+	{
+		return m_nSize;
+	}
+
+	DWORD GetItemCount()
 	{
 		return m_nItems;
 	}
