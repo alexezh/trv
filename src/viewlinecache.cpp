@@ -31,15 +31,23 @@ ViewLineCache::ViewLineCache(IDispatchQueue* uiQueue, Js::IAppHost* host)
 	m_Host = host;
 }
 
-void ViewLineCache::SetLine(DWORD idx, ViewLine&& line)
+bool ViewLineCache::ProcessNextLine(const std::function<std::unique_ptr<ViewLine>(DWORD)>& func)
 {
-	SetLine(idx, std::unique_ptr<ViewLine>(new ViewLine(std::move(line))));
-}
+	DWORD idx;
+	{
+		std::lock_guard<std::mutex> guard(m_Lock);
+		if (m_RequestedLines.size() == 0)
+			return false;
 
-void ViewLineCache::SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line)
-{
-	std::lock_guard<std::mutex> guard(m_Lock);
-	m_Cache.Set(idx, std::move(line));
+		idx = m_RequestedLines.back();
+		auto& line = func(idx);
+		m_Cache.Set(idx, std::move(line));
+
+		// remove line from list and map
+		m_RequestedLines.pop_back();
+		m_RequestedMap.erase(idx);
+	}
+
 	m_UiQueue->Post([this, idx]()
 	{
 		if (!m_OnLineAvailable)
@@ -47,19 +55,28 @@ void ViewLineCache::SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line)
 
 		m_OnLineAvailable(idx);
 	});
+
+	return true;
 }
 
 std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
 {
+	std::lock_guard<std::mutex> guard(m_Lock);
 	const ViewLine* line = nullptr;
 	if(idx < m_Cache.GetSize())
 		line = m_Cache.GetAt(idx).get();
 
-	if (line == nullptr)
+	if (line == nullptr && m_RequestedMap.find(idx) == m_RequestedMap.end())
 	{
 		m_RequestedLines.push_back(idx);
+		m_RequestedMap.insert(idx);
+
 		m_Host->RequestViewLine();
 
+	}
+
+	if (line == nullptr)
+	{
 		static ViewLine emptyLine;
 		return std::make_pair(false, emptyLine);
 	}

@@ -532,12 +532,10 @@ void JsHost::RequestViewLine()
 		if (!m_RequestLineHandler)
 			return;
 
-		DWORD idx = _pApp->PTraceView()->GetLineCache()->GetNextRequestedLine();
-		if (idx == ViewLineCache::NoLine)
-			return;
-
-		auto line = m_RequestLineHandler(iso, idx);
-		_pApp->PTraceView()->GetLineCache()->SetLine(idx, std::move(line));
+		_pApp->PTraceView()->GetLineCache()->ProcessNextLine([iso, this](DWORD idx)
+		{
+			return m_RequestLineHandler(iso, idx);
+		});
 	});
 }
 

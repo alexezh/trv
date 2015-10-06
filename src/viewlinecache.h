@@ -3,6 +3,7 @@
 #include <array>
 #include "blockarray.h"
 #include "dispatchqueue.h"
+#include "bitset.h"
 
 namespace v8 {
 class Utf8Value;
@@ -111,25 +112,15 @@ public:
 
 	std::pair<bool, const ViewLine&> GetLine(DWORD idx);
 
+	static const DWORD NoLine = static_cast<DWORD>(-1);
+
 	bool HaveLineRequests()
 	{
 		std::lock_guard<std::mutex> guard(m_Lock);
 		return m_RequestedLines.size() != 0;
 	}
 
-	static const DWORD NoLine = static_cast<DWORD>(-1);
-	DWORD GetNextRequestedLine()
-	{
-		std::lock_guard<std::mutex> guard(m_Lock);
-		if (m_RequestedLines.size() == 0)
-			return NoLine;
-
-		DWORD idx = m_RequestedLines.back();
-		m_RequestedLines.pop_back();
-		return idx;
-	}
-	void SetLine(DWORD idx, ViewLine&& line);
-	void SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line);
+	bool ProcessNextLine(const std::function<std::unique_ptr<ViewLine>(DWORD)>& func);
 
 	void StartGeneration();
 
@@ -138,7 +129,10 @@ public:
 private:
 	std::mutex m_Lock;
 
+	// list of lines requested and map indicating if line was requested
 	std::vector<DWORD> m_RequestedLines;
+	std::set<DWORD> m_RequestedMap;
+
 	Js::IAppHost* m_Host;
 	IDispatchQueue* m_UiQueue;
 

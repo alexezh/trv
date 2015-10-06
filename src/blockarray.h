@@ -83,7 +83,7 @@ public:
 
 		auto& pBlock = GetBlock(idx);
 
-		pBlock->Set(m_nSize % itemsPerBlock, std::forward<U>(Elem));
+		pBlock->Set(idx % itemsPerBlock, std::forward<U>(Elem));
 		m_nItems++;
 	}
 
