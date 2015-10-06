@@ -28,6 +28,7 @@
 #include "color.h"
 #include "error.h"
 #include "log.h"
+#include "traceline.h"
 
 using namespace v8;
 
@@ -53,6 +54,7 @@ void View::Init(Isolate* iso)
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setColumns"), FunctionTemplate::New(iso, jsSetColumns));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setSource"), FunctionTemplate::New(iso, jsSetSource));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setFocusLine"), FunctionTemplate::New(iso, jsSetFocusLine));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "onRender"), FunctionTemplate::New(iso, jsOnRender));
 
 	_Template.Reset(iso, tmpl);
 
@@ -171,7 +173,8 @@ std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 	{
 		auto onRender = Local<Function>::New(iso, m_OnRender);
 		auto idxJs(Integer::New(Isolate::GetCurrent(), idx).As<Value>());
-		auto viewLineJs = onRender->Call(iso->GetCurrentContext()->Global(), 1, &idxJs).As<Object>();
+		auto lineJs(TraceLine::GetTemplate(iso)->GetFunction()->NewInstance(1, &idxJs).As<Value>());
+		auto viewLineJs = onRender->Call(iso->GetCurrentContext()->Global(), 1, &lineJs).As<Object>();
 
 		viewLine->SetTime(GetPropertyString(iso, viewLineJs, "time"));
 		viewLine->SetMsg(GetPropertyString(iso, viewLineJs, "msg"));

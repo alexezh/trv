@@ -103,6 +103,8 @@ void TraceLine::jsIndexGetter(Local<String> property,
 void TraceLine::jsTimeGetter(Local<String> property,
 	const PropertyCallbackInfo<v8::Value>& info)
 {
+	TraceLine * pThis = UnwrapThis<TraceLine>(info.This());
+	info.GetReturnValue().Set(String::NewFromUtf8(Isolate::GetCurrent(), pThis->_Line.Time.psz, String::kNormalString, pThis->_Line.Time.cch));
 }
 
 void TraceLine::jsThreadGetter(Local<String> property,

@@ -85,6 +85,7 @@ function exlcudeLines(condition) {
 function renderLine(idx, tid, time, sub, message) {
     this.idx = idx;
 }
+
 function setupRender()
 {
     // var timeExp = /\s+\S([:\.\d]+)/;
@@ -92,8 +93,8 @@ function setupRender()
         // var resTime = timeExp.exec(line.time);
         // simply copy data from input line
         // field name match column names
-        return { user1: traceLine.user1, msg: traceLine.msg };
+        return { time : traceLine.time, user1: traceLine.user1, msg: traceLine.msg };
     });
 }
 
-//setupRender();
+setupRender();
