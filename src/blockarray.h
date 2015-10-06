@@ -97,7 +97,7 @@ public:
 
 	T & GetAt(size_t nIndex)
 	{
-		if (nIndex >= m_nItems)
+		if (nIndex >= m_nSize)
 		{
 			throw std::invalid_argument("invalid line index");
 		}
@@ -109,14 +109,26 @@ public:
 
 	void Resize(size_t newSize)
 	{
-		size_t newBlocks = newSize / itemsPerBlock + 1;
-		size_t oldBlocks = m_Blocks.size();
+		if (newSize == m_nSize)
+			return;
 
-		m_Blocks.resize(blocks);
-		for (size_t i = oldBlocks; i < newBlocks; i++)
+		if (newSize > m_nSize)
 		{
-			m_Blocks[i].reset(new BLOCK());
+			size_t newBlocks = newSize / itemsPerBlock + 1;
+			size_t oldBlocks = m_Blocks.size();
+
+			m_Blocks.resize(newBlocks);
+			for (size_t i = oldBlocks; i < newBlocks; i++)
+			{
+				m_Blocks[i].reset(new BLOCK());
+			}
 		}
+		else
+		{
+			assert(false);
+		}
+
+		m_nSize = newSize;
 	}
 
 	DWORD GetSize()

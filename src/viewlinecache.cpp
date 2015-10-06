@@ -38,6 +38,7 @@ void ViewLineCache::SetLine(DWORD idx, ViewLine&& line)
 
 void ViewLineCache::SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line)
 {
+	std::lock_guard<std::mutex> guard(m_Lock);
 	m_Cache.Set(idx, std::move(line));
 	m_UiQueue->Post([this, idx]()
 	{
@@ -50,7 +51,10 @@ void ViewLineCache::SetLine(DWORD idx, std::unique_ptr<ViewLine>&& line)
 
 std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
 {
-	auto& line = m_Cache.GetAt(idx);
+	const ViewLine* line = nullptr;
+	if(idx < m_Cache.GetSize())
+		line = m_Cache.GetAt(idx).get();
+
 	if (line == nullptr)
 	{
 		m_RequestedLines.push_back(idx);
@@ -68,3 +72,7 @@ void ViewLineCache::RegisterLineAvailableListener(const LiveAvailableHandler& ha
 	m_OnLineAvailable = handler;
 }
 
+void ViewLineCache::Resize(size_t n)
+{
+	m_Cache.Resize(n);
+}

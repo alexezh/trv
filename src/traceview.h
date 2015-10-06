@@ -165,6 +165,10 @@ private:
 
 	HRESULT InsertColumn(DWORD idx, DWORD nWidth, LPCWSTR pszText);
 	void PopulateInfo(const char* psz, size_t cch, LV_DISPINFO* lpdi);
+	void PopulateInfo(const std::string& sz, LV_DISPINFO* lpdi)
+	{
+		PopulateInfo(sz.c_str(), sz.length(), lpdi);
+	}
 
 	// deselects all items
 	void DeselectAll();

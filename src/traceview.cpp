@@ -166,22 +166,6 @@ LRESULT CTraceView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 	ListView_SetExtendedListViewStyle(m_ListView.m_hWnd, LVS_EX_FULLROWSELECT);
 	ListView_SetItemCount(m_ListView.m_hWnd, 0);
 
-	m_LineCache = std::make_shared<ViewLineCache>(m_pApp, m_pApp->PJsHost());
-	m_LineCache->RegisterLineAvailableListener([this](DWORD idx)
-	{
-		// translate file line indexes to view indexes
-		if (m_ActiveLines.size() > 0)
-		{
-			// for (DWORD i = idxStart; i < idxEnd; i++)
-			assert(false);
-		}
-		else
-		{
-			// view index is the same as line index
-			ListView_Update(m_ListView.m_hWnd, idx);
-		}
-	});
-
 Cleanup:
 
 	return 0;
@@ -319,7 +303,9 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 
 	if (lpdi->item.mask & LVIF_TEXT)
 	{
-		const LineInfo& line = m_pSource->GetLine(nLine);
+		auto& line = m_LineCache->GetLine(nLine);
+		if (!line.first)
+			return 0;
 
 		auto desc = m_pSource->GetDesc();
 		ColumnId id = m_Columns[lpdi->item.iSubItem];
@@ -328,7 +314,7 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 			case ColumnId::LineNumber:
 			{
 				char lineA[32];
-				_itoa(line.Index, lineA, 10);
+				_itoa(line.second.GetLineIndex(), lineA, 10);
 				PopulateInfo(lineA, strlen(lineA), lpdi);
 			}
 			break;
@@ -336,32 +322,32 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 				if (desc.Tid)
 				{
 					char tidA[32];
-					_itoa(line.Tid, tidA, 10);
+					_itoa(line.second.GetThreadId(), tidA, 10);
 					PopulateInfo(tidA, strlen(tidA), lpdi);
 				}
 				break;
 			case ColumnId::Time:
 				if (desc.Time)
-					PopulateInfo(line.Time.psz, line.Time.cch, lpdi);
+					PopulateInfo(line.second.GetTime(), lpdi);
 				break;
 			case ColumnId::User1:
 				if (desc.GetUser(0))
-					PopulateInfo(line.User[0].psz, line.User[0].cch, lpdi);
+					PopulateInfo(line.second.GetUser(0), lpdi);
 				break;
 			case ColumnId::User2:
 				if (desc.GetUser(1))
-					PopulateInfo(line.User[1].psz, line.User[1].cch, lpdi);
+					PopulateInfo(line.second.GetUser(1), lpdi);
 				break;
 			case ColumnId::User3:
 				if (desc.GetUser(2))
-					PopulateInfo(line.User[2].psz, line.User[2].cch, lpdi);
+					PopulateInfo(line.second.GetUser(2), lpdi);
 				break;
 			case ColumnId::User4:
 				if (desc.GetUser(3))
-					PopulateInfo(line.User[3].psz, line.User[3].cch, lpdi);
+					PopulateInfo(line.second.GetUser(3), lpdi);
 				break;
 			case ColumnId::Message:
-				PopulateInfo(line.Msg.psz, line.Msg.cch, lpdi);
+				PopulateInfo(line.second.GetMsg(), lpdi);
 				break;
 		}
 	}
@@ -510,6 +496,23 @@ void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 {
 	m_pSource = src;
 	m_ActiveLines.clear();
+
+	m_LineCache = std::make_shared<ViewLineCache>(m_pApp, m_pApp->PJsHost());
+	m_LineCache->Resize(m_pSource->GetLineCount());
+	m_LineCache->RegisterLineAvailableListener([this](DWORD idx)
+	{
+		// translate file line indexes to view indexes
+		if (m_ActiveLines.size() > 0)
+		{
+			// for (DWORD i = idxStart; i < idxEnd; i++)
+			assert(false);
+		}
+		else
+		{
+			// view index is the same as line index
+			ListView_Update(m_ListView.m_hWnd, idx);
+		}
+	});
 
 	UpdateView(0);
 }
@@ -776,6 +779,12 @@ int CTraceView::GetFocusPosition()
 //
 void CTraceView::UpdateView(int yFocusPos)
 {
+	if (m_ListView == nullptr)
+		return;
+
+	// resize cache just in case
+	m_LineCache->Resize(m_pSource->GetLineCount());
+
 	// update view    
 	if (m_fHide)
 	{

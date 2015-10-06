@@ -154,20 +154,24 @@ void View::jsOnRender(const FunctionCallbackInfo<Value>& args)
 std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 {
 	std::unique_ptr<ViewLine> viewLine(new ViewLine());
+	auto& line = GetCurrentHost()->GetLine(idx);
+	viewLine->SetLineIndex(line.Index);
+	viewLine->SetThreadId(line.Tid);
+
 	if (m_OnRender.IsEmpty())
 	{
-		// simply copy TraceLine to ViewLine
+		viewLine->SetTime(std::string(line.Time.psz, line.Time.cch));
+		viewLine->SetMsg(std::string(line.Msg.psz, line.Msg.cch));
+		viewLine->SetUser(0, std::string(line.User[0].psz, line.User[0].cch));
+		viewLine->SetUser(1, std::string(line.User[1].psz, line.User[1].cch));
+		viewLine->SetUser(2, std::string(line.User[2].psz, line.User[2].cch));
+		viewLine->SetUser(3, std::string(line.User[3].psz, line.User[3].cch));
 	}
 	else
 	{
-		auto& line = GetCurrentHost()->GetLine(idx);
-		viewLine->SetLineIndex(line.Index);
-		viewLine->SetThreadId(line.Tid);
-
 		auto onRender = Local<Function>::New(iso, m_OnRender);
 		auto idxJs(Integer::New(Isolate::GetCurrent(), idx).As<Value>());
 		auto viewLineJs = onRender->Call(iso->GetCurrentContext()->Global(), 1, &idxJs).As<Object>();
-
 
 		viewLine->SetTime(GetPropertyString(iso, viewLineJs, "time"));
 		viewLine->SetMsg(GetPropertyString(iso, viewLineJs, "msg"));
@@ -175,9 +179,9 @@ std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 		viewLine->SetUser(1, GetPropertyString(iso, viewLineJs, "user2"));
 		viewLine->SetUser(2, GetPropertyString(iso, viewLineJs, "user3"));
 		viewLine->SetUser(3, GetPropertyString(iso, viewLineJs, "user4"));
-
-		return viewLine;
 	}
+
+	return viewLine;
 }
 
 void View::jsCurrentLineGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

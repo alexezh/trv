@@ -134,7 +134,7 @@ public:
 	void StartGeneration();
 
 	void RegisterLineAvailableListener(const LiveAvailableHandler& handler);
-
+	void Resize(size_t n);
 private:
 	std::mutex m_Lock;
 
