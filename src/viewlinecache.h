@@ -106,13 +106,10 @@ class ViewLineCache
 {
 public:
 	using LiveAvailableHandler = std::function<void(DWORD idx)>;
-	using LineRequestedHandler = std::function<void(DWORD idx)>;
 
 	ViewLineCache(IDispatchQueue* uiQueue, Js::IAppHost* host);
 
-	std::pair<bool, const ViewLine&> GetLine(DWORD idx);
-
-	static const DWORD NoLine = static_cast<DWORD>(-1);
+	const ViewLine* GetLine(DWORD idx);
 
 	bool HaveLineRequests()
 	{

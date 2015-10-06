@@ -303,18 +303,18 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 
 	if (lpdi->item.mask & LVIF_TEXT)
 	{
-		auto& line = m_LineCache->GetLine(nLine);
-		if (!line.first)
+		auto line = m_LineCache->GetLine(nLine);
+		if (line == nullptr)
 			return 0;
 
-		auto desc = m_pSource->GetDesc();
+		auto& desc = m_pSource->GetDesc();
 		ColumnId id = m_Columns[lpdi->item.iSubItem];
 		switch (id)
 		{
 			case ColumnId::LineNumber:
 			{
 				char lineA[32];
-				_itoa(line.second.GetLineIndex(), lineA, 10);
+				_itoa(line->GetLineIndex(), lineA, 10);
 				PopulateInfo(lineA, strlen(lineA), lpdi);
 			}
 			break;
@@ -322,32 +322,32 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 				if (desc.Tid)
 				{
 					char tidA[32];
-					_itoa(line.second.GetThreadId(), tidA, 10);
+					_itoa(line->GetThreadId(), tidA, 10);
 					PopulateInfo(tidA, strlen(tidA), lpdi);
 				}
 				break;
 			case ColumnId::Time:
 				if (desc.Time)
-					PopulateInfo(line.second.GetTime(), lpdi);
+					PopulateInfo(line->GetTime(), lpdi);
 				break;
 			case ColumnId::User1:
 				if (desc.GetUser(0))
-					PopulateInfo(line.second.GetUser(0), lpdi);
+					PopulateInfo(line->GetUser(0), lpdi);
 				break;
 			case ColumnId::User2:
 				if (desc.GetUser(1))
-					PopulateInfo(line.second.GetUser(1), lpdi);
+					PopulateInfo(line->GetUser(1), lpdi);
 				break;
 			case ColumnId::User3:
 				if (desc.GetUser(2))
-					PopulateInfo(line.second.GetUser(2), lpdi);
+					PopulateInfo(line->GetUser(2), lpdi);
 				break;
 			case ColumnId::User4:
 				if (desc.GetUser(3))
-					PopulateInfo(line.second.GetUser(3), lpdi);
+					PopulateInfo(line->GetUser(3), lpdi);
 				break;
 			case ColumnId::Message:
-				PopulateInfo(line.second.GetMsg(), lpdi);
+				PopulateInfo(line->GetMsg(), lpdi);
 				break;
 		}
 	}

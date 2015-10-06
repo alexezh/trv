@@ -95,7 +95,7 @@ public:
 		m_nItems--;
 	}
 
-	T & GetAt(size_t nIndex)
+	T& GetAt(size_t nIndex)
 	{
 		if (nIndex >= m_nSize)
 		{

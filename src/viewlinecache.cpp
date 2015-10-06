@@ -31,6 +31,7 @@ ViewLineCache::ViewLineCache(IDispatchQueue* uiQueue, Js::IAppHost* host)
 	m_Host = host;
 }
 
+static int c = 0;
 bool ViewLineCache::ProcessNextLine(const std::function<std::unique_ptr<ViewLine>(DWORD)>& func)
 {
 	DWORD idx;
@@ -59,7 +60,7 @@ bool ViewLineCache::ProcessNextLine(const std::function<std::unique_ptr<ViewLine
 	return true;
 }
 
-std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
+const ViewLine* ViewLineCache::GetLine(DWORD idx)
 {
 	std::lock_guard<std::mutex> guard(m_Lock);
 	const ViewLine* line = nullptr;
@@ -75,13 +76,7 @@ std::pair<bool, const ViewLine&> ViewLineCache::GetLine(DWORD idx)
 
 	}
 
-	if (line == nullptr)
-	{
-		static ViewLine emptyLine;
-		return std::make_pair(false, emptyLine);
-	}
-
-	return std::make_pair(true, *line);
+	return line;
 }
 
 void ViewLineCache::RegisterLineAvailableListener(const LiveAvailableHandler& handler)
