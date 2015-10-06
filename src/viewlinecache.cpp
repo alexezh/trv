@@ -31,7 +31,14 @@ ViewLineCache::ViewLineCache(IDispatchQueue* uiQueue, Js::IAppHost* host)
 	m_Host = host;
 }
 
-static int c = 0;
+void ViewLineCache::SetCacheRange(DWORD dwStart, DWORD dwEnd)
+{
+	if (m_Cache.GetItemCount() < 2000)
+		return;
+
+	m_Cache.ResetIfNot(dwStart, dwEnd);
+}
+
 bool ViewLineCache::ProcessNextLine(const std::function<std::unique_ptr<ViewLine>(DWORD)>& func)
 {
 	DWORD idx;

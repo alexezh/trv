@@ -95,6 +95,30 @@ public:
 		m_nItems--;
 	}
 
+	void ResetIfNot(size_t idxStart, size_t idxEnd)
+	{
+		size_t idxCur = 0;
+		size_t idxBlockStart;
+		for (auto& block : m_Blocks)
+		{
+			idxBlockStart = idxCur;
+			if (block->nItems == 0)
+			{
+				idxCur += itemsPerBlock;
+				continue;
+			}
+
+			for (; idxCur < idxBlockStart + itemsPerBlock; idxCur++)
+			{
+				if (idxCur >= idxStart && idxCur < idxEnd)
+					continue;
+
+				block->Reset(idxCur - idxBlockStart);
+				m_nItems--;
+			}
+		}
+	}
+
 	T& GetAt(size_t nIndex)
 	{
 		if (nIndex >= m_nSize)

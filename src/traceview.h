@@ -99,7 +99,6 @@ public:
 	HRESULT LoadConfig(HKEY hKey);
 
 public:
-	void OnShowFiltered(BOOL fVal);
 	void SetTraceSource(const std::shared_ptr<CTraceSource>& src);
 	void UpdateLinesActive(const std::shared_ptr<CBitSet> & set, int change);
 
@@ -140,10 +139,6 @@ public:
 	{
 		return m_nFocusLine;
 	}
-	BOOL IsShowFiltered()
-	{
-		return m_fHide;
-	}
 
 private:
 
@@ -152,6 +147,7 @@ private:
 	LRESULT OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	LRESULT OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	LRESULT OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
+	LRESULT OnEndScroll(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	LRESULT OnUpdateView(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDblClk(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	LRESULT OnKeyDown(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
@@ -177,6 +173,10 @@ private:
 
 	int GetFocusPosition();
 
+	bool ShowActive()
+	{
+		return m_ActiveLines.size() > 0;
+	}
 protected:
 
 	BEGIN_MSG_MAP(CTraceView)
@@ -185,6 +185,7 @@ protected:
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_GETDISPINFO, OnGetDispInfo)
 		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_ITEMCHANGED, OnItemChanged)
+		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_ENDSCROLL, OnEndScroll)
 		NOTIFY_HANDLER(ID_TRACEVIEW, NM_CUSTOMDRAW, OnCustomDraw)
 		NOTIFY_HANDLER(ID_TRACEVIEW, NM_DBLCLK, OnDblClk)
 		NOTIFY_HANDLER(ID_TRACEVIEW, LVN_KEYDOWN, OnKeyDown)
@@ -208,8 +209,6 @@ private:
 
 	// current selected line
 	DWORD m_nFocusLine;
-
-	BOOL m_fHide;
 
 	// list of active columns
 	std::vector<ColumnId> m_Columns;

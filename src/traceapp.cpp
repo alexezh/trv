@@ -365,16 +365,6 @@ LRESULT CTraceApp::OnAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHand
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-LRESULT CTraceApp::OnToggleHide(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
-{
-	// TODO: route through script?
-	m_pTraceView->OnShowFiltered(!m_pTraceView->IsShowFiltered());
-
-	bHandled = TRUE;
-
-	return 0;
-}
-
 LRESULT CTraceApp::OnRefresh(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
 	m_pTraceView->Repaint();

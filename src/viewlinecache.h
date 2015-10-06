@@ -111,6 +111,8 @@ public:
 
 	const ViewLine* GetLine(DWORD idx);
 
+	void SetCacheRange(DWORD dwStart, DWORD dwEnd);
+
 	bool HaveLineRequests()
 	{
 		std::lock_guard<std::mutex> guard(m_Lock);
@@ -118,8 +120,6 @@ public:
 	}
 
 	bool ProcessNextLine(const std::function<std::unique_ptr<ViewLine>(DWORD)>& func);
-
-	void StartGeneration();
 
 	void RegisterLineAvailableListener(const LiveAvailableHandler& handler);
 	void Resize(size_t n);

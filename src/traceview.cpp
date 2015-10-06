@@ -32,6 +32,8 @@
 #include "bitset.h"
 #include "log.h"
 
+#pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 static DWORD FindIndex(std::vector<DWORD> & coll, DWORD line)
@@ -70,7 +72,6 @@ LRESULT TraceListView::OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& 
 //
 CTraceView::CTraceView()
 	: m_nFocusLine(0)
-	, m_fHide(FALSE)
 {
 }
 
@@ -274,7 +275,7 @@ Cleanup:
 
 DWORD CTraceView::GetFileLineNum(DWORD nItem)
 {
-	if (m_fHide)
+	if (ShowActive())
 	{
 		return m_ActiveLines[nItem];
 	}
@@ -445,6 +446,32 @@ LRESULT CTraceView::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 
 ///////////////////////////////////////////////////////////////////////////////
 //
+LRESULT CTraceView::OnEndScroll(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
+{
+	int idx = ListView_GetTopIndex(m_ListView.m_hWnd, 0, 0);
+	DWORD lineIdx = GetFileLineNum(idx);
+
+	// keep 1000 items on both sides. 
+	DWORD idxStart = GetFileLineNum((idx < 1000) ? 0 : idx - 1000);
+	DWORD idxEnd;
+	
+	if (ShowActive())
+	{
+		idxEnd = GetFileLineNum((idx + 1000 >= m_ActiveLines.size()) ? m_ActiveLines.size() - 1 : idx + 1000);
+	}
+	else
+	{
+		idxEnd = GetFileLineNum((idx + 1000 >= m_pSource->GetLineCount()) ? m_pSource->GetLineCount() - 1 : idx + 1000);
+	}
+
+	m_LineCache->SetCacheRange(idxStart, idxEnd);
+
+	bHandled = true;
+	return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
 LRESULT CTraceView::OnDblClk(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
 	OutputLineToConsole(m_nFocusLine);
@@ -480,17 +507,6 @@ LRESULT CTraceView::OnCacheHint(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-void CTraceView::OnShowFiltered(BOOL fVal)
-{
-	int yFocusPos = GetFocusPosition();
-
-	m_fHide = fVal;
-
-	UpdateView(yFocusPos);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//
 
 void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 {
@@ -522,7 +538,7 @@ void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 void CTraceView::Repaint()
 {
 	// update view    
-	if (m_fHide)
+	if (ShowActive())
 	{
 		ListView_RedrawItems(m_ListView.m_hWnd, 0, m_ActiveLines.size());
 	}
@@ -541,7 +557,6 @@ void CTraceView::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 	if (lines == nullptr)
 	{
 		m_ActiveLines.resize(0);
-		m_fHide = false;
 	}
 	else
 	{
@@ -556,7 +571,6 @@ void CTraceView::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 				m_ActiveLines[active++] = idx;
 			}
 		}
-		m_fHide = true;
 	}
 	UpdateView(yFocusPos);
 }
@@ -760,7 +774,7 @@ int CTraceView::GetFocusPosition()
 	//
 	if (m_nFocusLine != -1)
 	{
-		if (m_fHide)
+		if (ShowActive())
 		{
 			nFocus = FindIndex(m_ActiveLines, m_nFocusLine);
 		}
@@ -786,7 +800,7 @@ void CTraceView::UpdateView(int yFocusPos)
 	m_LineCache->Resize(m_pSource->GetLineCount());
 
 	// update view    
-	if (m_fHide)
+	if (ShowActive())
 	{
 		ListView_SetItemCount(m_ListView.m_hWnd, m_ActiveLines.size());
 	}
@@ -805,7 +819,7 @@ void CTraceView::UpdateView(int yFocusPos)
 		RECT rcFocus;
 		RECT rcTop;
 
-		if (m_fHide)
+		if (ShowActive())
 		{
 			nFocus = FindIndex(m_ActiveLines, m_nFocusLine);
 		}
