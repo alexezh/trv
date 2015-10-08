@@ -88,12 +88,14 @@ function renderLine(idx, tid, time, sub, message) {
 
 function setupRender()
 {
-    // var timeExp = /\s+\S([:\.\d]+)/;
+    var timeExp = /\s+\S([:\.\d]+)/;
     $.view.onRender(function (traceLine) {
-        // var resTime = timeExp.exec(line.time);
-        // simply copy data from input line
-        // field name match column names
-        return { time : traceLine.time, user1: traceLine.user1, msg: traceLine.msg };
+        var res = timeExp.exec(traceLine.time);
+        return {
+            time: ((res != null) ? res[0] : traceLine.time),
+            user1: traceLine.user1,
+            msg: traceLine.msg
+        };
     });
 }
 

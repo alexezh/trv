@@ -96,7 +96,7 @@ $.tagger.onChanged(function ()
     if(limitTagged)
     {
         taggedColl = $.tagger.asCollection();
-        viewColls[taggedCollIdx] = taggedColl;
+        viewSources[taggedCollIdx] = taggedColl;
         updateViewSource();
     }
 });

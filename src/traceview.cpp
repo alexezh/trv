@@ -520,8 +520,11 @@ void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 		// translate file line indexes to view indexes
 		if (m_ActiveLines.size() > 0)
 		{
-			// for (DWORD i = idxStart; i < idxEnd; i++)
-			assert(false);
+			auto it = std::upper_bound(m_ActiveLines.begin(), m_ActiveLines.end(), idx);
+			if (it != m_ActiveLines.end())
+			{
+				ListView_Update(m_ListView.m_hWnd, it - m_ActiveLines.begin());
+			}
 		}
 		else
 		{

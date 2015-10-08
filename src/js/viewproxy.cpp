@@ -174,7 +174,14 @@ std::unique_ptr<ViewLine> View::HandleLineRequest(Isolate* iso, DWORD idx)
 		auto onRender = Local<Function>::New(iso, m_OnRender);
 		auto idxJs(Integer::New(Isolate::GetCurrent(), idx).As<Value>());
 		auto lineJs(TraceLine::GetTemplate(iso)->GetFunction()->NewInstance(1, &idxJs).As<Value>());
+
+		TryCatch try_catch;
 		auto viewLineJs = onRender->Call(iso->GetCurrentContext()->Global(), 1, &lineJs).As<Object>();
+		if (try_catch.HasCaught())
+		{
+			GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
+			return nullptr;
+		}
 
 		viewLine->SetTime(GetPropertyString(iso, viewLineJs, "time"));
 		viewLine->SetMsg(GetPropertyString(iso, viewLineJs, "msg"));
