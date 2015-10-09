@@ -40,6 +40,7 @@ public:
 	};
 
 	static void Init(v8::Isolate* iso);
+	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 	static Queryable * TryGetQueryable(const v8::Local<v8::Object> & obj);
 	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
 	{

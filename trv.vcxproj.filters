@@ -57,9 +57,6 @@
     <ClCompile Include="src\js\traceline.cpp">
       <Filter>js</Filter>
     </ClCompile>
-    <ClCompile Include="src\js\filteritem.cpp">
-      <Filter>js</Filter>
-    </ClCompile>
     <ClCompile Include="src\js\viewproxy.cpp">
       <Filter>js</Filter>
     </ClCompile>
@@ -154,9 +151,6 @@
       <Filter>js</Filter>
     </ClInclude>
     <ClInclude Include="src\js\traceline.h">
-      <Filter>js</Filter>
-    </ClInclude>
-    <ClInclude Include="src\js\filteritem.h">
       <Filter>js</Filter>
     </ClInclude>
     <ClInclude Include="src\js\viewproxy.h">

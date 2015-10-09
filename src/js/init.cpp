@@ -45,6 +45,8 @@ bool InitRuntime(v8::Isolate* iso, v8::Handle<v8::Object> & target)
 	Dollar::InitInstance(iso, target);
 	TraceCollection::InitInstance(iso, target);
 	TraceLine::InitInstance(iso, target);
+	Queryable::InitInstance(iso, target);
+	Query::InitInstance(iso, target);
 
 	if (!Dollar::ImportFile("trv.std.js"))
 		return false;

@@ -54,6 +54,7 @@ public:
 	}
 
 	static void Init(v8::Isolate* iso);
+	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 	static v8::Local<v8::FunctionTemplate> GetTemplate(v8::Isolate* iso)
 	{
 		return v8::Local<v8::FunctionTemplate>::New(iso, _Template);

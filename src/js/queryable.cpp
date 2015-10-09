@@ -48,6 +48,11 @@ void Queryable::Init(v8::Isolate* iso)
 	_Template.Reset(iso, tmpl);
 }
 
+void Queryable::InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target)
+{
+	target->Set(String::NewFromUtf8(iso, "Queryable"), Queryable::GetTemplate(iso)->GetFunction());
+}
+
 Queryable * Queryable::TryGetQueryable(const v8::Local<v8::Object> & obj)
 {
 	auto res = obj->FindInstanceInPrototypeChain(GetTemplate(Isolate::GetCurrent()));

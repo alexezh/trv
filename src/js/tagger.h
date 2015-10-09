@@ -21,10 +21,12 @@
 #pragma once
 
 #include "objectwrap.h"
-#include "filteritem.h"
+#include "tracecollection.h"
 
 namespace Js {
 
+// TODO: I need tagger as an array of Collection items to responde to GetColor requests
+// Everything else can be done in JS including filter item
 class Tagger : public BaseObject<Tagger>
 {
 public:
@@ -37,7 +39,6 @@ public:
 
 	void OnTraceSourceChanged();
 	BYTE GetLineColor(DWORD nLine);
-	void UpdateFilter(FilterItem* filter);
 
 private:
 	Tagger(const v8::Handle<v8::Object>& handle);
@@ -45,19 +46,41 @@ private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value> &args);
 	static void jsAddFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsRemoveFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsRemoveAllFilters(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsPrintFilters(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-	static void jsOnChanged(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsAsCollection(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-	v8::Local<v8::Value> AddFilterWorker(const v8::FunctionCallbackInfo<v8::Value>& args, bool iter);
-	void VerifySelectArgs(const FunctionCallbackInfo<Value>& args);
-	void InvokeOnChanged();
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
 	std::mutex _Lock;
-	std::map<int, std::shared_ptr<FilterItem>> _Filters;
+
+	struct Item
+	{
+		Item(const v8::Local<v8::Object>& collJs, TraceCollection* coll, uint8_t color)
+		{
+			CollJs.Reset(v8::Isolate::GetCurrent(), collJs);
+			Coll = coll;
+			Color = color;
+		}
+		Item(Item&& other)
+			: CollJs(std::move(other.CollJs))
+			, Coll(other.Coll)
+			, Color(other.Color)
+		{
+		}
+		Item& operator=(Item&& other)
+		{
+			if (this == &other)
+				return *this;
+
+			CollJs = std::move(other.CollJs);
+			Coll = other.Coll;
+			Color = other.Color;
+			return *this;
+		}
+		v8::UniquePersistent<v8::Object> CollJs;
+		TraceCollection* Coll;
+		uint8_t Color;
+	};
+
+	std::vector<Item> _Filters;
 	v8::Persistent<v8::Function> _OnChanged;
 };
 

@@ -13,10 +13,10 @@ addCommandHelp("p(text)", "print <text> to output window");
 var $f = null;
 
 function asInt(val) {
-    if (typeof val == 'number') {
+    if (typeof val === 'number') {
         return val;
     }
-    else if (typeof val == 'string') {
+    else if (typeof val === 'string') {
         return parseInt(val);
     }
     else {
@@ -24,15 +24,107 @@ function asInt(val) {
     }
 }
 
+var TaggerItem = function (set, color, desc) {
+    if (set instanceof Query) {
+        this.Collection = set.asCollection();
+    } else if (set instanceof TraceCollection) {
+        this.Collection = set;
+    }
+    else {
+        throw "unsupported set type";
+    }
+
+    this.Color = color;
+    this.Description = desc;
+    this.Enabled = true;
+    this.OnChangedHandler = null;
+}
+
+var Tagger = function () {
+    this._Items = [];
+}
+
+Tagger.prototype.add = function (item) {
+    var id = this._Items.length;
+    item.Id = id;
+    this._Items.push(item);
+    $.tagger.addFilter(item.Collection, item.Color);
+    InvokeOnChanged();
+    $.view.refresh();
+}
+
+Tagger.prototype.getItems = function () {
+    return _Items;
+}
+
+Tagger.prototype.remove = function (id) {
+    for (var i in this._Items) {
+        if (this._Items[i].id == id) {
+            $.tagger.removeFilter(this._Items[i].Collection);
+            this._Items.splice(i, 1);
+            InvokeOnChanged();
+            $.view.refresh();
+            break;
+        }
+    }
+}
+
+Tagger.prototype.enableIf = function (cond) {
+    $.tagger.clear();
+    for (i in _Items) {
+        var enabled = false;
+        if (typeof cond === 'object') {
+            if (_Items[i] === cond) {
+                enabled = true;
+            }
+        }
+
+        if (enabled) {
+            $.tagger.add(_Items[i]);
+        }
+    }
+}
+
+Tagger.prototype.onChanged = function (func) {
+    this.OnChangedHandler = func;
+}
+
+Tagger.prototype.invokeOnChanged = function () {
+    if (this.onChanged != null)
+        this.onChanged();
+}
+
+Tagger.prototype.asCollection = function () {
+    var res = null;
+    for (var i in this._Items) {
+        if (!this._Items[i].Enabled)
+            continue;
+
+        res = (res == null) ? this._Items[i].Collection : res.combine(this._Items[i].Collection);
+    }
+
+    return res;
+}
+
+Tagger.prototype.print = function () {
+    for (var i in this._Items) {
+        var item = this._Items[i];
+        $.print(item.Id + " " + item.Color + " " + item.Description + "\r\n");
+    }
+}
+
+var tagger = new Tagger();
+
 // add filter provided collection, color and title 
-function af(coll, color, title) {
-    $f = $.tagger.addFilter(coll, color, title);
+function af(set, color, title) {
+    $.print("af " + set);
+    $f = tagger.add(new TaggerItem(set, color, title));
     return $f;
 }
 
 // add filter by running query against trace
-function a(condition, color, title) {
-    af($.trace.where(condition), color, title);
+function a(condition, color) {
+    af($.trace.where(condition), color, condition);
 }
 $.dotexpressions.add("a", a);
 addCommandHelp("a(condition, color)", "highlight lines which match <condition> with <color>");
@@ -49,7 +141,7 @@ addCommandHelp("ef(id)", "enable filter with <id>");
 */
 
 // remove filter by id
-function rf(id) { $.tagger.removeFilter(asInt(id)); }
+function rf(id) { tagger.remove(asInt(id)); }
 $.dotexpressions.add("rf", rf);
 addCommandHelp("rf(id)", "remove filter with <id>");
 
@@ -57,6 +149,7 @@ addCommandHelp("rf(id)", "remove filter with <id>");
 // the collection is generated as intersection of collections from viewSources array
 // viewSources[0] contains collection produces by tagger. Other elements of array are free to use
 var viewSources = [];
+
 
 // intersects all line
 function updateViewSource() {
@@ -81,7 +174,7 @@ function sf()
     if(limitTagged)
     {
         if (taggedColl == null)
-            taggedColl = $.tagger.asCollection();
+            taggedColl = tagger.asCollection();
 
         viewSources[taggedCollIdx] = taggedColl;
     }
@@ -93,11 +186,11 @@ function sf()
     updateViewSource();
 }
 
-$.tagger.onChanged(function ()
+tagger.onChanged(function ()
 {
     if(limitTagged)
     {
-        taggedColl = $.tagger.asCollection();
+        taggedColl = tagger.asCollection();
         viewSources[taggedCollIdx] = taggedColl;
         updateViewSource();
     }
@@ -108,7 +201,7 @@ addCommandHelp("sf()", "switch between displaying all lines and lines which matc
 $.shortcuts.add("ctrl+h", sf);
 
 // print filters
-function pf() { $.tagger.printFilters(); }
+function pf() { tagger.print(); }
 $.dotexpressions.add("pf", pf);
 addCommandHelp("pf()", "print current filters");
 
@@ -150,6 +243,8 @@ $.shortcuts.add("ctrl+f", startEditFind);
 $.shortcuts.add("ctrl+f3", findNext);
 addCommandHelp("f()", "fine first line which matches <condition>");
 addCommandHelp("n()", "fine next line which matches <condition>");
+
+$.shortcuts.add("ctrl+o", function () { $.console.setFocus() });
 
 // history
 var $h = $.history;

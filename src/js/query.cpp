@@ -95,6 +95,11 @@ void Query::Init(v8::Isolate* iso)
 	_Template.Reset(iso, tmpl);
 }
 
+void Query::InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target)
+{
+	target->Set(String::NewFromUtf8(iso, "Query"), Query::GetTemplate(iso)->GetFunction());
+}
+
 Query::Query(const v8::Handle<v8::Object>& handle, const FunctionCallbackInfo<Value> &args)
 	: Queryable(handle)
 {

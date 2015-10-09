@@ -24,7 +24,6 @@
 #include "query.h"
 #include "trace.h"
 #include "tracecollection.h"
-#include "filteritem.h"
 #include "color.h"
 #include "error.h"
 #include "log.h"
@@ -55,11 +54,10 @@ void View::Init(Isolate* iso)
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setSource"), FunctionTemplate::New(iso, jsSetSource));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setFocusLine"), FunctionTemplate::New(iso, jsSetFocusLine));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "resetCache"), FunctionTemplate::New(iso, jsResetCache));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "refresh"), FunctionTemplate::New(iso, jsRefresh));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "onRender"), FunctionTemplate::New(iso, jsOnRender));
 
 	_Template.Reset(iso, tmpl);
-
-	FilterItemProxy::Init(iso);
 }
 
 void View::jsNew(const FunctionCallbackInfo<Value> &args)
@@ -151,6 +149,14 @@ void View::jsResetCache(const FunctionCallbackInfo<Value>& args)
 		ThrowSyntaxError("expected $v.resetCache()\r\n");
 
 	GetCurrentHost()->ResetViewCache();
+}
+
+void View::jsRefresh(const FunctionCallbackInfo<Value>& args)
+{
+	if (args.Length() != 0)
+		ThrowSyntaxError("expected $v.refresh()\r\n");
+
+	GetCurrentHost()->RefreshView();
 }
 
 void View::jsOnRender(const FunctionCallbackInfo<Value>& args)
