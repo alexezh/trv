@@ -70,6 +70,7 @@ public:
 
 	virtual void RequestViewLine() = 0;
 	virtual void RegisterRequestLineHandler(const std::function<std::unique_ptr<ViewLine>(v8::Isolate*, DWORD idx)>&) = 0;
+	virtual void ResetViewCache() = 0;
 
 	// console access
 	virtual void OutputLine(const char * psz) = 0;

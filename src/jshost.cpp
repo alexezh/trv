@@ -544,6 +544,14 @@ void JsHost::RegisterRequestLineHandler(const std::function<std::unique_ptr<View
 	m_RequestLineHandler = handler;
 }
 
+void JsHost::ResetViewCache()
+{
+	_pApp->Post([this]()
+	{
+		_pApp->PTraceView()->GetLineCache()->Reset();
+	});
+}
+
 bool JsHost::SetTraceFormat(const char * pszFormat, const char* pszSep)
 {
 	// TODO: call can happen before file is loaded

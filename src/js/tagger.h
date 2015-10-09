@@ -47,7 +47,6 @@ private:
 	static void jsRemoveFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsRemoveAllFilters(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsPrintFilters(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void jsEnableFilter(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 	static void jsOnChanged(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsAsCollection(const v8::FunctionCallbackInfo<v8::Value>& args);

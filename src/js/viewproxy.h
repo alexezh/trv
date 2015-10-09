@@ -55,6 +55,7 @@ private:
 	static void jsSetViewLayout(const FunctionCallbackInfo<Value>& args);
 	static void jsSetColumns(const FunctionCallbackInfo<Value>& args);
 	static void jsSetFocusLine(const FunctionCallbackInfo<Value>& args);
+	static void jsResetCache(const FunctionCallbackInfo<Value>& args);
 	static void jsOnRender(const FunctionCallbackInfo<Value>& args);
 
 	std::unique_ptr<ViewLine> HandleLineRequest(v8::Isolate* iso, DWORD idx);

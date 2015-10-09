@@ -188,7 +188,19 @@ private:
 		{
 			v8::HandleScope handleScope(v8::Isolate::GetCurrent());
 			auto func(v8::Local<v8::Function>::New(v8::Isolate::GetCurrent(), _Func));
+
+			v8::TryCatch try_catch;
+			try_catch.SetVerbose(true);
 			auto res = func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), 1, &line);
+			if (try_catch.HasCaught())
+			{
+				GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
+				throw V8RuntimeException("failed to run JS function");
+			}
+
+			if (res.IsEmpty())
+				return false;
+
 			bool v = res->BooleanValue();
 			return v;
 		}

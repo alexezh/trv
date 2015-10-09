@@ -554,6 +554,12 @@ void CTraceView::Repaint()
 	UpdateView(0);
 }
 
+void CTraceView::ResetViewCache()
+{
+	m_LineCache->Reset();
+	m_ListView.Invalidate(TRUE);
+}
+
 void CTraceView::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 {
 	int yFocusPos = GetFocusPosition();

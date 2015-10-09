@@ -100,6 +100,7 @@ public:
 	void SetFocusLine(DWORD nLine) override;
 	void RequestViewLine() override;
 	void RegisterRequestLineHandler(const std::function<std::unique_ptr<ViewLine>(v8::Isolate*, DWORD idx)>&) override;
+	void ResetViewCache() override;
 
 	// console access
 	void OutputLine(const char * psz) override;

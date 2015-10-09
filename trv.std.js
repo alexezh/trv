@@ -38,6 +38,7 @@ $.dotexpressions.add("a", a);
 addCommandHelp("a(condition, color)", "highlight lines which match <condition> with <color>");
 
 // enable / disable filter by id
+/*
 function df(id) { $.tagger.enableFilter(asInt(id), false); }
 $.dotexpressions.add("df", df);
 addCommandHelp("df(id)", "disable filter with <id>");
@@ -45,6 +46,7 @@ addCommandHelp("df(id)", "disable filter with <id>");
 function ef(id) { $.tagger.enableFilter(asInt(id), true); }
 $.dotexpressions.add("ef", ef);
 addCommandHelp("ef(id)", "enable filter with <id>");
+*/
 
 // remove filter by id
 function rf(id) { $.tagger.removeFilter(asInt(id)); }

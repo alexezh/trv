@@ -108,6 +108,8 @@ public:
 	// update screen
 	void Repaint();
 
+	void ResetViewCache();
+
 	// set lines to display in view
 	void SetViewSource(const std::shared_ptr<CBitSet>& lines);
 

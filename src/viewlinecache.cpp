@@ -95,3 +95,8 @@ void ViewLineCache::Resize(size_t n)
 {
 	m_Cache.Resize(n);
 }
+
+void ViewLineCache::Reset()
+{
+	m_Cache.ResetIfNot(-1, -1);
+}

@@ -41,7 +41,6 @@ void Tagger::Init(v8::Isolate* iso)
 	auto tmpl_proto = tmpl->InstanceTemplate();
 	tmpl_proto->Set(String::NewFromUtf8(iso, "addFilter"), FunctionTemplate::New(iso, jsAddFilter));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "printFilters"), FunctionTemplate::New(iso, jsPrintFilters));
-	tmpl_proto->Set(String::NewFromUtf8(iso, "enableFilter"), FunctionTemplate::New(iso, jsEnableFilter));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "removeFilter"), FunctionTemplate::New(iso, jsRemoveFilter));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "removeAllFilters"), FunctionTemplate::New(iso, jsRemoveAllFilters));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "asCollection"), FunctionTemplate::New(iso, jsAsCollection));
@@ -145,47 +144,6 @@ void Tagger::jsRemoveAllFilters(const FunctionCallbackInfo<Value>& args)
 		}
 
 		pThis->_Filters.clear();
-
-		GetCurrentHost()->RefreshView();
-		return Local<Value>();
-	});
-}
-
-void Tagger::jsEnableFilter(const FunctionCallbackInfo<Value>& args)
-{
-	TryCatchCpp(args, [&args]() -> Local<Value>
-	{
-		auto pThis = Unwrap(args.This());
-		assert(args.Length() == 2);
-
-		if (args.Length() != 2 || !args[0]->IsInt32() || !args[1]->IsBoolean())
-		{
-			ThrowSyntaxError("expected $v.enableFilter(id, val)\r\n");
-		}
-
-		auto id = args[0]->Int32Value();
-		auto val = args[1]->BooleanValue();
-		auto it = pThis->_Filters.find(id);
-		if (it != pThis->_Filters.end())
-		{
-			FilterItem* filter = it->second.get();
-			if (filter->Enable != val)
-			{
-				filter->Enable = val;
-				// GetCurrentHost()->UpdateLinesActive(filter->Set, (val) ? 1 : -1);
-				assert(false);
-
-				std::stringstream ss;
-				ss << "Filters id=" << id << " " << ((val) ? "enabled" : "disabled") << "\r\n";
-				GetCurrentHost()->OutputLine(ss.str().c_str());
-			}
-		}
-		else
-		{
-			std::stringstream ss;
-			ss << "Filter id=" << id << " not found\r\n";
-			GetCurrentHost()->OutputLine(ss.str().c_str());
-		}
 
 		GetCurrentHost()->RefreshView();
 		return Local<Value>();

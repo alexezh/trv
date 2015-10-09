@@ -123,6 +123,7 @@ public:
 
 	void RegisterLineAvailableListener(const LiveAvailableHandler& handler);
 	void Resize(size_t n);
+	void Reset();
 private:
 	std::mutex m_Lock;
 

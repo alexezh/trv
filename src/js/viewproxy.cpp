@@ -54,6 +54,7 @@ void View::Init(Isolate* iso)
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setColumns"), FunctionTemplate::New(iso, jsSetColumns));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setSource"), FunctionTemplate::New(iso, jsSetSource));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setFocusLine"), FunctionTemplate::New(iso, jsSetFocusLine));
+	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "resetCache"), FunctionTemplate::New(iso, jsResetCache));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "onRender"), FunctionTemplate::New(iso, jsOnRender));
 
 	_Template.Reset(iso, tmpl);
@@ -138,10 +139,18 @@ void View::jsSetColumns(const FunctionCallbackInfo<Value>& args)
 
 void View::jsSetFocusLine(const FunctionCallbackInfo<Value>& args)
 {
-	if(args.Length() != 1 || !args[0]->IsInt32())
+	if (args.Length() != 1 || !args[0]->IsInt32())
 		ThrowSyntaxError("expected $v.setFocusLine(idx)\r\n");
 
 	GetCurrentHost()->SetFocusLine(args[0]->IntegerValue());
+}
+
+void View::jsResetCache(const FunctionCallbackInfo<Value>& args)
+{
+	if (args.Length() != 0)
+		ThrowSyntaxError("expected $v.resetCache()\r\n");
+
+	GetCurrentHost()->ResetViewCache();
 }
 
 void View::jsOnRender(const FunctionCallbackInfo<Value>& args)
