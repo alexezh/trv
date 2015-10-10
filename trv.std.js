@@ -34,6 +34,7 @@ var TaggerItem = function (set, color, desc) {
         throw "unsupported set type";
     }
 
+    this.Id = 0;
     this.Color = color;
     this.Description = desc;
     this.Enabled = true;
@@ -47,6 +48,7 @@ var Tagger = function () {
 Tagger.prototype.add = function (item) {
     var id = this._Items.length;
     item.Id = id;
+    $.print("add tag #" + id);
     this._Items.push(item);
     $.tagger.addFilter(item.Collection, item.Color);
     this.invokeOnChanged();
@@ -59,9 +61,34 @@ Tagger.prototype.getItems = function () {
 
 Tagger.prototype.remove = function (id) {
     for (var i in this._Items) {
-        if (this._Items[i].id == id) {
-            $.tagger.removeFilter(this._Items[i].Collection);
+        if (this._Items[i].Id == id) {
+            $.print("remove tag #" + id);
+            if (this._Items[i].Enabled) {
+                $.tagger.removeFilter(this._Items[i].Collection);
+            }
             this._Items.splice(i, 1);
+            this.invokeOnChanged();
+            $.view.refresh();
+            break;
+        }
+    }
+}
+
+Tagger.prototype.enable = function (id, val) {
+    for (var i in this._Items) {
+        if (this._Items[i].Id == id) {
+            var item = this._Items[i];
+            if (item.Enabled == val)
+                break;
+
+            item.Enabled = val;
+            if (val) {
+                $.print("enable tag #" + id);
+                $.tagger.addFilter(item.Collection, item.Color);
+            } else {
+                $.print("disable tag #" + id);
+                $.tagger.removeFilter(item.Collection);
+            }
             this.invokeOnChanged();
             $.view.refresh();
             break;
@@ -109,7 +136,7 @@ Tagger.prototype.asCollection = function () {
 Tagger.prototype.print = function () {
     for (var i in this._Items) {
         var item = this._Items[i];
-        $.print(item.Id + " " + item.Color + " " + item.Description + "\r\n");
+        $.print(item.Id + " " + item.Color + " enabled:" + item.Enabled + " " + item.Description + "\r\n");
     }
 }
 
@@ -129,15 +156,13 @@ $.dotexpressions.add("a", a);
 addCommandHelp("a(condition, color)", "highlight lines which match <condition> with <color>");
 
 // enable / disable filter by id
-/*
-function df(id) { $.tagger.enableFilter(asInt(id), false); }
+function df(id) { tagger.enable(asInt(id), false); }
 $.dotexpressions.add("df", df);
 addCommandHelp("df(id)", "disable filter with <id>");
 
-function ef(id) { $.tagger.enableFilter(asInt(id), true); }
+function ef(id) { tagger.enable(asInt(id), true); }
 $.dotexpressions.add("ef", ef);
 addCommandHelp("ef(id)", "enable filter with <id>");
-*/
 
 // remove filter by id
 function rf(id) { tagger.remove(asInt(id)); }
@@ -168,7 +193,7 @@ var limitTagged = false;
 var taggedColl = null;
 var taggedCollIdx = 0;
 function sf() 
-{ 
+{
     limitTagged = !limitTagged;
     if(limitTagged)
     {
@@ -189,9 +214,13 @@ tagger.onChanged(function ()
 {
     if (limitTagged)
     {
+        $.print(" update view source");
         taggedColl = tagger.asCollection();
         viewSources[taggedCollIdx] = taggedColl;
         updateViewSource();
+    } else {
+        // no reason to update tagger collection unless we are going to use it
+        taggedColl = null;
     }
 });
 

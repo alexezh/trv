@@ -83,7 +83,19 @@ void Tagger::jsAddFilter(const FunctionCallbackInfo<Value>& args)
 		v8::String::Utf8Value strColor(args[1]);
 		auto color = CColor::FromName(std::string(*strColor, strColor.length()).c_str());
 
-		pThis->_Filters.push_back(Item(args[0].As<Object>(), coll, color));
+		auto it = std::find_if(pThis->_Filters.begin(), pThis->_Filters.end(), [coll](const Item& item)
+		{
+			return item.Coll == coll;
+		});
+
+		if (it == pThis->_Filters.end())
+		{
+			pThis->_Filters.push_back(Item(args[0].As<Object>(), coll, color));
+		}
+		else
+		{
+			GetCurrentHost()->OutputLine("addFilter called twice for the same collection; ignored");
+		}
 
 		return Local<Value>();
 	});
@@ -102,7 +114,7 @@ void Tagger::jsRemoveFilter(const FunctionCallbackInfo<Value>& args)
 		std::lock_guard<std::mutex> guard(pThis->_Lock);
 		assert(args.Length() == 1);
 
-		if (!args.Length() == 1 || !args[0]->IsInt32())
+		if (!args.Length() == 1 || !args[0]->IsObject())
 		{
 			ThrowRemoveFilter();
 		}
@@ -112,10 +124,13 @@ void Tagger::jsRemoveFilter(const FunctionCallbackInfo<Value>& args)
 			ThrowRemoveFilter();
 		}
 
-		std::remove_if(pThis->_Filters.begin(), pThis->_Filters.end(), [coll](const Item& item)
+		auto it = std::find_if(pThis->_Filters.begin(), pThis->_Filters.end(), [coll](const Item& item)
 		{
 			return item.Coll == coll;
 		});
+
+		if (it != pThis->_Filters.end())
+			pThis->_Filters.erase(it);
 
 		return Local<Value>();
 	});
