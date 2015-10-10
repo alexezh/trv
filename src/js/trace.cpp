@@ -122,7 +122,7 @@ void TraceSourceProxy::jsFromRange(const v8::FunctionCallbackInfo<Value> &args)
 	args.GetReturnValue().Set(TraceCollection::GetTemplate(Isolate::GetCurrent())->GetFunction()->NewInstance(2, v));
 }
 
-void TraceSourceProxy::jsLineCountGetter(Local<String> property, 
+void TraceSourceProxy::jsLineCountGetter(Local<String> property,
 											const PropertyCallbackInfo<v8::Value>& info)
 {
 	TraceSourceProxy * pThis = UnwrapThis<TraceSourceProxy>(info.This());

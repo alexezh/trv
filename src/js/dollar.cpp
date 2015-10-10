@@ -47,6 +47,7 @@ void Dollar::Init(Isolate* iso)
 	tmpl_proto->Set(String::NewFromUtf8(iso, "import"), FunctionTemplate::New(iso, jsImport));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "loadTrace"), FunctionTemplate::New(iso, jsLoadTrace));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "onLoaded"), FunctionTemplate::New(iso, jsOnLoaded));
 
 	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
 
@@ -56,7 +57,7 @@ void Dollar::Init(Isolate* iso)
 	Tagger::Init(iso);
 }
 
-void Dollar::InitInstance(Isolate* iso, Handle<Object> & target)
+void Dollar::InitInstance(Isolate* iso, v8::Handle<v8::Object> & target)
 {
 	auto tmpl = Local<FunctionTemplate>::New(iso, _Template);
 	// create an instance of dollar object and make a property
@@ -65,13 +66,19 @@ void Dollar::InitInstance(Isolate* iso, Handle<Object> & target)
 	target->Set(String::NewFromUtf8(iso, "$"), dollar);
 }
 
+Dollar::Dollar(const v8::Handle<v8::Object>& handle)
+{
+	Wrap(handle);
+}
+
 void Dollar::jsNew(const FunctionCallbackInfo<Value> &args)
 {
 	Dollar *dollar;
-	dollar = new Dollar();
+	dollar = new Dollar(args.This());
 	LOG("@%p", dollar);
+	GetCurrentHost()->OnDollarCreated(dollar);
+
 	auto iso = Isolate::GetCurrent();
-	args.This()->SetInternalField(0, v8::External::New(iso, dollar));
 
 	auto source = GetCurrentHost()->GetFileTraceSource();
 	auto sourceProxy = TraceSourceProxy::GetTemplate(iso)->GetFunction()->NewInstance(1, &v8::External::New(iso, &source).As<Value>());
@@ -233,6 +240,32 @@ void Dollar::jsLoadTrace(const v8::FunctionCallbackInfo<Value>& args)
 
 		return Local<Value>();
 	});
+}
+
+void Dollar::jsOnLoaded(const v8::FunctionCallbackInfo<Value> &args)
+{
+	if (args.Length() != 1)
+	{
+		ThrowTypeError("use $.trace.onLoaded(function)");
+	}
+
+	Dollar * pThis = UnwrapThis<Dollar>(args.This());
+	pThis->_OnLoaded.Reset(Isolate::GetCurrent(), args[0].As<Function>());
+}
+
+void Dollar::OnTraceLoaded(v8::Isolate* iso)
+{
+	if (_OnLoaded.IsEmpty())
+		return;
+
+	auto onLoaded = Local<Function>::New(iso, _OnLoaded);
+
+	TryCatch try_catch;
+	onLoaded->Call(iso->GetCurrentContext()->Global(), 0, nullptr);
+	if (try_catch.HasCaught())
+	{
+		GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
+	}
 }
 
 void Dollar::jsPrint(const v8::FunctionCallbackInfo<Value>& args)

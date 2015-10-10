@@ -291,6 +291,7 @@ LRESULT CTraceApp::OnLoadEnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHan
 
 	// refresh our collection
 	m_pTraceView->LoadView();
+	m_pJsHost->OnTraceLoaded();
 
 	return 0;
 }

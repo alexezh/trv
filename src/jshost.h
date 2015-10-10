@@ -70,6 +70,7 @@ public:
 	BYTE GetLineColor(DWORD dwLine);
 
 public:
+	void OnDollarCreated(Js::Dollar*) override;
 	void OnViewCreated(Js::View*) override;
 	void OnHistoryCreated(Js::History*) override;
 	void OnDotExpressionsCreated(Js::DotExpressions*) override;
@@ -77,6 +78,7 @@ public:
 	void OnTaggerCreated(Js::Tagger*) override;
 
 	void LoadTrace(const char* pszName, int startPos, int endPos) override;
+	void OnTraceLoaded();
 
 	const std::string& GetAppDataDir() override
 	{
@@ -128,6 +130,7 @@ private:
 
 	std::shared_ptr<CTraceSource> _pFileTraceSource;
 
+	Js::Dollar* _pDollar = nullptr;
 	Js::View* _pView = nullptr;
 	Js::History* _pHistory = nullptr;
 	Js::Shortcuts* _pShortcuts = nullptr;

@@ -35,11 +35,13 @@ class History;
 class DotExpressions;
 class Shortcuts;
 class Tagger;
+class Dollar;
 
 class IAppHost
 {
 public:
 
+	virtual void OnDollarCreated(Dollar*) = 0;
 	virtual void OnViewCreated(View*) = 0;
 	virtual void OnHistoryCreated(History*) = 0;
 	virtual void OnDotExpressionsCreated(DotExpressions*) = 0;
@@ -47,6 +49,7 @@ public:
 	virtual void OnTaggerCreated(Tagger*) = 0;
 
 	virtual void LoadTrace(const char* pszName, int startPos, int endPos) = 0;
+	virtual void OnTraceLoaded() = 0;
 
 	virtual const std::string& GetAppDataDir() = 0;
 

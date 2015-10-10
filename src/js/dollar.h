@@ -20,25 +20,26 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
+#include "objectwrap.h"
+
 namespace Js {
 
-class Dollar
+class Dollar : public BaseObject<Dollar>
 {
 public:
-	// static v8::Persistent<v8::FunctionTemplate> GetTemplate(v8::Handle<v8::Object> & target)
-	//		if(!_Template.IsEmpty())
-	//	{
-	//		return _Template;
-	//	}
+	Dollar(const v8::Handle<v8::Object>& handle);
+		
 	static void Init(v8::Isolate* iso);
 	static void InitInstance(v8::Isolate* iso, v8::Handle<v8::Object> & target);
 	static bool ImportFile(const char * pszFile, bool opt = false);
 
+	void OnTraceLoaded(v8::Isolate* iso);
 private:
 	static void jsNew(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsImport(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsLoadTrace(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void jsOnLoaded(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 	static void jsGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
@@ -47,6 +48,7 @@ private:
 
 private:
 	static v8::UniquePersistent<v8::FunctionTemplate> _Template;
+	v8::UniquePersistent<v8::Function> _OnLoaded;
 };
 
 } // Js

@@ -1,13 +1,17 @@
 // This module contains CSI specific functions and can be used as an example for other content specific parsing
 
-// Set pare format. Values are tab separated. Map column 2 to time, 4 to thread id, 7 to user1
-$t.setFormat("time||tid||user1|||", "\t");
+$.onLoaded(function () {
+    // Set pare format. Values are tab separated. Map column 2 to time, 4 to thread id, 7 to user1
+    $t.setFormat("time||tid||user1|||", "\t");
 
-// Show columns which we care about
-$v.setColumns(["line", "tid", "time", "user1", "message"]);
+    // Show columns which we care about
+    $v.setColumns(["line", "tid", "time", "user1", "message"]);
 
-// Set height of command window (30 in pixels) and minimal percentage used by output
-$v.setViewLayout(30, 0.4);
+    // Set height of command window (30 in pixels) and minimal percentage used by output
+    $v.setViewLayout(30, 0.4);
+
+    setupRender();
+});
 
 // Filter by thread id
 var threadColl = null;
@@ -99,4 +103,3 @@ function setupRender()
     });
 }
 
-setupRender();

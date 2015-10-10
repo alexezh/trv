@@ -32,6 +32,7 @@
 #include "js/shortcuts.h"
 #include "js/tagger.h"
 #include "js/trace.h"
+#include "js/dollar.h"
 #include "stringutils.h"
 #include <include/libplatform/libplatform.h>
 
@@ -50,6 +51,11 @@ void JsHost::Init(const std::shared_ptr<CTraceSource>& pColl)
 
 	// run everything on separate thread
 	QueueUserWorkItem((LPTHREAD_START_ROUTINE)ScriptThreadInit, this, 0);
+}
+
+void JsHost::OnDollarCreated(Js::Dollar* dollar)
+{
+	_pDollar = dollar;
 }
 
 void JsHost::OnViewCreated(Js::View* view)
@@ -462,6 +468,14 @@ void JsHost::LoadTrace(const char* pszName, int startPos, int endPos)
 	_pApp->Post([this, name, startPos, endPos]() 
 	{
 		_pApp->LoadFile(name, startPos, endPos);
+	});
+}
+
+void JsHost::OnTraceLoaded()
+{
+	QueueInput([this](Isolate* iso)
+	{
+		_pDollar->OnTraceLoaded(iso);
 	});
 }
 
