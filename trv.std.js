@@ -62,7 +62,7 @@ Tagger.prototype.remove = function (id) {
         if (this._Items[i].id == id) {
             $.tagger.removeFilter(this._Items[i].Collection);
             this._Items.splice(i, 1);
-            InvokeOnChanged();
+            this.invokeOnChanged();
             $.view.refresh();
             break;
         }
@@ -90,8 +90,8 @@ Tagger.prototype.onChanged = function (func) {
 }
 
 Tagger.prototype.invokeOnChanged = function () {
-    if (this.onChanged != null)
-        this.onChanged();
+    if (this.OnChangedHandler != null)
+        this.OnChangedHandler();
 }
 
 Tagger.prototype.asCollection = function () {
@@ -187,7 +187,7 @@ function sf()
 
 tagger.onChanged(function ()
 {
-    if(limitTagged)
+    if (limitTagged)
     {
         taggedColl = tagger.asCollection();
         viewSources[taggedCollIdx] = taggedColl;

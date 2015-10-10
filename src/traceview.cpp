@@ -543,7 +543,7 @@ void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 void CTraceView::Repaint()
 {
 	m_ListView.Invalidate();
-	UpdateView(0);
+	// UpdateView(0);
 }
 
 void CTraceView::ResetViewCache()
