@@ -353,6 +353,8 @@ LRESULT CTraceView::OnGetDispInfo(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 		}
 	}
 
+	bHandled = true;
+
 	return 0;
 }
 
@@ -426,12 +428,11 @@ LRESULT CTraceView::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 
 			(void) SelectObject(pCD->nmcd.hdc, GetStockObject(ANSI_FIXED_FONT));
 
-			lRet = CDRF_DODEFAULT; // (CDRF_NOTIFYPOSTPAINT | CDRF_NEWFONT);
+			lRet = CDRF_NOTIFYPOSTPAINT | CDRF_NEWFONT;
 			break;
 		}
 		case CDDS_ITEMPOSTPAINT:
 		{
-
 			lRet = CDRF_DODEFAULT;
 			break;
 		}
@@ -502,6 +503,7 @@ LRESULT CTraceView::OnKeyDown(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 LRESULT CTraceView::OnCacheHint(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 {
 	NMLVCACHEHINT* pCachehint = (NMLVCACHEHINT*) pnmh;
+	bHandled = true;
 	return 0;
 }
 
@@ -540,24 +542,14 @@ void CTraceView::SetTraceSource(const std::shared_ptr<CTraceSource>& src)
 //
 void CTraceView::Repaint()
 {
-	// update view    
-	if (ShowActive())
-	{
-		ListView_RedrawItems(m_ListView.m_hWnd, 0, m_ActiveLines.size());
-	}
-	else
-	{
-		ListView_RedrawItems(m_ListView.m_hWnd, 0, m_pSource->GetLineCount());
-	}
-
-	m_ListView.Invalidate(TRUE);
+	m_ListView.Invalidate();
 	UpdateView(0);
 }
 
 void CTraceView::ResetViewCache()
 {
 	m_LineCache->Reset();
-	m_ListView.Invalidate(TRUE);
+	m_ListView.Invalidate();
 }
 
 void CTraceView::SetViewSource(const std::shared_ptr<CBitSet>& lines)

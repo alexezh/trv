@@ -69,6 +69,7 @@ void Tagger::jsAddFilter(const FunctionCallbackInfo<Value>& args)
 	TryCatchCpp(args, [&args]
 	{
 		auto pThis = Unwrap(args.This());
+		std::lock_guard<std::mutex> guard(pThis->_Lock);
 		if (!(args.Length() == 2 && args[0]->IsObject() && args[1]->IsString()))
 		{
 			ThrowAddFilter();
@@ -98,6 +99,7 @@ void Tagger::jsRemoveFilter(const FunctionCallbackInfo<Value>& args)
 	TryCatchCpp(args, [&args]() -> Local<Value>
 	{
 		auto pThis = Unwrap(args.This());
+		std::lock_guard<std::mutex> guard(pThis->_Lock);
 		assert(args.Length() == 1);
 
 		if (!args.Length() == 1 || !args[0]->IsInt32())

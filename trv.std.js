@@ -49,7 +49,7 @@ Tagger.prototype.add = function (item) {
     item.Id = id;
     this._Items.push(item);
     $.tagger.addFilter(item.Collection, item.Color);
-    InvokeOnChanged();
+    this.invokeOnChanged();
     $.view.refresh();
 }
 
@@ -117,7 +117,6 @@ var tagger = new Tagger();
 
 // add filter provided collection, color and title 
 function af(set, color, title) {
-    $.print("af " + set);
     $f = tagger.add(new TaggerItem(set, color, title));
     return $f;
 }

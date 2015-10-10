@@ -167,7 +167,13 @@ void DotExpressions::Execute(Isolate* iso, const std::string & line)
 		args.push_back(String::NewFromUtf8(iso, tokens[i].c_str()));
 	}
 
+	v8::TryCatch try_catch;
+	try_catch.SetVerbose(true);
 	func->Call(v8::Isolate::GetCurrent()->GetCurrentContext()->Global(), args.size(), args.data());
+	if (try_catch.HasCaught())
+	{
+		GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
+	}
 }
 
 } // Js
