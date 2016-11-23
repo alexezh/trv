@@ -53,6 +53,7 @@ Tagger.prototype.add = function (item) {
     $.tagger.addFilter(item.Collection, item.Color);
     this.invokeOnChanged();
     $.view.refresh();
+    return item;
 }
 
 Tagger.prototype.getItems = function () {

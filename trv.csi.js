@@ -2,10 +2,10 @@
 
 $.onLoaded(function () {
     // Set pare format. Values are tab separated. Map column 2 to time, 4 to thread id, 7 to user1
-    $t.setFormat("time||tid||user1|||", "\t");
+    $t.setFormat("time||tid||user1|user2||", "\t");
 
     // Show columns which we care about
-    $v.setColumns(["line", "tid", "time", "user1", "message"]);
+    $v.setColumns(["line", "tid", "time", "user1", "user2", "message"]);
 
     // Set height of command window (30 in pixels) and minimal percentage used by output
     $v.setViewLayout(30, 0.4);
@@ -98,6 +98,7 @@ function setupRender()
         return {
             time: ((res != null) ? res[0] : traceLine.time),
             user1: traceLine.user1,
+            user2: traceLine.user2,
             msg: traceLine.msg
         };
     });
