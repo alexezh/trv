@@ -111,9 +111,11 @@ public:
 
 	void ReportException(v8::Isolate* isolate, v8::TryCatch& try_catch) override;
 
+	// queue item to script thread
+	void QueueInput(std::function<void(v8::Isolate*)> && item);
+
 private:
 	std::string GetKnownPath(REFKNOWNFOLDERID id);
-	void QueueInput(std::function<void(v8::Isolate*)> && item);
 	void ExecuteString(v8::Isolate* isolate, const std::string & line);
 	void ExecuteStringAsDotExpression(v8::Isolate* iso, const std::string & line);
 	void ExecuteStringAsScript(v8::Isolate* iso, const std::string & line);

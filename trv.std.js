@@ -177,26 +177,44 @@ addCommandHelp("rf(id)", "remove filter with <id>");
 var viewSources = [];
 var viewSource = null;
 var limitFiltered = false;
+var viewSourceUpdatePending = false;
 
 // intersects all line
 function updateViewSource()
 {
-    viewSource = null;
+    if (viewSourceUpdatePending)
+        return;
 
-    if (limitFiltered) {
-        for (var i = 0; i < viewSources.length; i++) {
-            if (viewSources[i].coll != null)
-                viewSource = (viewSource == null) ? viewSources[i].coll : viewSource.intersect(viewSources[i].coll);
+    viewSourceUpdatePending = false
+
+    // delay actual update until current scripts are done
+    // this way we do not have to worry about code executing many times
+    $.post(function () {
+        try {
+            viewSource = null;
+
+            if (limitFiltered) {
+                for (var i = 0; i < viewSources.length; i++) {
+                    var coll = viewSources[i].update();
+                    if (coll != null)
+                        viewSource = (viewSource == null) ? coll : viewSource.intersect(coll);
+                }
+            }
+
+            $.view.setSource(viewSource);
         }
-    }
 
-    $.view.setSource(viewSource);
+        finally {
+            viewSourceUpdatePending = false;
+        }
+    });
 }
 
 function printViewSources()
 {
     for (var i = 0; i < viewSources.length; i++) {
-        $.print(i + ": " + viewSources[i].name + " " + ((viewSources[i].coll != null) ? "enabled" : "disabled"));
+        var enabled = viewSources[i].enabled();
+        $.print(i + ": " + viewSources[i].name + " " + ((enabled) ? "enabled" : "disabled"));
     }
 }
 
@@ -229,21 +247,33 @@ $.shortcuts.add("ctrl+h", toggleFiltered);
 // show/hide unselected text
 var limitTagged = false;
 var taggedColl = null;
-var taggerSource = { name: "tagger", key: "ctrl+0", coll: null };
+var taggerSource = {
+    name: "tagger",
+    key: "ctrl+0",
+    update: function () {
+        if (limitTagged) {
+            if (taggedColl == null)
+                taggedColl = tagger.asCollection();
+
+            return taggedColl;
+        }
+        else {
+            return null;
+        }
+    },
+    enabled: function () {
+        return limitTagged;
+    }
+};
 viewSources.push(taggerSource);
 
 function toggleTagged()
 {
     limitTagged = !limitTagged;
     if (limitTagged) {
-        if (taggedColl == null)
-            taggedColl = tagger.asCollection();
-
-        taggerSource.coll = taggedColl;
         showFiltered(true);
     }
     else {
-        taggerSource.coll = null;
         updateViewSource();
     }
 }
@@ -252,8 +282,7 @@ $.shortcuts.add("ctrl+0", toggleTagged);
 
 tagger.onChanged(function ()
 {
-    taggedColl = tagger.asCollection();
-    taggerSource.coll = taggedColl;
+    taggedColl = null;
     updateViewSource();
 });
 

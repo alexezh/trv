@@ -16,7 +16,32 @@ $.onLoaded(function () {
 // Filter by thread id
 var threadId = null;
 var limitThread = false;
-var threadSource = { name: "thread", key: "ctrl+t", coll: null };
+var threadColl = null;
+var threadSource = {
+    name: "thread",
+    key: "ctrl+t",
+    update: function () {
+        if (limitThread) {
+            if (threadColl)
+                return threadColl;
+
+            var line = new TraceLine($.view.currentLine);
+            if (threadId != line.thread) {
+                var threadQuery = $.trace.where({ "tid": line.thread });
+                threadColl = threadQuery.asCollection();
+                threadId = line.thread;
+            }
+            return threadColl;
+        }
+        else {
+            return null;
+        }
+    },
+    enabled: function () {
+        return limitThread;
+    }
+};
+
 viewSources.push(threadSource);
 
 function toggleThreadScope()
@@ -32,12 +57,11 @@ function toggleThreadScope()
             threadColl = threadQuery.asCollection();
             threadId = line.thread;
         }
-        threadSource.coll = threadColl;
         showFiltered(true);
     }
     else
     {
-        threadSource.coll = null;
+        threadColl = null;
         updateViewSource();
     }
 }
@@ -48,13 +72,39 @@ $.shortcuts.add("ctrl+t", toggleThreadScope);
 
 var categories = [];
 var limitCategory = false;
-var categorySource = { name: "category", key: "ctrl+1", coll: null };
+var categorySourceDirty = true;
+var categoryColl = null;
+var categorySource = {
+    name: "category",
+    key: "ctrl+1",
+    update: function () {
+        if (limitCategory) {
+            if (categoryColl != null)
+                return categoryColl;
+
+            for (var it in categories) {
+                categoryColl = (categoryColl == null) ? categories[it].coll : categoryColl.combine(categories[it].coll);
+            }
+
+            return categoryColl;
+        }
+        else {
+            return null;
+        }
+    },
+    enabled: function () {
+        return limitCategory;
+    }
+};
+
 viewSources.push(categorySource);
 
-function toggleCategory(sub) {
+function toggleCategory(sub)
+{
     var add = true;
     for (var it in categories) {
-        if (categories[it].name == sub) {
+        if (categories[it].name === sub) {
+            $.print("toggleCategory: remove category " + sub);
             categories.splice(it, 1);
             add = false;
             break;
@@ -62,27 +112,23 @@ function toggleCategory(sub) {
     }
 
     if (add) {
+        $.print("toggleCategory: add category " + sub);
         var query = $.trace.where({ "user1": sub });
         categories.push({ name: sub, coll: query.asCollection() });
     }
 
+    limitCategory = true;
     categoryColl = null;
-    for (var it in categories) {
-        categoryColl = (categoryColl == null) ? categories[it].coll : categoryColl.combine(categories[it].coll);
-    }
-
-    categorySource.coll = categoryColl;
+    updateViewSource();
 }
 
 function toggleCategoryFilter() {
     limitCategory = !limitCategory;
 
     if (limitCategory) {
-        categorySource = categoryColl;
         showFiltered(true);
     }
     else {
-        categorySource = null;
         updateViewSource();
     }
 }
@@ -94,10 +140,6 @@ $.shortcuts.add("ctrl+e", function () {
     var names = "";
     for (var it in categories) {
         names += " \"" + categories[it].name + "\"";
-    }
-
-    if (!limitCategory) {
-        toggleCategoryFilter();
     }
 
     $.print("Selected categories " + names);

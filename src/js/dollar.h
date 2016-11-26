@@ -40,6 +40,7 @@ private:
 	static void jsPrint(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsLoadTrace(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void jsOnLoaded(const v8::FunctionCallbackInfo<v8::Value> &args);
+	static void jsPost(const v8::FunctionCallbackInfo<v8::Value> &args);
 
 	static void jsGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 

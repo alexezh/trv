@@ -31,6 +31,7 @@
 #include "tagger.h"
 #include "tracecollection.h"
 #include "log.h"
+#include "jshost.h"
 
 using namespace v8;
 
@@ -48,6 +49,7 @@ void Dollar::Init(Isolate* iso)
 	tmpl_proto->Set(String::NewFromUtf8(iso, "print"), FunctionTemplate::New(iso, jsPrint));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "loadTrace"), FunctionTemplate::New(iso, jsLoadTrace));
 	tmpl_proto->Set(String::NewFromUtf8(iso, "onLoaded"), FunctionTemplate::New(iso, jsOnLoaded));
+	tmpl_proto->Set(String::NewFromUtf8(iso, "post"), FunctionTemplate::New(iso, jsPost));
 
 	_Template = UniquePersistent<FunctionTemplate>(iso, tmpl);
 
@@ -246,7 +248,7 @@ void Dollar::jsOnLoaded(const v8::FunctionCallbackInfo<Value> &args)
 {
 	if (args.Length() != 1)
 	{
-		ThrowTypeError("use $.trace.onLoaded(function)");
+		ThrowTypeError("use $.onLoaded(function)");
 	}
 
 	Dollar * pThis = UnwrapThis<Dollar>(args.This());
@@ -266,6 +268,29 @@ void Dollar::OnTraceLoaded(v8::Isolate* iso)
 	{
 		GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
 	}
+}
+
+void Dollar::jsPost(const v8::FunctionCallbackInfo<Value>& args)
+{
+	if (args.Length() != 1)
+	{
+		ThrowTypeError("use $.post(function)");
+	}
+
+	Dollar * pThis = UnwrapThis<Dollar>(args.This());
+
+	auto sharedFunc = std::make_shared<v8::UniquePersistent<v8::Function>>(Isolate::GetCurrent(), args[0].As<Function>());
+	static_cast<JsHost*>(GetCurrentHost())->QueueInput([sharedFunc](v8::Isolate* iso)
+	{
+		auto localFunc = Local<Function>::New(iso, *sharedFunc);
+
+		TryCatch try_catch;
+		localFunc->Call(iso->GetCurrentContext()->Global(), 0, nullptr);
+		if (try_catch.HasCaught())
+		{
+			GetCurrentHost()->ReportException(v8::Isolate::GetCurrent(), try_catch);
+		}
+	});
 }
 
 void Dollar::jsPrint(const v8::FunctionCallbackInfo<Value>& args)
