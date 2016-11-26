@@ -74,7 +74,7 @@ TraceLine::TraceLine(const v8::Handle<v8::Object>& handle, int lineNum)
 ///////////////////////////////////////////////////////////////////////////////
 void TraceLine::jsNew(const FunctionCallbackInfo<Value> &args)
 {
-	if(args.Length() != 1 || !args[0]->IsInt32())
+	if(args.Length() != 1)
 	{
 		ThrowTypeError("Invalid number of FunctionCallbackInfo<Value>. Format traceline(int)");
 	}

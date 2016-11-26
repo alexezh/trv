@@ -45,9 +45,11 @@ View::View(const v8::Handle<v8::Object>& handle)
 void View::Init(Isolate* iso)
 {
 	auto tmpl(FunctionTemplate::New(iso, jsNew));
-	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-	auto tmpl_proto = tmpl->InstanceTemplate();
+	auto tmpl_proto = tmpl->PrototypeTemplate();
+	tmpl_proto->SetAccessor(String::NewFromUtf8(iso, "currentLine"), jsCurrentLineGetter);
+
+	tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setViewLayout"), FunctionTemplate::New(iso, jsSetViewLayout));
 	tmpl->InstanceTemplate()->Set(String::NewFromUtf8(iso, "setColumns"), FunctionTemplate::New(iso, jsSetColumns));
@@ -217,7 +219,7 @@ void View::jsCurrentLineGetter(v8::Local<v8::String> property, const v8::Propert
 
 void View::jsGetSelected(const FunctionCallbackInfo<Value>& args)
 {
-
+	
 }
 
 void View::RefreshView()
