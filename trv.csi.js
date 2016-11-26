@@ -44,32 +44,66 @@ function toggleThreadScope()
 
 $.shortcuts.add("ctrl+t", toggleThreadScope);
 
-// Filter by sub system
+// Filter by sub system. A user can add to subsystem 
 
-var subColl = null;
-var subSystem = [ [ "Csi Cache", "Csi Cache Recovery" ] ];
-var limitSub = false;
-var subCollIdx = 2;
+var categories = [];
+var limitCategory = false;
+var categoryCollIdx = 2;
+var categoryColl = null;
 
-function toggleSubsystemScope() {
-    limitSub = !limitSub;
-
-    if (limitSub) {
-        for(var sub in subSystem) {
-            var query = $.trace.where({ "user1": subSystem[sub] });
-            subColl = (subColl == null) ? query.asCollection() : subColl.combine(query.asCollection());
+function toggleCategory(sub) {
+    var add = true;
+    for (var it in categories) {
+        if (categories[it].name == sub) {
+            categories.splice(it, 1);
+            add = false;
+            break;
         }
+    }
 
-        viewSources[subCollIdx] = subColl;
+    if (add) {
+        var query = $.trace.where({ "user1": sub });
+        categories.push({ name: sub, coll: query.asCollection() });
+    }
+
+    categoryColl = null;
+    for (var it in categories) {
+        categoryColl = (categoryColl == null) ? categories[it].coll : categoryColl.combine(categories[it].coll);
+    }
+
+    viewSources[categoryCollIdx] = categoryColl;
+}
+
+function toggleCategoryFilter() {
+    limitCategory = !limitCategory;
+
+    if (limitCategory) {
+        viewSources[categoryCollIdx] = categoryColl;
     }
     else {
-        viewSources[subCollIdx] = null;
+        viewSources[categoryCollIdx] = null;
     }
 
     updateViewSource();
 }
 
-$.shortcuts.add("ctrl+u" , toggleSubsystemScope);
+$.shortcuts.add("ctrl+e", function () {
+    var line = new TraceLine($.view.currentLine);
+    toggleCategory(line.user1);
+    
+    var names = "";
+    for (var it in categories) {
+        names += " \"" + categories[it].name + "\"";
+    }
+
+    if (!limitCategory) {
+        toggleCategoryFilter();
+    }
+
+    $.print("Selected categories " + names);
+});
+
+$.shortcuts.add("alt+e", toggleCategoryFilter);
 
 // exclude lines matching condition from the scope
 // TODO. has to be aggregated with csi and trace

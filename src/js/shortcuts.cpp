@@ -102,32 +102,44 @@ v8::Local<v8::Value> Shortcuts::AddWorker(const v8::FunctionCallbackInfo<v8::Val
 	auto key = args[0]->ToString();
 	String::Utf8Value strKey(key);
 	auto szKey = std::string(*strKey, strKey.length());
-	size_t idx = szKey.find('+');
-
-	if (idx == std::string::npos)
-		ThrowKeyError(szKey);
-
-	// parse key
-	auto szModifier = szKey.substr(0, idx);
-	auto szVKey = szKey.substr(idx+1);
-	if (!(szVKey.length() > 0 && szVKey.length() < 3))
-		ThrowKeyError(szKey);
 
 	uint8_t modifier = 0;
-	if (_stricmp(szModifier.c_str(), "ctrl") == 0)
+	uint16_t code = 0;
+	while (true)
 	{
-		modifier |= FCONTROL;
-	}
-	else if (_stricmp(szModifier.c_str(), "alt") == 0)
-	{
-		modifier |= FALT;
-	}
-	else
-	{
-		ThrowKeyError(szKey);
+		size_t idx = szKey.find('+');
+
+		if (idx == std::string::npos)
+		{
+			if (!(szKey.length() > 0 && szKey.length() < 3))
+				ThrowKeyError(szKey);
+
+			auto code = GetVKey(szKey);
+			break;
+		}
+
+		// parse key
+		auto szModifier = szKey.substr(0, idx);
+		szKey = szKey.substr(idx + 1);
+
+		if (_stricmp(szModifier.c_str(), "ctrl") == 0)
+		{
+			modifier |= FCONTROL;
+		}
+		else if (_stricmp(szModifier.c_str(), "alt") == 0)
+		{
+			modifier |= FALT;
+		}
+		else if (_stricmp(szModifier.c_str(), "shift") == 0)
+		{
+			modifier |= FSHIFT;
+		}
+		else
+		{
+			ThrowKeyError(szKey);
+		}
 	}
 
-	auto code = GetVKey(szVKey);
 	_Keys.emplace(GetKey(modifier, code), UniquePersistent<Function>(Isolate::GetCurrent(), args[1].As<Function>()));
 
 	GetCurrentHost()->AddShortcut(modifier, code);

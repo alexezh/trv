@@ -457,6 +457,9 @@ bool CTraceApp::HandleJsAccelerators(MSG& msg)
 	if ((GetAsyncKeyState(VK_CONTROL) & 0x80000000) != 0)
 		modifier |= FCONTROL;
 
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x80000000) != 0)
+		modifier |= FSHIFT;
+
 	if ((GetAsyncKeyState(VK_MENU) & 0x80000000) != 0)
 		modifier |= FALT;
 
