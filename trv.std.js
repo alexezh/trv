@@ -173,64 +173,96 @@ addCommandHelp("rf(id)", "remove filter with <id>");
 // view.setSource sets a collection to be displayed in trace window
 // the collection is generated as intersection of collections from viewSources array
 // viewSources[0] contains collection produces by tagger. Other elements of array are free to use
+// viewSource element is a pair of { name, coll }
 var viewSources = [];
 var viewSource = null;
+var limitFiltered = false;
 
 // intersects all line
-function updateViewSource() {
+function updateViewSource()
+{
     viewSource = null;
 
-    for (var i = 0; i < viewSources.length; i++)
-    {
-        if (viewSources[i] != null)
-            viewSource = (viewSource == null) ? viewSources[i] : viewSource.intersect(viewSources[i]);
+    if (limitFiltered) {
+        for (var i = 0; i < viewSources.length; i++) {
+            if (viewSources[i].coll != null)
+                viewSource = (viewSource == null) ? viewSources[i].coll : viewSource.intersect(viewSources[i].coll);
+        }
     }
 
     $.view.setSource(viewSource);
 }
 
-// show/hide unselected text
-var limitTagged = false;
-var taggedColl = null;
-var taggedCollIdx = 0;
-function sf() 
+function printViewSources()
 {
-    limitTagged = !limitTagged;
-    if(limitTagged)
-    {
-        if (taggedColl == null)
-            taggedColl = tagger.asCollection();
-
-        viewSources[taggedCollIdx] = taggedColl;
+    for (var i = 0; i < viewSources.length; i++) {
+        $.print(i + ": " + viewSources[i].name + " " + ((viewSources[i].coll != null) ? "enabled" : "disabled"));
     }
-    else
-    {
-        viewSources[taggedCollIdx] = null;
-    }
+}
 
+function showFiltered(val)
+{
+    limitFiltered = val;
     updateViewSource();
 }
 
+function toggleFiltered()
+{
+    limitFiltered = !limitFiltered;
+    if (limitFiltered) {
+        updateViewSource();
+    }
+    else {
+        $.view.setSource(null);
+    }
+}
+
+function sf()
+{
+    toggleFiltered();
+}
+
+$.dotexpressions.add("sf", toggleFiltered);
+addCommandHelp("sf()", "switch between displaying all lines and lines which match filters");
+$.shortcuts.add("ctrl+h", toggleFiltered);
+
+// show/hide unselected text
+var limitTagged = false;
+var taggedColl = null;
+var taggerSource = { name: "tagger", key: "ctrl+0", coll: null };
+viewSources.push(taggerSource);
+
+function toggleTagged()
+{
+    limitTagged = !limitTagged;
+    if (limitTagged) {
+        if (taggedColl == null)
+            taggedColl = tagger.asCollection();
+
+        taggerSource.coll = taggedColl;
+        showFiltered(true);
+    }
+    else {
+        taggerSource.coll = null;
+        updateViewSource();
+    }
+}
+
+$.shortcuts.add("ctrl+0", toggleTagged);
+
 tagger.onChanged(function ()
 {
-    if (limitTagged)
-    {
-        $.print(" update view source");
-        taggedColl = tagger.asCollection();
-        viewSources[taggedCollIdx] = taggedColl;
-        updateViewSource();
-    } else {
-        // no reason to update tagger collection unless we are going to use it
-        taggedColl = null;
-    }
+    taggedColl = tagger.asCollection();
+    taggerSource.coll = taggedColl;
+    updateViewSource();
 });
 
-$.dotexpressions.add("sf", sf);
-addCommandHelp("sf()", "switch between displaying all lines and lines which match filters");
-$.shortcuts.add("ctrl+h", sf);
 
 // print filters
-function pf() { tagger.print(); }
+function pf()
+{
+    tagger.print();
+}
 $.dotexpressions.add("pf", pf);
 addCommandHelp("pf()", "print current filters");
 
@@ -245,10 +277,11 @@ $.shortcuts.add("ctrl+a", startEditFilter);
 // find support
 var findColl = null;
 var findCollIdx = 0;
-function find(condition) {
+function find(condition)
+{
     findColl = ((viewSource != null) ? viewSource : $.trace).where(condition).asCollection();
     if (findColl.count > 0) {
-        findCollIdx = 0; 
+        findCollIdx = 0;
         $.view.setFocusLine(findColl.getLine(findCollIdx).index);
         findCollIdx++;
     }
@@ -256,13 +289,17 @@ function find(condition) {
         findColl = null;
     }
 }
-function findNext(condition) {
+
+function findNext(condition)
+{
     if (findCollIdx < findColl.count) {
         $.view.setFocusLine(findColl.getLine(findCollIdx).index);
         findCollIdx++;
     }
 }
-function startEditFind() {
+
+function startEditFind()
+{
     $.console.setFocus();
     $.console.setText(".f ");
 }
@@ -273,23 +310,32 @@ $.shortcuts.add("ctrl+f3", findNext);
 addCommandHelp("f()", "fine first line which matches <condition>");
 addCommandHelp("n()", "fine next line which matches <condition>");
 
-$.shortcuts.add("ctrl+o", function () { $.console.setFocus() });
+$.shortcuts.add("ctrl+o", function () { $.console.setFocus()
+});
 
 // history
 var $h = $.history;
-function hp() { $.history.print(); }
-function he(id) { $.history.exec(id); }
+function hp()
+{
+    $.history.print();
+}
+function he(id)
+{
+    $.history.exec(id);
+}
 addCommandHelp("hp()", "print command history");
 addCommandHelp("he(id)", "execute command <id> from history");
 
 // load/reload scripts
 var lastScript = null;
-function load(file) {
+function load(file)
+{
     lastScript = file;
     $.import(file);
 }
 
-function reload() {
+function reload()
+{
     if (lastScript != null)
         $.import(lastScript);
 }

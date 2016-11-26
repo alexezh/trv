@@ -14,10 +14,10 @@ $.onLoaded(function () {
 });
 
 // Filter by thread id
-var threadColl = null;
 var threadId = null;
 var limitThread = false;
-var threadCollIdx = 1;
+var threadSource = { name: "thread", key: "ctrl+t", coll: null };
+viewSources.push(threadSource);
 
 function toggleThreadScope()
 {
@@ -32,14 +32,14 @@ function toggleThreadScope()
             threadColl = threadQuery.asCollection();
             threadId = line.thread;
         }
-        viewSources[threadCollIdx] = threadColl;
+        threadSource.coll = threadColl;
+        showFiltered(true);
     }
     else
     {
-        viewSources[threadCollIdx] = null;
+        threadSource.coll = null;
+        updateViewSource();
     }
-
-    updateViewSource();
 }
 
 $.shortcuts.add("ctrl+t", toggleThreadScope);
@@ -48,8 +48,8 @@ $.shortcuts.add("ctrl+t", toggleThreadScope);
 
 var categories = [];
 var limitCategory = false;
-var categoryCollIdx = 2;
-var categoryColl = null;
+var categorySource = { name: "category", key: "ctrl+1", coll: null };
+viewSources.push(categorySource);
 
 function toggleCategory(sub) {
     var add = true;
@@ -71,20 +71,20 @@ function toggleCategory(sub) {
         categoryColl = (categoryColl == null) ? categories[it].coll : categoryColl.combine(categories[it].coll);
     }
 
-    viewSources[categoryCollIdx] = categoryColl;
+    categorySource.coll = categoryColl;
 }
 
 function toggleCategoryFilter() {
     limitCategory = !limitCategory;
 
     if (limitCategory) {
-        viewSources[categoryCollIdx] = categoryColl;
+        categorySource = categoryColl;
+        showFiltered(true);
     }
     else {
-        viewSources[categoryCollIdx] = null;
+        categorySource = null;
+        updateViewSource();
     }
-
-    updateViewSource();
 }
 
 $.shortcuts.add("ctrl+e", function () {
@@ -103,7 +103,7 @@ $.shortcuts.add("ctrl+e", function () {
     $.print("Selected categories " + names);
 });
 
-$.shortcuts.add("alt+e", toggleCategoryFilter);
+$.shortcuts.add("alt+1", toggleCategoryFilter);
 
 // exclude lines matching condition from the scope
 // TODO. has to be aggregated with csi and trace

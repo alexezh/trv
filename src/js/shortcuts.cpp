@@ -114,7 +114,7 @@ v8::Local<v8::Value> Shortcuts::AddWorker(const v8::FunctionCallbackInfo<v8::Val
 			if (!(szKey.length() > 0 && szKey.length() < 3))
 				ThrowKeyError(szKey);
 
-			auto code = GetVKey(szKey);
+			code = GetVKey(szKey);
 			break;
 		}
 
@@ -152,6 +152,7 @@ uint16_t Shortcuts::GetVKey(const std::string& key)
 	if(key.length() == 1)
 		return toupper(key[0]);
 
+	// handle functional keys
 	if (key[0] == 'f' || key[0] == 'F')
 	{
 		int idx = atoi(&key[1]);

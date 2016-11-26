@@ -463,6 +463,8 @@ bool CTraceApp::HandleJsAccelerators(MSG& msg)
 	if ((GetAsyncKeyState(VK_MENU) & 0x80000000) != 0)
 		modifier |= FALT;
 
+	LOG("@ key: %x, modifier: %x", msg.wParam, modifier);
+
 	auto it = m_Keys.find(static_cast<int>(modifier) << 16 | static_cast<WORD>(msg.wParam));
 	if (it == m_Keys.end())
 		return false;
@@ -519,12 +521,12 @@ int PASCAL wWinMain(HINSTANCE hInstance,
 	/* Acquire and dispatch messages until a WM_QUIT uMessage is received. */
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
-		if (TranslateAccelerator(g_pApp->m_hWnd, hAccelTable, &msg))
+		if ((msg.message == WM_KEYDOWN || msg.message == WM_SYSKEYDOWN) && g_pApp && g_pApp->HandleJsAccelerators(msg))
 		{
 			continue;
 		}
 
-		if (msg.message == WM_KEYDOWN && g_pApp && g_pApp->HandleJsAccelerators(msg))
+		if (TranslateAccelerator(g_pApp->m_hWnd, hAccelTable, &msg))
 		{
 			continue;
 		}
