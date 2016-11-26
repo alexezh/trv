@@ -191,6 +191,7 @@ function updateViewSource()
     // this way we do not have to worry about code executing many times
     $.post(function () {
         try {
+            $.print("update view. filtered=" + limitFiltered);
             viewSource = null;
 
             if (limitFiltered) {
@@ -202,6 +203,7 @@ function updateViewSource()
             }
 
             $.view.setSource(viewSource);
+            $.print("");
         }
 
         finally {
@@ -227,12 +229,7 @@ function showFiltered(val)
 function toggleFiltered()
 {
     limitFiltered = !limitFiltered;
-    if (limitFiltered) {
-        updateViewSource();
-    }
-    else {
-        $.view.setSource(null);
-    }
+    updateViewSource();
 }
 
 function sf()
@@ -251,6 +248,7 @@ var taggerSource = {
     name: "tagger",
     key: "ctrl+0",
     update: function () {
+        $.print("update tagged. filtered=" + limitTagged);
         if (limitTagged) {
             if (taggedColl == null)
                 taggedColl = tagger.asCollection();
@@ -282,6 +280,7 @@ $.shortcuts.add("ctrl+0", toggleTagged);
 
 tagger.onChanged(function ()
 {
+    limitTagged = true;
     taggedColl = null;
     updateViewSource();
 });

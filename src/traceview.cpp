@@ -277,7 +277,7 @@ DWORD CTraceView::GetFileLineNum(DWORD nItem)
 {
 	if (ShowActive())
 	{
-		return m_ActiveLines[nItem];
+		return (m_ActiveLines.size() > 0) ? m_ActiveLines[nItem] : 0;
 	}
 	else
 	{
@@ -558,10 +558,12 @@ void CTraceView::SetViewSource(const std::shared_ptr<CBitSet>& lines)
 	if (lines == nullptr)
 	{
 		m_ActiveLines.resize(0);
+		m_ShowActiveLines = false;
 	}
 	else
 	{
 		m_ActiveLines.resize(lines->GetSetBitCount());
+		m_ShowActiveLines = true;
 
 		LOG("@%p lines=%d", lines->GetSetBitCount());
 

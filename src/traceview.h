@@ -177,7 +177,7 @@ private:
 
 	bool ShowActive()
 	{
-		return m_ActiveLines.size() > 0;
+		return m_ShowActiveLines;
 	}
 protected:
 
@@ -205,6 +205,7 @@ private:
 	std::shared_ptr<CTraceSource> m_pSource;
 
 	// map from filtered lines to source lines
+	bool m_ShowActiveLines { false };
 	std::vector<DWORD> m_ActiveLines;
 
 	std::shared_ptr<ViewLineCache> m_LineCache;

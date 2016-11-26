@@ -21,16 +21,8 @@ var threadSource = {
     name: "thread",
     key: "ctrl+t",
     update: function () {
+        $.print("update thread. filtered=" + limitThread);
         if (limitThread) {
-            if (threadColl)
-                return threadColl;
-
-            var line = new TraceLine($.view.currentLine);
-            if (threadId != line.thread) {
-                var threadQuery = $.trace.where({ "tid": line.thread });
-                threadColl = threadQuery.asCollection();
-                threadId = line.thread;
-            }
             return threadColl;
         }
         else {
@@ -78,6 +70,7 @@ var categorySource = {
     name: "category",
     key: "ctrl+1",
     update: function () {
+        $.print("update category. filtered=" + limitCategory);
         if (limitCategory) {
             if (categoryColl != null)
                 return categoryColl;
