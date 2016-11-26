@@ -602,7 +602,12 @@ void CTraceView::SetFocusLine(DWORD nLine)
 	else
 	{
 		auto it = std::lower_bound(m_ActiveLines.begin(), m_ActiveLines.end(), nLine);
-		n = (it != m_ActiveLines.end()) ? *it : m_ActiveLines.back();
+		if (it == m_ActiveLines.end())
+		{
+			return;
+		}
+
+		n = it - m_ActiveLines.begin();
 	}
 
 	ListView_SetItemState(m_ListView.m_hWnd, n, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);

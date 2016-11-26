@@ -174,11 +174,11 @@ addCommandHelp("rf(id)", "remove filter with <id>");
 // the collection is generated as intersection of collections from viewSources array
 // viewSources[0] contains collection produces by tagger. Other elements of array are free to use
 var viewSources = [];
-
+var viewSource = null;
 
 // intersects all line
 function updateViewSource() {
-    var viewSource = null;
+    viewSource = null;
 
     for (var i = 0; i < viewSources.length; i++)
     {
@@ -246,7 +246,7 @@ $.shortcuts.add("ctrl+a", startEditFilter);
 var findColl = null;
 var findCollIdx = 0;
 function find(condition) {
-    findColl = $.trace.where(condition).asCollection();
+    findColl = ((viewSource != null) ? viewSource : $.trace).where(condition).asCollection();
     if (findColl.count > 0) {
         findCollIdx = 0; 
         $.view.setFocusLine(findColl.getLine(findCollIdx).index);
