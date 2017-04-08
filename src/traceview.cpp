@@ -408,6 +408,8 @@ LRESULT CTraceView::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 	LRESULT lRet = 0;
 	LPNMLVCUSTOMDRAW pCD = (LPNMLVCUSTOMDRAW) pnmh;
 
+	LOG("OnCustomDraw");
+
 	switch (pCD->nmcd.dwDrawStage)
 	{
 		case CDDS_PREPAINT:

@@ -109,7 +109,7 @@ private:
 
 			for (auto& v : _User)
 			{
-				if (strncmp(v.c_str(), line.User[_UserIdx].psz, line.User[_UserIdx].cch) == 0)
+				if (_strnicmp(v.c_str(), line.User[_UserIdx].psz, line.User[_UserIdx].cch) == 0)
 					return true;
 			}
 

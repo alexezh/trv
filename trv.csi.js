@@ -92,22 +92,31 @@ var categorySource = {
 
 viewSources.push(categorySource);
 
-function toggleCategory(sub)
+function addCategory(sub)
 {
-    var add = true;
     for (var it in categories) {
         if (categories[it].name === sub) {
-            $.print("toggleCategory: remove category " + sub);
-            categories.splice(it, 1);
-            add = false;
-            break;
+            $.print("found category " + sub);
+            return;
         }
     }
 
-    if (add) {
-        $.print("toggleCategory: add category " + sub);
-        var query = $.trace.where({ "user1": sub });
-        categories.push({ name: sub, coll: query.asCollection() });
+    $.print("add category " + sub);
+    var query = $.trace.where({ "user1": sub });
+    categories.push({ name: sub, coll: query.asCollection() });
+
+    limitCategory = true;
+    categoryColl = null;
+    updateViewSource();
+}
+
+function removeCategory(sub) {
+    for (var it in categories) {
+        if (categories[it].name === sub) {
+            $.print("remove category " + sub);
+            categories.splice(it, 1);
+            break;
+        }
     }
 
     limitCategory = true;
@@ -128,7 +137,7 @@ function toggleCategoryFilter() {
 
 $.shortcuts.add("ctrl+e", function () {
     var line = new TraceLine($.view.currentLine);
-    toggleCategory(line.user1);
+    addCategory(line.user1);
     
     var names = "";
     for (var it in categories) {

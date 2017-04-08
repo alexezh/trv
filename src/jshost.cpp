@@ -154,6 +154,9 @@ void JsHost::ScriptThread()
 		}
 	}
 
+	auto lastTime = std::chrono::high_resolution_clock::now();
+	bool requireGc = false;
+
 	for(;;)
 	{
 		WaitForSingleObject(_hSem, INFINITE);
@@ -166,19 +169,24 @@ void JsHost::ScriptThread()
 		}
 
 		item(isolate);
+		requireGc = true;
 
-		for(;;)
+		auto curTime = std::chrono::high_resolution_clock::now();
+		if (requireGc && curTime > lastTime + std::chrono::seconds(1))
 		{
+			lastTime = curTime;
+			for (;;)
 			{
-				AutoCS lock(_cs);
-				if(!_InputQueue.empty())
 				{
-					break;
+					AutoCS lock(_cs);
+					if (!_InputQueue.empty())
+					{
+						break;
+					}
 				}
-			}
-			if(isolate->IdleNotificationDeadline(0.1))
-			{
-				break;
+
+				requireGc = false;
+				isolate->IdleNotificationDeadline(0.1);
 			}
 		}
 	}
