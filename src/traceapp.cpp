@@ -112,8 +112,8 @@ HRESULT CTraceApp::Init(LPWSTR lpCmdLine)
 		goto Cleanup;
 	}
 
-	// load up to 512Mb at once
-	m_cbMaxLoadWindow = 1024 * 1024 * 512;
+	// load up to 8Gb at once
+	m_cbMaxLoadWindow = 1024LL * 1024 * 1024 * 8;
 
 	// set window name
 	szTitle = L"TraceView -";

@@ -88,7 +88,7 @@ HRESULT CTextTraceFile::Close()
 	return S_OK;
 }
 
-void CTextTraceFile::Load(QWORD nStop)
+void CTextTraceFile::Load(uint64_t nStop)
 {
 	if (m_bLoading)
 	{
@@ -147,7 +147,7 @@ void CTextTraceFile::LoadThread()
 
 				if (pEnd->nFileStop > m_nStop)
 				{
-					return;
+					break;
 				}
 
 				// copy end of line from previous buffer

@@ -187,7 +187,7 @@ private:
 	CPersistComponentContainer * m_pPersist { nullptr };
 
 	// maximum number of Mb to load
-	DWORD m_cbMaxLoadWindow;
+	uint64_t m_cbMaxLoadWindow;
 
 	// last Find expression
 	std::wstring m_szLastFind;
