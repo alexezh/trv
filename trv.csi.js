@@ -36,7 +36,7 @@ var threadSource = {
 
 viewSources.push(threadSource);
 
-function toggleThreadScope()
+function toggleThreadFilter()
 {
     limitThread = !limitThread;
 
@@ -58,7 +58,8 @@ function toggleThreadScope()
     }
 }
 
-$.shortcuts.add("ctrl+t", toggleThreadScope);
+$.shortcuts.add("ctrl+t", toggleThreadFilter);
+addCommandHelp("toggleThreadFilter()", "toggle between full view and filter by thread. [alt+t]");
 
 // Filter by sub system. A user can add to subsystem 
 
@@ -107,8 +108,9 @@ function addCategory(sub)
 
     limitCategory = true;
     categoryColl = null;
-    updateViewSource();
+    showFiltered(true);
 }
+addCommandHelp("addCategory(string)", "add logging category to filter. [ctrl+e] to add category of current line");
 
 function removeCategory(sub) {
     for (var it in categories) {
@@ -123,6 +125,7 @@ function removeCategory(sub) {
     categoryColl = null;
     updateViewSource();
 }
+addCommandHelp("removeCategory(string)", "remove logging category to filter");
 
 function toggleCategoryFilter() {
     limitCategory = !limitCategory;
@@ -147,7 +150,8 @@ $.shortcuts.add("ctrl+e", function () {
     $.print("Selected categories " + names);
 });
 
-$.shortcuts.add("alt+1", toggleCategoryFilter);
+$.shortcuts.add("ctrl+1", toggleCategoryFilter);
+addCommandHelp("toggleCategoryFilter()", "toggle between full view and filter by category. [ctrl+1]");
 
 // exclude lines matching condition from the scope
 // TODO. has to be aggregated with csi and trace

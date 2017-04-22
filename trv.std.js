@@ -238,8 +238,8 @@ function sf()
 }
 
 $.dotexpressions.add("sf", toggleFiltered);
-addCommandHelp("sf()", "switch between displaying all lines and lines which match filters");
 $.shortcuts.add("ctrl+h", toggleFiltered);
+addCommandHelp("sf()", "switch between displaying all lines and lines which match filters. [ctrl+h]");
 
 // show/hide unselected text
 var limitTagged = false;
