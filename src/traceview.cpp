@@ -431,18 +431,15 @@ LRESULT CTraceView::OnCustomDraw(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 			(void) SelectObject(pCD->nmcd.hdc, GetStockObject(ANSI_FIXED_FONT));
 
 			lRet = CDRF_NOTIFYPOSTPAINT | CDRF_NEWFONT;
+			bHandled = TRUE;
 			break;
 		}
+
 		case CDDS_ITEMPOSTPAINT:
-		{
+		default:
 			lRet = CDRF_DODEFAULT;
 			break;
-		}
-		default:
-			break;
 	}
-
-	bHandled = TRUE;
 
 	return lRet;
 }
