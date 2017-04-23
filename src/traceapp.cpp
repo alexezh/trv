@@ -92,9 +92,20 @@ HRESULT CTraceApp::Init(LPWSTR lpCmdLine)
 		}
 	}
 
-	if (m_SourceType == SourceType::File)
+	if (m_SourceType == SourceType::File && lpCmdLine)
 	{
-		m_File = lpCmdLine;
+		// copy removing possible "
+		size_t cch = wcslen(lpCmdLine);
+
+		for(size_t i = 0; i < cch; i++)
+		{
+			if (lpCmdLine[i] != '"')
+			{
+				m_File.push_back(lpCmdLine[i]);
+			}
+		}
+
+		// remove possible "
 	}
 
 	// create window
